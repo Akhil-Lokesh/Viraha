@@ -10,7 +10,14 @@ export type WidgetType =
   | 'album_carousel'
   | 'photo_mosaic'
   | 'mini_map'
-  | 'viraha_moment';
+  | 'viraha_moment'
+  | 'journey_preview'
+  | 'places_miss_you'
+  | 'want_to_go'
+  | 'time_capsule'
+  | 'seasonal_reflection'
+  | 'travel_style'
+  | 'kindred_travelers';
 
 /** Grid span in cell units — only whole-number multiples (1, 2, 4) */
 export interface WidgetGridSize {

@@ -84,6 +84,48 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetMeta> = {
     allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }, { cols: 4, rows: 4 }],
     maxInstances: 1,
   },
+  journey_preview: {
+    type: 'journey_preview', label: 'Latest Journey',
+    gridSize: { cols: 2, rows: 2 },
+    allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }, { cols: 4, rows: 4 }],
+    maxInstances: 1,
+  },
+  places_miss_you: {
+    type: 'places_miss_you', label: 'Places That Miss You',
+    gridSize: { cols: 2, rows: 2 },
+    allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }, { cols: 4, rows: 4 }],
+    maxInstances: 1,
+  },
+  want_to_go: {
+    type: 'want_to_go', label: 'Want to Go',
+    gridSize: { cols: 2, rows: 2 },
+    allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }],
+    maxInstances: 1,
+  },
+  time_capsule: {
+    type: 'time_capsule', label: 'Time Capsules',
+    gridSize: { cols: 2, rows: 2 },
+    allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }, { cols: 4, rows: 4 }],
+    maxInstances: 1,
+  },
+  seasonal_reflection: {
+    type: 'seasonal_reflection', label: 'Seasonal Reflection',
+    gridSize: { cols: 2, rows: 2 },
+    allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }, { cols: 4, rows: 4 }],
+    maxInstances: 1,
+  },
+  travel_style: {
+    type: 'travel_style', label: 'Travel DNA',
+    gridSize: { cols: 2, rows: 2 },
+    allowedSizes: [{ cols: 1, rows: 1 }, { cols: 2, rows: 1 }, { cols: 2, rows: 2 }],
+    maxInstances: 1,
+  },
+  kindred_travelers: {
+    type: 'kindred_travelers', label: 'Kindred Travelers',
+    gridSize: { cols: 2, rows: 2 },
+    allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }],
+    maxInstances: 1,
+  },
 };
 
 // ── Helpers ──────────────────────────────────────────────

@@ -13,6 +13,13 @@ import { AlbumCarouselWidget } from './album-carousel-widget';
 import { PhotoMosaicWidget } from './photo-mosaic-widget';
 import { MiniMapWidget } from './mini-map-widget';
 import { VirahaMomentWidget } from './viraha-moment-widget';
+import { JourneyPreviewWidget } from './journey-preview-widget';
+import { PlacesMissYouWidget } from './places-miss-you-widget';
+import { WantToGoWidget } from './want-to-go-widget';
+import { TimeCapsuleWidget } from './time-capsule-widget';
+import { SeasonalReflectionWidget } from './seasonal-reflection-widget';
+import { TravelStyleWidget } from './travel-style-widget';
+import { KindredTravelersWidget } from './kindred-travelers-widget';
 
 export const WIDGET_COMPONENTS: Record<WidgetType, ComponentType<{ size: WidgetGridSize; color?: string; albumId?: string }>> = {
   stats_countries: StatsCountriesWidget,
@@ -27,4 +34,11 @@ export const WIDGET_COMPONENTS: Record<WidgetType, ComponentType<{ size: WidgetG
   photo_mosaic: PhotoMosaicWidget,
   mini_map: MiniMapWidget,
   viraha_moment: VirahaMomentWidget,
+  journey_preview: JourneyPreviewWidget,
+  places_miss_you: PlacesMissYouWidget,
+  want_to_go: WantToGoWidget,
+  time_capsule: TimeCapsuleWidget,
+  seasonal_reflection: SeasonalReflectionWidget,
+  travel_style: TravelStyleWidget,
+  kindred_travelers: KindredTravelersWidget,
 };
