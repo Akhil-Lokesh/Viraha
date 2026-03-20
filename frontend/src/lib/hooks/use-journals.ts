@@ -9,6 +9,7 @@ import {
   createJournal,
   updateJournal,
   deleteJournal,
+  publishJournal,
   createJournalEntry,
   updateJournalEntry,
   deleteJournalEntry,
@@ -79,6 +80,16 @@ export function useDeleteJournal() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteJournal(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    },
+  });
+}
+
+export function usePublishJournal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => publishJournal(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journals'] });
     },

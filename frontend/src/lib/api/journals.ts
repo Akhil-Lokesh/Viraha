@@ -66,6 +66,11 @@ export async function updateJournal(id: string, input: UpdateJournalInput): Prom
   return res.data.data.journal;
 }
 
+export async function publishJournal(id: string): Promise<Journal> {
+  const res = await apiClient.post<JournalResponse>(`/journals/${id}/publish`);
+  return res.data.data.journal;
+}
+
 export async function deleteJournal(id: string): Promise<void> {
   await apiClient.delete(`/journals/${id}`);
 }

@@ -202,6 +202,8 @@ export interface CreateAlbumInput {
   description?: string;
   coverImage?: string;
   privacy?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface UpdateAlbumInput {
@@ -209,6 +211,8 @@ export interface UpdateAlbumInput {
   description?: string | null;
   coverImage?: string | null;
   privacy?: string;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 // ─── Journals ────────────────────────────────────────

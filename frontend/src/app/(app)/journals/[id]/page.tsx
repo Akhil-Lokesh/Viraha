@@ -10,7 +10,8 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { useJournal, useJournalEntries, useUpdateJournal, useUpdateEntry, useCreateEntry } from '@/lib/hooks/use-journals';
+import { useJournal, useJournalEntries, useUpdateJournal, useUpdateEntry, useCreateEntry, usePublishJournal } from '@/lib/hooks/use-journals';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import { RichTextEditor, getPlainTextExcerpt } from '@/components/journal/rich-text-editor';
 import { sanitizeHtml } from '@/lib/utils/sanitize-html';
 import { ColorPicker } from '@/components/journal/color-picker';
@@ -80,6 +81,9 @@ export default function JournalDetailPage() {
   const { data: entriesData, isLoading: entriesLoading } = useJournalEntries(journalId);
   const updateJournal = useUpdateJournal();
   const updateEntry = useUpdateEntry();
+  const publishMutation = usePublishJournal();
+  const currentUser = useAuthStore((s) => s.user);
+  const isOwner = journal && currentUser && journal.userId === currentUser.id;
 
   const entry = useMemo(() => {
     const entries = entriesData?.pages.flatMap((p) => p.items) ?? [];
@@ -314,18 +318,43 @@ export default function JournalDetailPage() {
             Journals
           </Box>
         </Link>
-        <Button
-          variant="outlined"
-          disableElevation
-          onClick={startEditing}
-          sx={{
-            borderRadius: '9999px',
-            gap: 0.75,
-          }}
-        >
-          <Pencil style={{ width: 14, height: 14 }} />
-          Edit
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {isOwner && journal.status === 'draft' && (
+            <Button
+              variant="contained"
+              disableElevation
+              disabled={publishMutation.isPending}
+              onClick={async () => {
+                try {
+                  await publishMutation.mutateAsync(journal.id);
+                  toast.success('Journal published!');
+                } catch {
+                  toast.error('Failed to publish. Make sure you have at least one entry.');
+                }
+              }}
+              sx={{
+                borderRadius: '9999px',
+                bgcolor: 'secondary.main',
+                color: 'white',
+                '&:hover': { bgcolor: 'secondary.dark' },
+              }}
+            >
+              {publishMutation.isPending ? 'Publishing...' : 'Publish'}
+            </Button>
+          )}
+          <Button
+            variant="outlined"
+            disableElevation
+            onClick={startEditing}
+            sx={{
+              borderRadius: '9999px',
+              gap: 0.75,
+            }}
+          >
+            <Pencil style={{ width: 14, height: 14 }} />
+            Edit
+          </Button>
+        </Box>
       </Box>
 
       <Typography
