@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
 }
 
 model User {
@@ -71,6 +73,7 @@ model Post {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   travelMode      String?   @map("travel_mode") @db.VarChar(20)
+  showLocation    Boolean   @default(true) @map("show_location")
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   comments   Comment[]
@@ -81,6 +84,7 @@ model Post {
   @@index([userId])
   @@index([postedAt])
   @@index([privacy])
+  @@index([userId, privacy, postedAt])
   @@map("posts")
 }
 
@@ -180,6 +184,7 @@ model Activity {
   comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@index([userId, read, createdAt])
+  @@index([userId, createdAt])
   @@map("activities")
 }
 
@@ -192,6 +197,9 @@ model Album {
   privacy     String    @default("public") @db.VarChar(20)
   slug        String    @unique @db.VarChar(250)
   postCount   Int       @default(0) @map("post_count")
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  viewCount   Int       @default(0) @map("view_count")
   isDeleted   Boolean   @default(false) @map("is_deleted")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -229,6 +237,11 @@ model Journal {
   privacy     String    @default("public") @db.VarChar(20)
   status      String    @default("draft") @db.VarChar(20)
   entryCount  Int       @default(0) @map("entry_count")
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  wordCount   Int       @default(0) @map("word_count")
+  viewCount   Int       @default(0) @map("view_count")
+  publishedAt DateTime? @map("published_at")
   isDeleted   Boolean   @default(false) @map("is_deleted")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -242,22 +255,25 @@ model Journal {
 }
 
 model JournalEntry {
-  id              String    @id @default(uuid()) @db.Uuid
-  journalId       String    @map("journal_id") @db.Uuid
-  date            DateTime?
-  title           String?   @db.VarChar(200)
-  content         String?
-  mediaUrls       String[]  @map("media_urls")
-  mood            String?   @db.VarChar(30)
-  locationLat     Decimal?  @map("location_lat")
-  locationLng     Decimal?  @map("location_lng")
-  locationName    String?   @map("location_name") @db.VarChar(255)
-  locationCity    String?   @map("location_city") @db.VarChar(100)
-  locationCountry String?   @map("location_country") @db.VarChar(100)
-  sortOrder       Int       @default(0) @map("sort_order")
-  isDeleted       Boolean   @default(false) @map("is_deleted")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id               String    @id @default(uuid()) @db.Uuid
+  journalId        String    @map("journal_id") @db.Uuid
+  date             DateTime?
+  title            String?   @db.VarChar(200)
+  content          String?
+  mediaUrls        String[]  @map("media_urls")
+  mood             String?   @db.VarChar(30)
+  locationLat      Decimal?  @map("location_lat")
+  locationLng      Decimal?  @map("location_lng")
+  locationName     String?   @map("location_name") @db.VarChar(255)
+  locationCity     String?   @map("location_city") @db.VarChar(100)
+  locationCountry  String?   @map("location_country") @db.VarChar(100)
+  weatherCondition String?   @map("weather_condition") @db.VarChar(50)
+  weatherTemp      Decimal?  @map("weather_temp")
+  weatherUnit      String?   @map("weather_unit") @db.VarChar(10)
+  sortOrder        Int       @default(0) @map("sort_order")
+  isDeleted        Boolean   @default(false) @map("is_deleted")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
 

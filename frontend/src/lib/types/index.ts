@@ -178,6 +178,9 @@ export interface Album {
   privacy: string;
   slug: string;
   postCount: number;
+  startDate: string | null;
+  endDate: string | null;
+  viewCount: number;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -220,6 +223,11 @@ export interface Journal {
   privacy: string;
   status: 'draft' | 'published';
   entryCount: number;
+  startDate: string | null;
+  endDate: string | null;
+  wordCount: number;
+  viewCount: number;
+  publishedAt: string | null;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -240,6 +248,9 @@ export interface JournalEntry {
   locationName: string | null;
   locationCity: string | null;
   locationCountry: string | null;
+  weatherCondition: string | null;
+  weatherTemp: number | null;
+  weatherUnit: string | null;
   sortOrder: number;
   isDeleted: boolean;
   createdAt: string;
