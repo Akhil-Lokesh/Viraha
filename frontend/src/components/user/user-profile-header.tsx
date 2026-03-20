@@ -11,6 +11,7 @@ import Button from '@mui/material/Button';
 import { useFollowUser, useUnfollowUser } from '@/lib/hooks/use-follows';
 import Link from 'next/link';
 import type { UserProfile } from '@/lib/types';
+import { FollowListDialog } from './follow-list-dialog';
 
 interface UserProfileHeaderProps {
   user: UserProfile;
@@ -19,6 +20,7 @@ interface UserProfileHeaderProps {
 
 export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHeaderProps) {
   const [isFollowing, setIsFollowing] = useState(user.isFollowing ?? false);
+  const [followDialog, setFollowDialog] = useState<'followers' | 'following' | null>(null);
 
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
@@ -176,7 +178,10 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
               </Typography>
             </Box>
             <Box sx={{ height: 40, width: 1, bgcolor: 'divider' }} />
-            <Box sx={{ textAlign: 'center' }}>
+            <Box
+              onClick={() => setFollowDialog('followers')}
+              sx={{ textAlign: 'center', cursor: 'pointer', '&:hover': { opacity: 0.7 }, transition: 'opacity 0.15s' }}
+            >
               <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: 'text.primary' }}>
                 {formatCount(displayedFollowerCount)}
               </Typography>
@@ -193,7 +198,10 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
               </Typography>
             </Box>
             <Box sx={{ height: 40, width: 1, bgcolor: 'divider' }} />
-            <Box sx={{ textAlign: 'center' }}>
+            <Box
+              onClick={() => setFollowDialog('following')}
+              sx={{ textAlign: 'center', cursor: 'pointer', '&:hover': { opacity: 0.7 }, transition: 'opacity 0.15s' }}
+            >
               <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: 'text.primary' }}>
                 {formatCount(followingCount)}
               </Typography>
@@ -245,6 +253,13 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
           </Box>
         </Box>
       </motion.div>
+
+      <FollowListDialog
+        open={followDialog !== null}
+        onClose={() => setFollowDialog(null)}
+        userId={user.id}
+        type={followDialog ?? 'followers'}
+      />
     </Box>
   );
 }

@@ -102,7 +102,7 @@ export async function getSavedPosts(req: Request, res: Response, next: NextFunct
     const cursor = req.query.cursor as string | undefined;
 
     const saves = await prisma.save.findMany({
-      where: { userId },
+      where: { userId, post: { isDeleted: false } },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { createdAt: 'desc' },
@@ -120,9 +120,7 @@ export async function getSavedPosts(req: Request, res: Response, next: NextFunct
     res.json({
       success: true,
       data: {
-        items: items
-          .filter((s) => !s.post.isDeleted)
-          .map((s) => ({ ...s.post, savedAt: s.createdAt })),
+        items: items.map((s) => ({ ...s.post, savedAt: s.createdAt })),
         nextCursor,
       },
     });

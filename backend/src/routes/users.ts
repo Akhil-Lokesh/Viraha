@@ -7,9 +7,12 @@ import { updateProfileSchema } from '../validators/userValidators';
 
 const router = Router();
 
-// Specific routes first
+// Specific routes first (must be before parameterized /:username)
 router.patch('/me', authenticate, validateBody(updateProfileSchema), updateProfile);
+router.get('/me/follow-requests', authenticate, getPendingRequests);
 router.get('/search', optionalAuth, searchUsers);
+router.post('/follow-requests/:followId/accept', authenticate, acceptFollowRequest);
+router.post('/follow-requests/:followId/reject', authenticate, rejectFollowRequest);
 
 // Parameterized routes
 router.get('/:username', optionalAuth, getUserByUsername);
@@ -18,8 +21,5 @@ router.delete('/:userId/follow', authenticate, unfollowUser);
 router.get('/:userId/followers', optionalAuth, getFollowers);
 router.get('/:userId/following', optionalAuth, getFollowing);
 router.get('/:userId/follow/status', authenticate, checkFollowStatus);
-router.get('/me/follow-requests', authenticate, getPendingRequests);
-router.post('/follow-requests/:followId/accept', authenticate, acceptFollowRequest);
-router.post('/follow-requests/:followId/reject', authenticate, rejectFollowRequest);
 
 export default router;

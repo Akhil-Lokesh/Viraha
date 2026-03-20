@@ -97,7 +97,7 @@ export async function getFollowers(req: Request, res: Response, next: NextFuncti
     const cursor = req.query.cursor as string | undefined;
 
     const follows = await prisma.follow.findMany({
-      where: { followingId: userId },
+      where: { followingId: userId, status: 'accepted' },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       orderBy: { createdAt: 'desc' },
@@ -127,7 +127,7 @@ export async function getFollowing(req: Request, res: Response, next: NextFuncti
     const cursor = req.query.cursor as string | undefined;
 
     const follows = await prisma.follow.findMany({
-      where: { followerId: userId },
+      where: { followerId: userId, status: 'accepted' },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       orderBy: { createdAt: 'desc' },
