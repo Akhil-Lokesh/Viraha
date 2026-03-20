@@ -8,6 +8,7 @@ import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter, authLimiter, uploadLimiter } from './middleware/rateLimiter';
 import { doubleCsrfProtection } from './middleware/csrf';
+import { prisma } from './lib/prisma';
 
 import authRoutes from './routes/auth';
 import postRoutes from './routes/posts';
