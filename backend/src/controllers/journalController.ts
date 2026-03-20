@@ -195,20 +195,28 @@ export async function getJournalBySlug(req: Request, res: Response, next: NextFu
       return;
     }
 
-    if (journal.privacy !== 'public' && journal.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Journal not found' },
-      });
-      return;
-    }
-
-    if (journal.status === 'draft' && journal.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Journal not found' },
-      });
-      return;
+    if (journal.userId !== req.user?.userId) {
+      if (journal.status === 'draft') {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Journal not found' } });
+        return;
+      }
+      if (journal.privacy === 'private') {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Journal not found' } });
+        return;
+      }
+      if (journal.privacy === 'followers') {
+        if (!req.user) {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Journal not found' } });
+          return;
+        }
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: journal.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Journal not found' } });
+          return;
+        }
+      }
     }
 
     res.json({ success: true, data: { journal } });
@@ -428,12 +436,24 @@ export async function getEntries(req: Request, res: Response, next: NextFunction
       return;
     }
 
-    if (journal.privacy !== 'public' && journal.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Journal not found' },
-      });
-      return;
+    if (journal.userId !== req.user?.userId) {
+      if (journal.privacy === 'private') {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Journal not found' } });
+        return;
+      }
+      if (journal.privacy === 'followers') {
+        if (!req.user) {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Journal not found' } });
+          return;
+        }
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: journal.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Journal not found' } });
+          return;
+        }
+      }
     }
 
     const entries = await prisma.journalEntry.findMany({

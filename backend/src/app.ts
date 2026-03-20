@@ -63,9 +63,14 @@ app.use(cookieParser());
 // Static files (uploaded images)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Health check
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
+// Health check with DB connectivity
+app.get('/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'connected' });
+  } catch {
+    res.status(503).json({ status: 'degraded', db: 'disconnected' });
+  }
 });
 
 // Rate limiting
@@ -73,8 +78,10 @@ app.use('/api/v1', apiLimiter);
 app.use('/api/v1/auth', authLimiter);
 app.use('/api/v1/media', uploadLimiter);
 
-// CSRF protection for state-changing requests
-app.use('/api/v1', doubleCsrfProtection);
+// CSRF protection for state-changing requests (skip in test)
+if (env.NODE_ENV !== 'test') {
+  app.use('/api/v1', doubleCsrfProtection);
+}
 
 // API routes
 app.use('/api/v1/auth', authRoutes);

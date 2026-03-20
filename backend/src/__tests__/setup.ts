@@ -9,8 +9,8 @@ const TEST_DATABASE_URL =
 // Override DATABASE_URL for Prisma in tests
 process.env.DATABASE_URL = TEST_DATABASE_URL;
 process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-secret-at-least-10-chars';
-process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-at-least-10-chars';
+process.env.JWT_SECRET = 'test-secret-key-must-be-at-least-32-characters-long';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-at-least-32-characters';
 process.env.CORS_ORIGIN = 'http://localhost:3000';
 
 const prisma = new PrismaClient({
