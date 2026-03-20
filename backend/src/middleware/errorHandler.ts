@@ -2,9 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod/v4';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { Sentry } from '../lib/sentry';
+import { logger } from '../lib/logger';
 
-export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
-  console.error('Error:', err.message);
+export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
+  logger.error({ err, url: req.originalUrl, method: req.method, userId: (req as any).user?.userId }, 'Request error');
 
   if (err instanceof ZodError) {
     res.status(400).json({

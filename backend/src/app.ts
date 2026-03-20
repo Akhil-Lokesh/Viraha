@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { logger } from './lib/logger';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { env } from './config/env';
@@ -57,7 +58,23 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+if (env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      logger.info({
+        method: req.method,
+        url: req.originalUrl,
+        statusCode: res.statusCode,
+        responseTime: Date.now() - start,
+        userId: (req as any).user?.userId,
+      }, 'request');
+    });
+    next();
+  });
+} else if (env.NODE_ENV !== 'test') {
+  app.use(morgan('dev'));
+}
 app.use(express.json());
 app.use(cookieParser());
 
