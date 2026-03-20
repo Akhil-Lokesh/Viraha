@@ -17,9 +17,17 @@ export function TravelStyleWidget({ size, color }: { size: WidgetGridSize; color
   const isWide = size.cols >= 4;
   const isCompact = size.cols <= 2 && size.rows <= 1;
 
-  const { data: atlas } = useAtlas();
+  const { data: atlas, isLoading } = useAtlas();
 
-  if (!atlas) {
+  if (isLoading) {
+    return (
+      <Box sx={{ bgcolor: c.bgTint, borderRadius: '16px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Fingerprint style={{ width: 24, height: 24, color: hex, opacity: 0.15, animation: 'pulse 2s ease-in-out infinite' }} />
+      </Box>
+    );
+  }
+
+  if (!atlas || atlas.stats.totalPosts === 0) {
     return (
       <Box
         sx={{
@@ -29,10 +37,18 @@ export function TravelStyleWidget({ size, color }: { size: WidgetGridSize; color
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 1,
           p: 2,
         }}
       >
-        <Fingerprint style={{ width: 24, height: 24, color: hex, opacity: 0.3 }} />
+        <Fingerprint style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
+        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
+          Your travel DNA
+        </Typography>
+        <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
+          Post from your travels to discover your style
+        </Typography>
       </Box>
     );
   }

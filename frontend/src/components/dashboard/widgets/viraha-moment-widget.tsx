@@ -25,6 +25,7 @@ const TYPE_LABELS: Record<string, string> = {
   place_anniversary: 'Place Anniversary',
   seasonal_echo: 'Seasonal Echo',
   weather_match: 'Weather Match',
+  recent_highlight: 'Recent Memory',
 };
 
 export function VirahaMomentWidget({ size, color }: { size: WidgetGridSize; color?: string }) {

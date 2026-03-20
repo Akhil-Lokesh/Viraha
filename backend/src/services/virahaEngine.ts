@@ -161,18 +161,62 @@ export async function getMoments(userId: string): Promise<VirahaMomentItem[]> {
 
   // Live computation: generate on-this-day moments
   const onThisDay = await getOnThisDay(userId);
-  return onThisDay.map((item) => ({
-    id: item.id,
-    type: 'on_this_day',
-    title: item.title,
-    description: `${item.yearsAgo} ${item.yearsAgo === 1 ? 'year' : 'years'} ago`,
-    referenceType: item.type,
-    referenceId: item.id,
-    thumbnail: item.thumbnail,
-    locationName: item.locationName,
-    yearsAgo: item.yearsAgo,
-    momentDate: item.originalDate,
-  }));
+  if (onThisDay.length > 0) {
+    return onThisDay.map((item) => ({
+      id: item.id,
+      type: 'on_this_day',
+      title: item.title,
+      description: `${item.yearsAgo} ${item.yearsAgo === 1 ? 'year' : 'years'} ago`,
+      referenceType: item.type,
+      referenceId: item.id,
+      thumbnail: item.thumbnail,
+      locationName: item.locationName,
+      yearsAgo: item.yearsAgo,
+      momentDate: item.originalDate,
+    }));
+  }
+
+  // Fallback: surface recent highlights when no historical data exists
+  return getRecentHighlights(userId);
+}
+
+/**
+ * Get recent post highlights as moments — used when no historical On This Day data exists.
+ */
+async function getRecentHighlights(userId: string): Promise<VirahaMomentItem[]> {
+  const posts = await prisma.post.findMany({
+    where: { userId, isDeleted: false },
+    orderBy: { postedAt: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      caption: true,
+      mediaThumbnails: true,
+      mediaUrls: true,
+      locationName: true,
+      locationCity: true,
+      locationCountry: true,
+      postedAt: true,
+    },
+  });
+
+  return posts.map((p) => {
+    const location = p.locationCity
+      ? `${p.locationCity}${p.locationCountry ? ', ' + p.locationCountry : ''}`
+      : p.locationName;
+    return {
+      id: p.id,
+      type: 'recent_highlight',
+      title: p.caption?.slice(0, 100) || location || 'A memory',
+      description: location,
+      referenceType: 'post',
+      referenceId: p.id,
+      thumbnail: p.mediaThumbnails[0] || p.mediaUrls[0] || null,
+      locationName: p.locationName,
+      yearsAgo: null,
+      momentDate: p.postedAt.toISOString(),
+    };
+  });
 }
 
 /**

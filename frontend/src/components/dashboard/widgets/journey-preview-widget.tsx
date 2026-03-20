@@ -1,12 +1,13 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Route, MapPin, Calendar, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
-import { useJourneys } from '@/lib/hooks/use-journeys';
+import { useJourneys, useDetectJourneys } from '@/lib/hooks/use-journeys';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
@@ -28,8 +29,26 @@ export function JourneyPreviewWidget({ size, color }: { size: WidgetGridSize; co
   const isWide = size.cols >= 4;
   const isTall = size.rows >= 4;
 
-  const { data: journeys } = useJourneys();
+  const { data: journeys, isLoading } = useJourneys();
+  const detect = useDetectJourneys();
   const latest = journeys?.[0];
+  const didAutoDetect = useRef(false);
+
+  // Auto-detect journeys on first load if none exist
+  useEffect(() => {
+    if (!isLoading && journeys && journeys.length === 0 && !didAutoDetect.current) {
+      didAutoDetect.current = true;
+      detect.mutate(undefined);
+    }
+  }, [isLoading, journeys]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isLoading || detect.isPending) {
+    return (
+      <Box sx={{ bgcolor: c.bgTint, borderRadius: '16px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Route style={{ width: 24, height: 24, color: hex, opacity: 0.15, animation: 'pulse 2s ease-in-out infinite' }} />
+      </Box>
+    );
+  }
 
   if (!latest) {
     return (

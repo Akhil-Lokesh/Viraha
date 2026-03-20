@@ -30,13 +30,17 @@ export function PlacesMissYouWidget({ size, color }: { size: WidgetGridSize; col
 
   const { data: places } = usePlaceResonance();
 
-  // Show places with high resonance that haven't been visited recently
+  // Show places ranked by resonance — prioritize places not visited recently
   const missedPlaces = (places ?? [])
-    .filter((p) => {
-      const daysSince = (Date.now() - new Date(p.latestVisit).getTime()) / 86400000;
-      return daysSince > 60 && p.resonance > 0.15;
+    .filter((p) => p.resonance > 0)
+    .sort((a, b) => {
+      const aDays = (Date.now() - new Date(a.latestVisit).getTime()) / 86400000;
+      const bDays = (Date.now() - new Date(b.latestVisit).getTime()) / 86400000;
+      // Boost older visits: resonance * days-since-factor
+      const aScore = a.resonance * Math.min(aDays / 30, 3);
+      const bScore = b.resonance * Math.min(bDays / 30, 3);
+      return bScore - aScore;
     })
-    .sort((a, b) => b.resonance - a.resonance)
     .slice(0, isWide ? 4 : 3);
 
   if (missedPlaces.length === 0) {
@@ -56,10 +60,10 @@ export function PlacesMissYouWidget({ size, color }: { size: WidgetGridSize; col
       >
         <Heart style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
         <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
-          All caught up
+          Places you love
         </Typography>
         <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
-          No places are missing you right now
+          Post from different places and they&apos;ll appear here
         </Typography>
       </Box>
     );

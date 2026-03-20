@@ -35,9 +35,17 @@ export function SeasonalReflectionWidget({ size, color }: { size: WidgetGridSize
   const isWide = size.cols >= 4;
   const isTall = size.rows >= 4;
 
-  const { data: reflection } = useSeasonalReflection();
+  const { data: reflection, isLoading } = useSeasonalReflection();
 
-  if (!reflection) {
+  if (isLoading) {
+    return (
+      <Box sx={{ bgcolor: c.bgTint, borderRadius: '16px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Leaf style={{ width: 24, height: 24, color: hex, opacity: 0.15, animation: 'pulse 2s ease-in-out infinite' }} />
+      </Box>
+    );
+  }
+
+  if (!reflection || (reflection.stats.postsCreated === 0 && reflection.stats.journalsWritten === 0)) {
     return (
       <Box
         sx={{
@@ -54,7 +62,10 @@ export function SeasonalReflectionWidget({ size, color }: { size: WidgetGridSize
       >
         <Leaf style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
         <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
-          Seasonal reflection loading...
+          Seasonal reflection
+        </Typography>
+        <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
+          Create memories this season to see your reflection
         </Typography>
       </Box>
     );
