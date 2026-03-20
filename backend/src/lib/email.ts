@@ -1,4 +1,5 @@
 import { env } from '../config/env';
+import { logger } from './logger';
 
 let resend: any = null;
 
@@ -20,7 +21,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   const client = await getResend();
 
   if (!client) {
-    console.log(`[PASSWORD RESET] Email delivery skipped (no Resend client) for user.`);
+    logger.debug('Password reset email delivery skipped (no Resend client)');
     return false;
   }
 
@@ -42,7 +43,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
     });
     return true;
   } catch (err) {
-    console.error('Failed to send password reset email:', (err as Error).message);
+    logger.error({ err }, 'Failed to send password reset email');
     return false;
   }
 }
@@ -51,7 +52,7 @@ export async function sendWelcomeEmail(to: string, username: string): Promise<bo
   const client = await getResend();
 
   if (!client) {
-    console.log(`[WELCOME EMAIL] Would send to ${to} for user ${username}`);
+    logger.debug({ to, username }, 'Welcome email delivery skipped (no Resend client)');
     return false;
   }
 
@@ -73,7 +74,7 @@ export async function sendWelcomeEmail(to: string, username: string): Promise<bo
     });
     return true;
   } catch (err) {
-    console.error('Failed to send welcome email:', err);
+    logger.error({ err }, 'Failed to send welcome email');
     return false;
   }
 }

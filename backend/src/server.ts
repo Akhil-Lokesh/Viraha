@@ -5,8 +5,8 @@ initSentry();
 
 import app from './app';
 import { env } from './config/env';
+import { logger } from './lib/logger';
 
 app.listen(env.PORT, () => {
-  console.log(`Viraha API running on http://localhost:${env.PORT}`);
-  console.log(`Environment: ${env.NODE_ENV}`);
+  logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Viraha API started');
 });

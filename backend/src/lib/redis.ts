@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { env } from '../config/env';
+import { logger } from './logger';
 
 let redis: Redis | null = null;
 
@@ -10,15 +11,15 @@ if (env.REDIS_URL) {
   });
 
   redis.on('error', (err) => {
-    console.error('[Redis] Connection error:', err.message);
+    logger.error({ err }, 'Redis connection error');
   });
 
   redis.on('connect', () => {
-    console.log('[Redis] Connected');
+    logger.info('Redis connected');
   });
 
   redis.connect().catch(() => {
-    console.warn('[Redis] Failed to connect — caching disabled');
+    logger.warn('Redis failed to connect — caching disabled');
     redis = null;
   });
 }
