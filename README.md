@@ -100,6 +100,17 @@ Key route groups: `/auth`, `/posts`, `/albums`, `/journals`, `/users`, `/feed`, 
 
 See `backend/.env.example` and `frontend/.env.local.example` for all configuration options.
 
+## Testing
+
+```bash
+# Backend (requires Docker for test database)
+docker compose up -d postgres-test redis
+cd backend && npm run test:coverage
+
+# Frontend
+cd frontend && npm run test:coverage
+```
+
 ## License
 
-Private — All rights reserved.
+MIT
