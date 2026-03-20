@@ -7,5 +7,11 @@ export default defineConfig({
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['src/__tests__/**/*.test.ts'],
     testTimeout: 30000,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/__tests__/**', 'src/**/*.d.ts'],
+    },
   },
 });

@@ -21,6 +21,17 @@ services:
       - redisdata:/data
     restart: unless-stopped
 
+  postgres-test:
+    image: postgis/postgis:15-3.4
+    container_name: viraha-postgres-test
+    environment:
+      POSTGRES_DB: viraha_test
+      POSTGRES_USER: viraha
+      POSTGRES_PASSWORD: viraha_test_password
+    ports:
+      - "5434:5432"
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:

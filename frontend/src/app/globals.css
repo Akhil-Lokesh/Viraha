@@ -1,0 +1,212 @@
+/* ── Custom Fonts ── */
+
+/* TT Chocolates — body font */
+@font-face {
+  font-family: 'TT Chocolates';
+  src: url('/fonts/tt-chocolates/regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TT Chocolates';
+  src: url('/fonts/tt-chocolates/italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TT Chocolates';
+  src: url('/fonts/tt-chocolates/medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TT Chocolates';
+  src: url('/fonts/tt-chocolates/medium-italic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TT Chocolates';
+  src: url('/fonts/tt-chocolates/demibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TT Chocolates';
+  src: url('/fonts/tt-chocolates/demibold-italic.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TT Chocolates';
+  src: url('/fonts/tt-chocolates/bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TT Chocolates';
+  src: url('/fonts/tt-chocolates/bold-italic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Eastman — heading font */
+@font-face {
+  font-family: 'Eastman';
+  src: url('/fonts/eastman/regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Eastman';
+  src: url('/fonts/eastman/italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Eastman';
+  src: url('/fonts/eastman/medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Eastman';
+  src: url('/fonts/eastman/demibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Eastman';
+  src: url('/fonts/eastman/bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Eastman';
+  src: url('/fonts/eastman/bold-italic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Posterama — brand/logo font */
+@font-face {
+  font-family: 'Posterama';
+  src: url('/fonts/posterama/semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Posterama';
+  src: url('/fonts/posterama/bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ResotYc — accent/decorative font */
+@font-face {
+  font-family: 'ResotYc';
+  src: url('/fonts/resotyc/regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── CSS Variables ── */
+:root {
+  --font-body: 'TT Chocolates', sans-serif;
+  --font-heading: 'TT Chocolates', sans-serif;
+  --font-brand: 'Posterama', sans-serif;
+  --font-accent: 'ResotYc', serif;
+}
+
+/* ── Mobile-Native Resets ── */
+html {
+  overscroll-behavior: none;          /* kill pull-to-refresh & rubber-band */
+  -webkit-text-size-adjust: 100%;     /* prevent iOS landscape font inflation */
+  scroll-behavior: smooth;
+}
+
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;  /* remove tap flash */
+}
+
+/* No text selection on interactive elements */
+button, a, nav, [role="button"], [role="tab"], [role="navigation"], label {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Content stays selectable */
+p, span, h1, h2, h3, h4, h5, h6, blockquote, figcaption, article {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Prevent iOS zoom on input focus */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Touch action hints */
+.horizontal-scroll {
+  touch-action: pan-x;
+}
+
+/* MapLibre overrides */
+.maplibregl-popup-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+.maplibregl-popup-tip {
+  display: none !important;
+}
+
+/* Gradient utilities */
+.gradient-hero {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.3) 40%,
+    rgba(0, 0, 0, 0.05) 70%,
+    transparent 100%
+  );
+}
+.gradient-warm {
+  background: linear-gradient(135deg, #7B6FA0 0%, #D4A843 50%, #7B6FA0 100%);
+}
+.gradient-sunset {
+  background: linear-gradient(135deg, #7B6FA0 0%, #7B6FA0 40%, #D4A843 100%);
+}
+.text-gradient {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(135deg, #7B6FA0 0%, #D4A843 50%, #7B6FA0 100%);
+}
+
+/* Scrollbar utility */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
