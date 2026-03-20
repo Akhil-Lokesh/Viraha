@@ -34,6 +34,8 @@ export async function createAlbum(req: Request, res: Response, next: NextFunctio
         description: data.description,
         coverImage: data.coverImage,
         privacy: data.privacy,
+        startDate: data.startDate ? new Date(data.startDate) : null,
+        endDate: data.endDate ? new Date(data.endDate) : null,
         slug,
       },
       include: { user: { select: userSelect } },
@@ -57,10 +59,16 @@ export async function getAlbums(req: Request, res: Response, next: NextFunction)
       where.userId = userId;
     }
 
-    // Privacy filter: public albums + own albums if authenticated
     if (req.user) {
+      const follows = await prisma.follow.findMany({
+        where: { followerId: req.user.userId, status: 'accepted' },
+        select: { followingId: true },
+      });
+      const followedIds = follows.map((f) => f.followingId);
+
       where.OR = [
         { privacy: 'public' },
+        { privacy: 'followers', userId: { in: followedIds } },
         { userId: req.user.userId },
       ];
     } else {
@@ -206,6 +214,8 @@ export async function updateAlbum(req: Request, res: Response, next: NextFunctio
         ...(data.description !== undefined && { description: data.description }),
         ...(data.coverImage !== undefined && { coverImage: data.coverImage }),
         ...(data.privacy !== undefined && { privacy: data.privacy }),
+        ...(data.startDate !== undefined && { startDate: data.startDate ? new Date(data.startDate) : null }),
+        ...(data.endDate !== undefined && { endDate: data.endDate ? new Date(data.endDate) : null }),
       },
       include: { user: { select: userSelect } },
     });

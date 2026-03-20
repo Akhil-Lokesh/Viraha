@@ -9,6 +9,22 @@ const userSelect = {
   avatar: true,
 };
 
+async function recalculateWordCount(journalId: string): Promise<number> {
+  const entries = await prisma.journalEntry.findMany({
+    where: { journalId, isDeleted: false },
+    select: { content: true },
+  });
+  const totalWords = entries.reduce((sum, entry) => {
+    const words = entry.content ? entry.content.trim().split(/\s+/).filter(Boolean).length : 0;
+    return sum + words;
+  }, 0);
+  await prisma.journal.update({
+    where: { id: journalId },
+    data: { wordCount: totalWords },
+  });
+  return totalWords;
+}
+
 function generateSlug(title: string): string {
   const base = title
     .toLowerCase()
@@ -58,8 +74,15 @@ export async function getJournals(req: Request, res: Response, next: NextFunctio
     }
 
     if (req.user) {
+      const follows = await prisma.follow.findMany({
+        where: { followerId: req.user.userId, status: 'accepted' },
+        select: { followingId: true },
+      });
+      const followedIds = follows.map((f) => f.followingId);
+
       where.OR = [
         { privacy: 'public', status: 'published' },
+        { privacy: 'followers', status: 'published', userId: { in: followedIds } },
         { userId: req.user.userId },
       ];
     } else {
@@ -108,20 +131,39 @@ export async function getJournalById(req: Request, res: Response, next: NextFunc
       return;
     }
 
-    if (journal.privacy !== 'public' && journal.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Journal not found' },
-      });
-      return;
-    }
-
-    if (journal.status === 'draft' && journal.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Journal not found' },
-      });
-      return;
+    if (journal.userId !== req.user?.userId) {
+      if (journal.status === 'draft') {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Journal not found' },
+        });
+        return;
+      }
+      if (journal.privacy === 'private') {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Journal not found' },
+        });
+        return;
+      }
+      if (journal.privacy === 'followers' && req.user) {
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: journal.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Journal not found' },
+          });
+          return;
+        }
+      } else if (journal.privacy === 'followers') {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Journal not found' },
+        });
+        return;
+      }
     }
 
     res.json({ success: true, data: { journal } });
@@ -248,6 +290,60 @@ export async function deleteJournal(req: Request, res: Response, next: NextFunct
   }
 }
 
+export async function publishJournal(req: Request, res: Response, next: NextFunction) {
+  try {
+    const id = req.params.id as string;
+    const userId = req.user!.userId;
+
+    const journal = await prisma.journal.findUnique({
+      where: { id },
+      include: { _count: { select: { entries: { where: { isDeleted: false } } } } },
+    });
+
+    if (!journal || journal.isDeleted) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Journal not found' },
+      });
+      return;
+    }
+
+    if (journal.userId !== userId) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'You can only publish your own journals' },
+      });
+      return;
+    }
+
+    if (journal.status === 'published') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'Journal is already published' },
+      });
+      return;
+    }
+
+    if (journal._count.entries === 0) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'Journal must have at least one entry to publish' },
+      });
+      return;
+    }
+
+    const updated = await prisma.journal.update({
+      where: { id },
+      data: { status: 'published', publishedAt: new Date() },
+      include: { user: { select: userSelect } },
+    });
+
+    res.json({ success: true, data: { journal: updated } });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ── Journal Entries ──────────────────────────────────
 
 export async function createEntry(req: Request, res: Response, next: NextFunction) {
@@ -307,6 +403,8 @@ export async function createEntry(req: Request, res: Response, next: NextFunctio
         data: updateData,
       }),
     ]);
+
+    await recalculateWordCount(journalId);
 
     res.status(201).json({ success: true, data: { entry } });
   } catch (err) {
@@ -398,6 +496,10 @@ export async function updateEntry(req: Request, res: Response, next: NextFunctio
         ...(data.locationCountry !== undefined && { locationCountry: data.locationCountry }),
       },
     });
+
+    if (data.content !== undefined) {
+      await recalculateWordCount(journalId);
+    }
 
     res.json({ success: true, data: { entry: updated } });
   } catch (err) {

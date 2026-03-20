@@ -6,6 +6,7 @@ import {
   getJournalBySlug,
   updateJournal,
   deleteJournal,
+  publishJournal,
   createEntry,
   getEntries,
   updateEntry,
@@ -27,6 +28,7 @@ router.get('/', optionalAuth, getJournals);
 router.get('/slug/:slug', optionalAuth, getJournalBySlug);
 router.get('/:id', optionalAuth, getJournalById);
 router.put('/:id', authenticate, validateBody(updateJournalSchema), updateJournal);
+router.post('/:id/publish', authenticate, publishJournal);
 router.delete('/:id', authenticate, deleteJournal);
 
 router.post('/:id/entries', authenticate, validateBody(createJournalEntrySchema), createEntry);

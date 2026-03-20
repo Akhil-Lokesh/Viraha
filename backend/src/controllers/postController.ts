@@ -15,15 +15,23 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = req.query.cursor as string | undefined;
 
-    const where: any = { isDeleted: false, privacy: 'public' };
+    const where: any = { isDeleted: false };
 
-    // If authenticated, also include the user's own posts
     if (req.user) {
+      // Get followed user IDs for followers-only content
+      const follows = await prisma.follow.findMany({
+        where: { followerId: req.user.userId, status: 'accepted' },
+        select: { followingId: true },
+      });
+      const followedIds = follows.map((f) => f.followingId);
+
       where.OR = [
         { privacy: 'public' },
+        { privacy: 'followers', userId: { in: followedIds } },
         { userId: req.user.userId },
       ];
-      delete where.privacy;
+    } else {
+      where.privacy = 'public';
     }
 
     const posts = await prisma.post.findMany({
