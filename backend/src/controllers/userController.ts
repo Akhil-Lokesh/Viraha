@@ -122,9 +122,16 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
     const user = await prisma.user.update({
       where: { id: req.user!.userId },
       data,
+      select: {
+        id: true, username: true, email: true, displayName: true,
+        bio: true, avatar: true, homeCity: true, homeCountry: true,
+        homeLat: true, homeLng: true, isPrivate: true, showLocation: true,
+        emailVerified: true, isActive: true, lastLoginAt: true,
+        createdAt: true, updatedAt: true,
+      },
     });
 
-    const { passwordHash, ...sanitized } = user;
+    const sanitized = user;
 
     res.json({ success: true, data: { user: sanitized } });
   } catch (err) {
