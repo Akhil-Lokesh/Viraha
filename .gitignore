@@ -39,6 +39,9 @@ yarn-error.log*
 
 # Testing
 coverage/
+test-results/
+playwright-report/
+e2e-results/
 
 # Uploads (keep directory structure)
 backend/uploads/*
