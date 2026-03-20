@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: viraha-postgres
+    environment:
+      POSTGRES_DB: viraha_dev
+      POSTGRES_USER: viraha
+      POSTGRES_PASSWORD: viraha_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: viraha-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

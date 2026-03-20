@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  username      String    @unique @db.VarChar(30)
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  displayName   String?   @map("display_name") @db.VarChar(100)
+  bio           String?
+  avatar        String?
+  homeCity      String?   @map("home_city") @db.VarChar(100)
+  homeCountry   String?   @map("home_country") @db.VarChar(100)
+  homeLat       Decimal?  @map("home_lat")
+  homeLng       Decimal?  @map("home_lng")
+  isPrivate     Boolean   @default(false) @map("is_private")
+  showLocation  Boolean   @default(true) @map("show_location")
+  authProvider  String?   @map("auth_provider") @db.VarChar(20)
+  googleId      String?   @unique @map("google_id") @db.VarChar(255)
+  emailVerified Boolean   @default(false) @map("email_verified")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  travelMode      String    @default("local") @map("travel_mode") @db.VarChar(20)
+  currentLat      Decimal?  @map("current_lat")
+  currentLng      Decimal?  @map("current_lng")
+
+  posts            Post[]
+  refreshTokens    RefreshToken[]
+  passwordResets   PasswordReset[]
+  followers        Follow[]    @relation("following")
+  following        Follow[]    @relation("followers")
+  comments         Comment[]
+  saves            Save[]
+  activities       Activity[]  @relation("activities")
+  actorActivities  Activity[]  @relation("actorActivities")
+  albums           Album[]
+  journals         Journal[]
+
+  @@map("users")
+}
+
+model Post {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  caption         String?
+  mediaUrls       String[]  @map("media_urls")
+  mediaThumbnails String[]  @map("media_thumbnails")
+  locationLat     Decimal   @map("location_lat")
+  locationLng     Decimal   @map("location_lng")
+  locationName    String?   @map("location_name") @db.VarChar(255)
+  locationCity    String?   @map("location_city") @db.VarChar(100)
+  locationCountry String?   @map("location_country") @db.VarChar(100)
+  placeId         String?   @map("place_id") @db.VarChar(255)
+  takenAt         DateTime? @map("taken_at")
+  postedAt        DateTime  @default(now()) @map("posted_at")
+  privacy         String    @default("public") @db.VarChar(20)
+  tags            String[]
+  commentCount    Int       @default(0) @map("comment_count")
+  saveCount       Int       @default(0) @map("save_count")
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  travelMode      String?   @map("travel_mode") @db.VarChar(20)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments   Comment[]
+  saves      Save[]
+  activities Activity[]
+  albumPosts AlbumPost[]
+
+  @@index([userId])
+  @@index([postedAt])
+  @@index([privacy])
+  @@map("posts")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_resets")
+}
+
+model Follow {
+  id          String   @id @default(uuid()) @db.Uuid
+  followerId  String   @map("follower_id") @db.Uuid
+  followingId String   @map("following_id") @db.Uuid
+  status      String   @default("accepted") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  text      String   @db.VarChar(1000)
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post       Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     Comment?   @relation("replies", fields: [parentId], references: [id])
+  replies    Comment[]  @relation("replies")
+  activities Activity[]
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model Save {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, createdAt])
+  @@map("saves")
+}
+
+model Activity {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  actorId   String   @map("actor_id") @db.Uuid
+  type      String   @db.VarChar(30)
+  postId    String?  @map("post_id") @db.Uuid
+  commentId String?  @map("comment_id") @db.Uuid
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User     @relation("activities", fields: [userId], references: [id], onDelete: Cascade)
+  actor   User     @relation("actorActivities", fields: [actorId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("activities")
+}
+
+model Album {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  title       String    @db.VarChar(200)
+  description String?
+  coverImage  String?   @map("cover_image")
+  privacy     String    @default("public") @db.VarChar(20)
+  slug        String    @unique @db.VarChar(250)
+  postCount   Int       @default(0) @map("post_count")
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  albumPosts AlbumPost[]
+
+  @@index([userId, createdAt])
+  @@index([slug])
+  @@map("albums")
+}
+
+model AlbumPost {
+  id        String   @id @default(uuid()) @db.Uuid
+  albumId   String   @map("album_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  album Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([albumId, postId])
+  @@index([albumId, sortOrder])
+  @@map("album_posts")
+}
+
+model Journal {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  title       String    @db.VarChar(200)
+  summary     String?
+  coverImage  String?   @map("cover_image")
+  slug        String    @unique @db.VarChar(250)
+  privacy     String    @default("public") @db.VarChar(20)
+  status      String    @default("draft") @db.VarChar(20)
+  entryCount  Int       @default(0) @map("entry_count")
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries JournalEntry[]
+
+  @@index([userId, createdAt])
+  @@index([slug])
+  @@map("journals")
+}
+
+model JournalEntry {
+  id              String    @id @default(uuid()) @db.Uuid
+  journalId       String    @map("journal_id") @db.Uuid
+  date            DateTime?
+  title           String?   @db.VarChar(200)
+  content         String?
+  mediaUrls       String[]  @map("media_urls")
+  mood            String?   @db.VarChar(30)
+  locationLat     Decimal?  @map("location_lat")
+  locationLng     Decimal?  @map("location_lng")
+  locationName    String?   @map("location_name") @db.VarChar(255)
+  locationCity    String?   @map("location_city") @db.VarChar(100)
+  locationCountry String?   @map("location_country") @db.VarChar(100)
+  sortOrder       Int       @default(0) @map("sort_order")
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+
+  @@index([journalId, sortOrder])
+  @@map("journal_entries")
+}
+
+model Report {
+  id         String   @id @default(uuid()) @db.Uuid
+  reporterId String   @map("reporter_id") @db.Uuid
+  targetType String   @map("target_type") @db.VarChar(30)
+  targetId   String   @map("target_id") @db.Uuid
+  reason     String   @db.VarChar(50)
+  details    String?
+  status     String   @default("pending") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([targetType, targetId])
+  @@index([reporterId])
+  @@map("reports")
+}
