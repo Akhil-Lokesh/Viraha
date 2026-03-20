@@ -48,8 +48,8 @@ export function BottomNav() {
           height: 64,
           px: 1,
           borderRadius: '32px',
-          bgcolor: '#7B68EE',
-          boxShadow: '0 8px 32px rgba(123, 104, 238, 0.35)',
+          bgcolor: 'primary.main',
+          boxShadow: '0 8px 32px rgba(var(--mui-palette-primary-mainChannel) / 0.35)',
           pb: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
@@ -73,7 +73,7 @@ export function BottomNav() {
                       justifyContent: 'center',
                       borderRadius: '50%',
                       bgcolor: 'white',
-                      color: '#7B68EE',
+                      color: 'primary.main',
                       boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
                     }}
                   >
@@ -102,7 +102,7 @@ export function BottomNav() {
                   height: 48,
                   borderRadius: '14px',
                   transition: 'all 0.2s',
-                  color: isActive ? '#7B68EE' : 'rgba(255,255,255,0.7)',
+                  color: isActive ? 'primary.main' : 'rgba(255,255,255,0.7)',
                 }}
               >
                 {/* Active pill */}

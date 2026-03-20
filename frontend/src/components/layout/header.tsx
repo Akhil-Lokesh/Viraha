@@ -41,16 +41,10 @@ export function Header() {
         transition: 'all 0.3s',
         ...(scrolled
           ? {
-              bgcolor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? alpha('#1F1530', 0.9)
-                  : alpha('#FFFFFF', 0.9),
+              bgcolor: (theme) => alpha(theme.palette.background.paper, 0.9),
               backdropFilter: 'blur(24px) saturate(180%)',
               borderBottom: 1,
-              borderColor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(0,0,0,0.08)',
+              borderColor: 'var(--mui-palette-outlineVariant)',
               boxShadow: 1,
             }
           : {

@@ -5,7 +5,7 @@ import { env } from '../config/env';
 const isProduction = env.NODE_ENV === 'production';
 
 const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
-  getSecret: () => env.JWT_SECRET,
+  getSecret: () => env.CSRF_SECRET || env.JWT_SECRET,
   getSessionIdentifier: (req: Request) => req.cookies?.viraha_access || req.ip || 'anonymous',
   cookieName: 'viraha_csrf',
   cookieOptions: {

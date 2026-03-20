@@ -56,7 +56,7 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(morgan('dev'));
+app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(cookieParser());
 

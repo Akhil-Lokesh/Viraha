@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { randomBytes } from 'crypto';
-import { RegisterInput, LoginInput, RefreshTokenInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput } from '../validators/authValidators';
+import { RegisterInput, LoginInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput } from '../validators/authValidators';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '../lib/email';
 import { setAccessTokenCookie, setRefreshTokenCookie, clearAuthCookies } from '../utils/cookies';
 
@@ -61,8 +61,6 @@ export async function register(req: Request, res: Response, next: NextFunction) 
       success: true,
       data: {
         user: sanitizeUser(user),
-        accessToken,
-        refreshToken,
       },
     });
   } catch (err) {
@@ -92,6 +90,14 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       return;
     }
 
+    if (!user.isActive) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Account has been deactivated' },
+      });
+      return;
+    }
+
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
@@ -115,8 +121,6 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       success: true,
       data: {
         user: sanitizeUser(user),
-        accessToken,
-        refreshToken,
       },
     });
   } catch (err) {
@@ -149,9 +153,9 @@ export async function me(req: Request, res: Response, next: NextFunction) {
 
 export async function refreshTokenHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const refreshToken = req.cookies?.viraha_refresh || (req.body as RefreshTokenInput)?.refreshToken;
+    const token = req.cookies?.viraha_refresh;
 
-    if (!refreshToken) {
+    if (!token) {
       res.status(401).json({
         success: false,
         error: { code: 'UNAUTHORIZED', message: 'No refresh token provided' },
@@ -160,7 +164,7 @@ export async function refreshTokenHandler(req: Request, res: Response, next: Nex
     }
 
     const storedToken = await prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
+      where: { token },
     });
 
     if (!storedToken) {
@@ -172,7 +176,7 @@ export async function refreshTokenHandler(req: Request, res: Response, next: Nex
     }
 
     try {
-      verifyRefreshToken(refreshToken);
+      verifyRefreshToken(token);
     } catch {
       res.status(401).json({
         success: false,
@@ -207,7 +211,7 @@ export async function refreshTokenHandler(req: Request, res: Response, next: Nex
 
     res.json({
       success: true,
-      data: { accessToken, refreshToken: newRefreshToken },
+      data: { message: 'Token refreshed' },
     });
   } catch (err) {
     next(err);
@@ -216,7 +220,7 @@ export async function refreshTokenHandler(req: Request, res: Response, next: Nex
 
 export async function logout(req: Request, res: Response, next: NextFunction) {
   try {
-    const refreshToken = req.cookies?.viraha_refresh || (req.body as RefreshTokenInput)?.refreshToken;
+    const refreshToken = req.cookies?.viraha_refresh;
 
     if (refreshToken) {
       await prisma.refreshToken.deleteMany({

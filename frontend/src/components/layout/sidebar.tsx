@@ -68,9 +68,9 @@ export function Sidebar() {
         width: 72,
         flexDirection: 'column',
         alignItems: 'center',
-        bgcolor: '#7B68EE',
+        bgcolor: 'primary.main',
         borderRadius: '36px',
-        boxShadow: '0 8px 32px rgba(123, 104, 238, 0.25)',
+        boxShadow: '0 8px 32px rgba(var(--mui-palette-primary-mainChannel) / 0.25)',
         py: 3,
       }}
     >
@@ -218,7 +218,7 @@ export function Sidebar() {
                 width: 28,
                 height: 28,
                 borderRadius: '50%',
-                backgroundColor: '#1a2744',
+                backgroundColor: 'var(--mui-palette-surfaceContainerHighest)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

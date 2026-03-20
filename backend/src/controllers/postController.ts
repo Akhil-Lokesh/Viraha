@@ -78,12 +78,33 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
     }
 
     // Check privacy
-    if (post.privacy !== 'public' && post.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Post not found' },
-      });
-      return;
+    if (post.userId !== req.user?.userId) {
+      if (post.privacy === 'private') {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Post not found' },
+        });
+        return;
+      }
+      if (post.privacy === 'followers') {
+        if (!req.user) {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Post not found' },
+          });
+          return;
+        }
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: post.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Post not found' },
+          });
+          return;
+        }
+      }
     }
 
     res.json({ success: true, data: { post } });

@@ -107,8 +107,7 @@ export default function AuthLayout({
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '100vh',
-          bgcolor: (theme) =>
-            theme.palette.mode === 'dark' ? '#1F1530' : '#fff2e5',
+          bgcolor: 'background.default',
         }}
       >
         <Box

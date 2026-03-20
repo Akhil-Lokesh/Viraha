@@ -1,8 +1,13 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { lightTheme, darkTheme } from '@/lib/theme';
+import { createContext, useContext, useCallback, useMemo } from 'react';
+import {
+  ThemeProvider,
+  CssBaseline,
+  useColorScheme,
+} from '@mui/material';
+import type { SupportedColorScheme } from '@mui/material/styles';
+import { theme } from '@/lib/theme';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -20,35 +25,52 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useThemeMode = () => useContext(ThemeContext);
 
-export function VirahaMuiProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>('system');
-  const [systemPrefersDark, setSystemPrefersDark] = useState(false);
+/**
+ * Inner component that has access to useColorScheme()
+ * (must be rendered inside ThemeProvider).
+ */
+function ThemeModeSync({ children }: { children: React.ReactNode }) {
+  const { mode, setMode: setMuiMode, systemMode } = useColorScheme();
 
-  useEffect(() => {
-    const stored = localStorage.getItem('viraha-theme') as ThemeMode | null;
-    if (stored) setModeState(stored);
+  const resolvedMode = (
+    mode === 'system' ? (systemMode ?? 'light') : (mode ?? 'light')
+  ) as 'light' | 'dark';
 
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    setSystemPrefersDark(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setSystemPrefersDark(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
+  const setMode = useCallback(
+    (newMode: ThemeMode) => {
+      setMuiMode(newMode as SupportedColorScheme | 'system');
+      localStorage.setItem('viraha-theme', newMode);
+    },
+    [setMuiMode],
+  );
 
-  const setMode = useCallback((newMode: ThemeMode) => {
-    setModeState(newMode);
-    localStorage.setItem('viraha-theme', newMode);
-  }, []);
-
-  const resolvedMode = mode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : mode;
-  const theme = useMemo(() => (resolvedMode === 'dark' ? darkTheme : lightTheme), [resolvedMode]);
+  const ctx = useMemo<ThemeContextType>(
+    () => ({
+      mode: (mode ?? 'system') as ThemeMode,
+      setMode,
+      resolvedMode,
+    }),
+    [mode, setMode, resolvedMode],
+  );
 
   return (
-    <ThemeContext.Provider value={{ mode, setMode, resolvedMode }}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        {children}
-      </ThemeProvider>
+    <ThemeContext.Provider value={ctx}>
+      {children}
     </ThemeContext.Provider>
+  );
+}
+
+export function VirahaMuiProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider
+      theme={theme}
+      defaultMode="system"
+      noSsr
+    >
+      <CssBaseline enableColorScheme />
+      <ThemeModeSync>
+        {children}
+      </ThemeModeSync>
+    </ThemeProvider>
   );
 }

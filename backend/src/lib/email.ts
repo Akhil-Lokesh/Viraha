@@ -6,8 +6,8 @@ async function getResend() {
   if (resend) return resend;
   if (!env.RESEND_API_KEY) return null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = await (eval('import("resend")') as Promise<any>);
+    // Dynamic import for optional dependency — resend may not be installed
+    const mod = await (Function('return import("resend")')() as Promise<any>);
     resend = new mod.Resend(env.RESEND_API_KEY);
     return resend;
   } catch {
@@ -20,8 +20,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   const client = await getResend();
 
   if (!client) {
-    console.log(`\n[PASSWORD RESET] Token for ${to}: ${token}`);
-    console.log(`Reset URL: ${resetUrl}\n`);
+    console.log(`[PASSWORD RESET] Email delivery skipped (no Resend client) for user.`);
     return false;
   }
 
@@ -43,9 +42,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
     });
     return true;
   } catch (err) {
-    console.error('Failed to send password reset email:', err);
-    console.log(`[PASSWORD RESET FALLBACK] Token for ${to}: ${token}`);
-    console.log(`Reset URL: ${resetUrl}\n`);
+    console.error('Failed to send password reset email:', (err as Error).message);
     return false;
   }
 }

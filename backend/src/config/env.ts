@@ -16,8 +16,9 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string(),
-  JWT_SECRET: z.string().min(10),
-  JWT_REFRESH_SECRET: z.string().min(10),
+  JWT_SECRET: z.string().min(32),
+  JWT_REFRESH_SECRET: z.string().min(32),
+  CSRF_SECRET: z.string().min(32).optional(),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   // Cloudflare R2 (optional — falls back to local disk)
   R2_ACCOUNT_ID: z.string().optional(),
