@@ -129,15 +129,33 @@ export async function getAlbumById(req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    if (album.privacy !== 'public' && album.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Album not found' },
-      });
-      return;
+    if (album.userId !== req.user?.userId) {
+      if (album.privacy === 'private') {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+        return;
+      }
+      if (album.privacy === 'followers') {
+        if (!req.user) {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+          return;
+        }
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: album.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+          return;
+        }
+      }
     }
 
-    res.json({ success: true, data: { album } });
+    // Filter out soft-deleted posts from album
+    const filteredAlbum = {
+      ...album,
+      albumPosts: album.albumPosts.filter((ap) => !ap.post.isDeleted),
+    };
+
+    res.json({ success: true, data: { album: filteredAlbum } });
   } catch (err) {
     next(err);
   }
@@ -170,15 +188,33 @@ export async function getAlbumBySlug(req: Request, res: Response, next: NextFunc
       return;
     }
 
-    if (album.privacy !== 'public' && album.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Album not found' },
-      });
-      return;
+    if (album.userId !== req.user?.userId) {
+      if (album.privacy === 'private') {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+        return;
+      }
+      if (album.privacy === 'followers') {
+        if (!req.user) {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+          return;
+        }
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: album.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+          return;
+        }
+      }
     }
 
-    res.json({ success: true, data: { album } });
+    // Filter out soft-deleted posts from album
+    const filteredAlbum = {
+      ...album,
+      albumPosts: album.albumPosts.filter((ap) => !ap.post.isDeleted),
+    };
+
+    res.json({ success: true, data: { album: filteredAlbum } });
   } catch (err) {
     next(err);
   }
@@ -398,16 +434,28 @@ export async function getAlbumPosts(req: Request, res: Response, next: NextFunct
       return;
     }
 
-    if (album.privacy !== 'public' && album.userId !== req.user?.userId) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Album not found' },
-      });
-      return;
+    if (album.userId !== req.user?.userId) {
+      if (album.privacy === 'private') {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+        return;
+      }
+      if (album.privacy === 'followers') {
+        if (!req.user) {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+          return;
+        }
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: album.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Album not found' } });
+          return;
+        }
+      }
     }
 
     const albumPosts = await prisma.albumPost.findMany({
-      where: { albumId },
+      where: { albumId, post: { isDeleted: false } },
       take: limit + 1,
       ...(cursor && {
         cursor: { id: cursor },
