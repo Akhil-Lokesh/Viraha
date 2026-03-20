@@ -4,12 +4,15 @@ import { withSentryConfig } from "@sentry/nextjs";
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 const r2Url = process.env.NEXT_PUBLIC_R2_URL || '';
 
+// Extract origin only (scheme + host + port) so CSP allows all API subpaths
+const apiOrigin = (() => { try { return new URL(apiUrl).origin; } catch { return apiUrl; } })();
+
 const cspDirectives = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-eval' 'unsafe-inline' api.mapbox.com`,
   `style-src 'self' 'unsafe-inline' api.mapbox.com`,
   `img-src 'self' data: blob: *.mapbox.com images.unsplash.com randomuser.me ${r2Url}`.trim(),
-  `connect-src 'self' ${apiUrl} api.mapbox.com events.mapbox.com maps.googleapis.com *.sentry.io ${r2Url}`.trim(),
+  `connect-src 'self' ${apiOrigin} api.mapbox.com events.mapbox.com maps.googleapis.com *.sentry.io ${r2Url}`.trim(),
   "worker-src 'self' blob:",
   "object-src 'none'",
   "frame-ancestors 'none'",
