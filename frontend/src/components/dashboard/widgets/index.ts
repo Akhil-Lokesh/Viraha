@@ -12,6 +12,7 @@ import { ContinentProgressWidget } from './continent-progress-widget';
 import { AlbumCarouselWidget } from './album-carousel-widget';
 import { PhotoMosaicWidget } from './photo-mosaic-widget';
 import { MiniMapWidget } from './mini-map-widget';
+import { VirahaMomentWidget } from './viraha-moment-widget';
 
 export const WIDGET_COMPONENTS: Record<WidgetType, ComponentType<{ size: WidgetGridSize; color?: string; albumId?: string }>> = {
   stats_countries: StatsCountriesWidget,
@@ -25,4 +26,5 @@ export const WIDGET_COMPONENTS: Record<WidgetType, ComponentType<{ size: WidgetG
   album_carousel: AlbumCarouselWidget,
   photo_mosaic: PhotoMosaicWidget,
   mini_map: MiniMapWidget,
+  viraha_moment: VirahaMomentWidget,
 };

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getUserByUsername, updateProfile, searchUsers } from '../controllers/userController';
 import { followUser, unfollowUser, getFollowers, getFollowing, checkFollowStatus, acceptFollowRequest, rejectFollowRequest, getPendingRequests } from '../controllers/followController';
+import { handleExportData, handleDeleteAccount } from '../controllers/dataExportController';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { updateProfileSchema } from '../validators/userValidators';
@@ -10,6 +11,8 @@ const router = Router();
 // Specific routes first (must be before parameterized /:username)
 router.patch('/me', authenticate, validateBody(updateProfileSchema), updateProfile);
 router.get('/me/follow-requests', authenticate, getPendingRequests);
+router.post('/me/export', authenticate, handleExportData);
+router.delete('/me', authenticate, handleDeleteAccount);
 router.get('/search', optionalAuth, searchUsers);
 router.post('/follow-requests/:followId/accept', authenticate, acceptFollowRequest);
 router.post('/follow-requests/:followId/reject', authenticate, rejectFollowRequest);

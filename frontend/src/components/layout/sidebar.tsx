@@ -11,6 +11,8 @@ import {
   BookMarked,
   Waves,
   Plane,
+  Route,
+  Compass,
 } from 'lucide-react';
 import { Avatar, Box, ButtonBase, Tooltip } from '@mui/material';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -24,6 +26,8 @@ const navItems = [
   { href: '/map', icon: MapPin, label: 'Map' },
   { href: '/albums', icon: LayoutGrid, label: 'Albums' },
   { href: '/journals', icon: BookMarked, label: 'Journals' },
+  { href: '/journeys', icon: Route, label: 'Journeys' },
+  { href: '/atlas', icon: Compass, label: 'Atlas' },
 ];
 
 export function Sidebar() {

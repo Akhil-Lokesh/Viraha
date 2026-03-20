@@ -13,6 +13,8 @@ export async function getMapMarkers(params: {
   neLng: number;
   type?: string;
   userId?: string;
+  startDate?: string;
+  endDate?: string;
 }): Promise<MapMarkerData[]> {
   const res = await apiClient.get<MapMarkersResponse>('/map/markers', { params });
   return res.data.data.markers;

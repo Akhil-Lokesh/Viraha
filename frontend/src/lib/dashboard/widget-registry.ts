@@ -78,6 +78,12 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetMeta> = {
     allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }, { cols: 4, rows: 4 }],
     maxInstances: Infinity,
   },
+  viraha_moment: {
+    type: 'viraha_moment', label: 'Viraha Moments',
+    gridSize: { cols: 2, rows: 2 },
+    allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }, { cols: 4, rows: 4 }],
+    maxInstances: 1,
+  },
 };
 
 // ── Helpers ──────────────────────────────────────────────

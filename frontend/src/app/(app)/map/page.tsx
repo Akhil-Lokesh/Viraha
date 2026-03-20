@@ -13,7 +13,12 @@ import {
 } from '@/components/ui/map';
 import { useMapMarkers } from '@/lib/hooks/use-map';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { usePlaceResonance } from '@/lib/hooks/use-viraha';
+import { useWantToGo } from '@/lib/hooks/use-want-to-go';
 import { LocationBadge } from '@/components/shared/location-badge';
+import { TimelineScrubber } from '@/components/map/timeline-scrubber';
+import { PlaceHistoryDrawer } from '@/components/map/place-history-drawer';
+import { ResonancePin } from '@/components/map/resonance-pin';
 import type { MapMarkerData } from '@/lib/types';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -348,6 +353,28 @@ export default function MapPage() {
   // Filter state
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('everyone');
+  const [dateStart, setDateStart] = useState<string | null>(null);
+  const [dateEnd, setDateEnd] = useState<string | null>(null);
+  const [placeDrawer, setPlaceDrawer] = useState<{
+    open: boolean;
+    lat: number | null;
+    lng: number | null;
+    locationName: string | null;
+  }>({ open: false, lat: null, lng: null, locationName: null });
+
+  const handleMarkerClick = useCallback((marker: MapMarkerData) => {
+    setPlaceDrawer({
+      open: true,
+      lat: marker.lat,
+      lng: marker.lng,
+      locationName: marker.locationName,
+    });
+  }, []);
+
+  const handleDateRangeChange = useCallback((start: string | null, end: string | null) => {
+    setDateStart(start);
+    setDateEnd(end);
+  }, []);
 
   // Build query params for the markers API
   const queryParams = useMemo(() => {
@@ -355,12 +382,26 @@ export default function MapPage() {
       ...GLOBAL_BOUNDS,
       ...(typeFilter !== 'all' ? { type: typeFilter } : {}),
       ...(scopeFilter === 'mine' && user?.id ? { userId: user.id } : {}),
+      ...(dateStart ? { startDate: dateStart } : {}),
+      ...(dateEnd ? { endDate: dateEnd } : {}),
     };
-  }, [typeFilter, scopeFilter, user?.id]);
+  }, [typeFilter, scopeFilter, user?.id, dateStart, dateEnd]);
 
   const { data: markers, isLoading } = useMapMarkers(queryParams);
+  const { data: resonanceData } = usePlaceResonance();
+  const { data: wantToGoItems } = useWantToGo();
 
   const markerList = markers ?? [];
+
+  // Build a resonance lookup by city for "My Content" scope
+  const resonanceLookup = useMemo(() => {
+    const result: Record<string, number> = {};
+    if (!resonanceData) return result;
+    for (const place of resonanceData) {
+      result[`${place.lat.toFixed(2)},${place.lng.toFixed(2)}`] = place.resonance;
+    }
+    return result;
+  }, [resonanceData]);
   const markerCount = markerList.length;
 
   // Determine the label for the count badge
@@ -417,17 +458,73 @@ export default function MapPage() {
             styles={mapboxStyleUrls}
             className="map-container"
           >
-            {markerList.map((marker) => (
+            {markerList.map((marker) => {
+              const resonanceKey = `${marker.lat.toFixed(2)},${marker.lng.toFixed(2)}`;
+              const resonance = scopeFilter === 'mine' ? resonanceLookup[resonanceKey] : undefined;
+              return (
+                <MapMarker
+                  key={`${marker.type}-${marker.id}`}
+                  longitude={marker.lng}
+                  latitude={marker.lat}
+                >
+                  <MarkerContent>
+                    <Box onClick={() => handleMarkerClick(marker)} sx={{ cursor: 'pointer' }}>
+                      {resonance !== undefined ? (
+                        <ResonancePin marker={marker} resonance={resonance} />
+                      ) : (
+                        <MarkerPin marker={marker} />
+                      )}
+                    </Box>
+                  </MarkerContent>
+                  <MarkerPopup closeButton>
+                    <MarkerPopupContent marker={marker} />
+                  </MarkerPopup>
+                </MapMarker>
+              );
+            })}
+
+            {/* Want to Go pins */}
+            {wantToGoItems?.filter((w) => w.status !== 'visited').map((item) => (
               <MapMarker
-                key={`${marker.type}-${marker.id}`}
-                longitude={marker.lng}
-                latitude={marker.lat}
+                key={`wtg-${item.id}`}
+                longitude={item.locationLng}
+                latitude={item.locationLat}
               >
                 <MarkerContent>
-                  <MarkerPin marker={marker} />
+                  <Box sx={{ position: 'relative' }}>
+                    <Box
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        bgcolor: item.status === 'planned' ? '#3B82F6' : '#E11D48',
+                        border: '2px dashed white',
+                        boxShadow: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography sx={{ fontSize: '14px' }}>
+                        {item.status === 'planned' ? '📌' : '✨'}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </MarkerContent>
                 <MarkerPopup closeButton>
-                  <MarkerPopupContent marker={marker} />
+                  <Box sx={{ width: 200, p: 0.5 }}>
+                    <Typography sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#E11D48', mb: 0.5 }}>
+                      Want to Go
+                    </Typography>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>
+                      {item.locationName || item.locationCity || 'Unnamed place'}
+                    </Typography>
+                    {item.notes && (
+                      <Typography sx={{ fontSize: '12px', color: 'text.secondary', mt: 0.5 }}>
+                        {item.notes}
+                      </Typography>
+                    )}
+                  </Box>
                 </MarkerPopup>
               </MapMarker>
             ))}
@@ -448,6 +545,13 @@ export default function MapPage() {
           onTypeChange={handleTypeChange}
           scopeFilter={scopeFilter}
           onScopeChange={handleScopeChange}
+        />
+
+        {/* Timeline scrubber */}
+        <TimelineScrubber
+          startDate={dateStart}
+          endDate={dateEnd}
+          onDateRangeChange={handleDateRangeChange}
         />
 
         {/* Marker count badge */}
@@ -485,6 +589,14 @@ export default function MapPage() {
           </Box>
         </Box>
       </Box>
+
+      <PlaceHistoryDrawer
+        open={placeDrawer.open}
+        onClose={() => setPlaceDrawer((prev) => ({ ...prev, open: false }))}
+        lat={placeDrawer.lat}
+        lng={placeDrawer.lng}
+        locationName={placeDrawer.locationName}
+      />
     </Box>
   );
 }

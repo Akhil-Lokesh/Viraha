@@ -10,6 +10,8 @@ export function useMapMarkers(params: {
   neLng: number;
   type?: string;
   userId?: string;
+  startDate?: string;
+  endDate?: string;
 } | null) {
   return useQuery({
     queryKey: ['map-markers', params],

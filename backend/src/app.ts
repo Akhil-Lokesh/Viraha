@@ -26,6 +26,13 @@ import placesRoutes from './routes/places';
 import mapRoutes from './routes/map';
 import exploreRoutes from './routes/explore';
 import reportRoutes from './routes/reports';
+import virahaRoutes from './routes/viraha';
+import journeyRoutes from './routes/journeys';
+import wantToGoRoutes from './routes/wantToGo';
+import timeCapsuleRoutes from './routes/timeCapsules';
+import scrapbookRoutes from './routes/scrapbooks';
+import atlasRoutes from './routes/atlas';
+import communityRoutes from './routes/community';
 
 const app = express();
 
@@ -117,6 +124,13 @@ app.use('/api/v1/places', placesRoutes);
 app.use('/api/v1/map', mapRoutes);
 app.use('/api/v1/explore', exploreRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/viraha', virahaRoutes);
+app.use('/api/v1/journeys', journeyRoutes);
+app.use('/api/v1/want-to-go', wantToGoRoutes);
+app.use('/api/v1/time-capsules', timeCapsuleRoutes);
+app.use('/api/v1/scrapbooks', scrapbookRoutes);
+app.use('/api/v1/atlas', atlasRoutes);
+app.use('/api/v1/community', communityRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

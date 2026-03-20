@@ -46,6 +46,12 @@ model User {
   actorActivities  Activity[]  @relation("actorActivities")
   albums           Album[]
   journals         Journal[]
+  virahaMoments    VirahaMoment[]
+  journeys         Journey[]
+  placeNotes       PlaceNote[]
+  wantToGo         WantToGo[]
+  timeCapsules     TimeCapsule[]
+  scrapbooks       Scrapbook[]
 
   @@map("users")
 }
@@ -75,11 +81,12 @@ model Post {
   travelMode      String?   @map("travel_mode") @db.VarChar(20)
   showLocation    Boolean   @default(true) @map("show_location")
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comments   Comment[]
-  saves      Save[]
-  activities Activity[]
-  albumPosts AlbumPost[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments     Comment[]
+  saves        Save[]
+  activities   Activity[]
+  albumPosts   AlbumPost[]
+  journeyPosts JourneyPost[]
 
   @@index([userId])
   @@index([postedAt])
@@ -295,4 +302,161 @@ model Report {
   @@index([targetType, targetId])
   @@index([reporterId])
   @@map("reports")
+}
+
+// ─── Phase 3: Emotional Core ─────────────────────────────
+
+model VirahaMoment {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  type          String   @db.VarChar(30) // on_this_day, seasonal_echo, place_anniversary, weather_match, network_resonance
+  title         String   @db.VarChar(255)
+  description   String?
+  referenceType String   @map("reference_type") @db.VarChar(20) // post, journal_entry, album, journey
+  referenceId   String   @map("reference_id") @db.Uuid
+  thumbnail     String?
+  locationName  String?  @map("location_name") @db.VarChar(255)
+  yearsAgo      Int?     @map("years_ago")
+  momentDate    DateTime @map("moment_date") // the original date being remembered
+  deliveredAt   DateTime @default(now()) @map("delivered_at")
+  dismissed     Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deliveredAt])
+  @@index([userId, type])
+  @@map("viraha_moments")
+}
+
+model Journey {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  title       String    @db.VarChar(200)
+  description String?
+  coverImage  String?   @map("cover_image")
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  status      String    @default("auto") @db.VarChar(20) // auto, confirmed, edited
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  journeyPosts JourneyPost[]
+
+  @@index([userId, startDate])
+  @@index([userId, status])
+  @@map("journeys")
+}
+
+model JourneyPost {
+  id        String   @id @default(uuid()) @db.Uuid
+  journeyId String   @map("journey_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  journey Journey @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([journeyId, postId])
+  @@index([journeyId, sortOrder])
+  @@map("journey_posts")
+}
+
+model PlaceNote {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  locationLat     Decimal  @map("location_lat")
+  locationLng     Decimal  @map("location_lng")
+  locationName    String?  @map("location_name") @db.VarChar(255)
+  locationCity    String?  @map("location_city") @db.VarChar(100)
+  locationCountry String?  @map("location_country") @db.VarChar(100)
+  placeId         String?  @map("place_id") @db.VarChar(255)
+  note            String
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, placeId])
+  @@index([userId])
+  @@map("place_notes")
+}
+
+// ─── Phase 4: Dream & Plan ───────────────────────────────
+
+model WantToGo {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  locationLat     Decimal   @map("location_lat")
+  locationLng     Decimal   @map("location_lng")
+  locationName    String?   @map("location_name") @db.VarChar(255)
+  locationCity    String?   @map("location_city") @db.VarChar(100)
+  locationCountry String?   @map("location_country") @db.VarChar(100)
+  placeId         String?   @map("place_id") @db.VarChar(255)
+  notes           String?
+  status          String    @default("dreaming") @db.VarChar(20) // dreaming, planned, visited
+  visitedAt       DateTime? @map("visited_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@map("want_to_go")
+}
+
+model TimeCapsule {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  content         String
+  locationName    String?   @map("location_name") @db.VarChar(255)
+  locationLat     Decimal?  @map("location_lat")
+  locationLng     Decimal?  @map("location_lng")
+  type            String    @default("departure") @db.VarChar(20) // departure, letter_to_self
+  sealedAt        DateTime  @default(now()) @map("sealed_at")
+  openAt          DateTime  @map("open_at")
+  isOpened        Boolean   @default(false) @map("is_opened")
+  openedAt        DateTime? @map("opened_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isOpened])
+  @@index([openAt, isOpened])
+  @@map("time_capsules")
+}
+
+model Scrapbook {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  title       String   @db.VarChar(200)
+  description String?
+  coverImage  String?  @map("cover_image")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ScrapbookItem[]
+
+  @@index([userId, createdAt])
+  @@map("scrapbooks")
+}
+
+model ScrapbookItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  scrapbookId String   @map("scrapbook_id") @db.Uuid
+  itemType    String   @map("item_type") @db.VarChar(20) // saved_post, note, link, place_pin
+  referenceId String?  @map("reference_id") @db.Uuid // postId if saved_post
+  content     String?  // note text or link URL
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  scrapbook Scrapbook @relation(fields: [scrapbookId], references: [id], onDelete: Cascade)
+
+  @@index([scrapbookId, sortOrder])
+  @@map("scrapbook_items")
 }

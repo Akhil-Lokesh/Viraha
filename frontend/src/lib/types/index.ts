@@ -288,6 +288,9 @@ export interface CreateJournalEntryInput {
   locationName?: string;
   locationCity?: string;
   locationCountry?: string;
+  weatherCondition?: string;
+  weatherTemp?: number;
+  weatherUnit?: string;
 }
 
 export interface UpdateJournalEntryInput {
@@ -301,6 +304,9 @@ export interface UpdateJournalEntryInput {
   locationName?: string | null;
   locationCity?: string | null;
   locationCountry?: string | null;
+  weatherCondition?: string | null;
+  weatherTemp?: number | null;
+  weatherUnit?: string | null;
 }
 
 // ─── Map ─────────────────────────────────────────────
@@ -314,6 +320,7 @@ export interface MapMarkerData {
   title: string;
   locationName: string | null;
   journalId?: string;
+  date?: string;
 }
 
 // ─── Explore ─────────────────────────────────────────

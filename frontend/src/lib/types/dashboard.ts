@@ -9,7 +9,8 @@ export type WidgetType =
   | 'continent_progress'
   | 'album_carousel'
   | 'photo_mosaic'
-  | 'mini_map';
+  | 'mini_map'
+  | 'viraha_moment';
 
 /** Grid span in cell units — only whole-number multiples (1, 2, 4) */
 export interface WidgetGridSize {
