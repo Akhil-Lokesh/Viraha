@@ -17,7 +17,10 @@ export type WidgetType =
   | 'time_capsule'
   | 'seasonal_reflection'
   | 'travel_style'
-  | 'kindred_travelers';
+  | 'kindred_travelers'
+  | 'streak'
+  | 'next_capsule'
+  | 'dream_count';
 
 /** Grid span in cell units — only whole-number multiples (1, 2, 4) */
 export interface WidgetGridSize {

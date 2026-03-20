@@ -20,6 +20,9 @@ import { TimeCapsuleWidget } from './time-capsule-widget';
 import { SeasonalReflectionWidget } from './seasonal-reflection-widget';
 import { TravelStyleWidget } from './travel-style-widget';
 import { KindredTravelersWidget } from './kindred-travelers-widget';
+import { StreakWidget } from './streak-widget';
+import { NextCapsuleWidget } from './next-capsule-widget';
+import { DreamCountWidget } from './dream-count-widget';
 
 export const WIDGET_COMPONENTS: Record<WidgetType, ComponentType<{ size: WidgetGridSize; color?: string; albumId?: string }>> = {
   stats_countries: StatsCountriesWidget,
@@ -41,4 +44,7 @@ export const WIDGET_COMPONENTS: Record<WidgetType, ComponentType<{ size: WidgetG
   seasonal_reflection: SeasonalReflectionWidget,
   travel_style: TravelStyleWidget,
   kindred_travelers: KindredTravelersWidget,
+  streak: StreakWidget,
+  next_capsule: NextCapsuleWidget,
+  dream_count: DreamCountWidget,
 };

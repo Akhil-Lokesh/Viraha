@@ -126,6 +126,24 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetMeta> = {
     allowedSizes: [{ cols: 2, rows: 2 }, { cols: 4, rows: 2 }],
     maxInstances: 1,
   },
+  streak: {
+    type: 'streak', label: 'Travel Streak',
+    gridSize: { cols: 1, rows: 1 },
+    allowedSizes: [{ cols: 1, rows: 1 }, { cols: 2, rows: 1 }],
+    maxInstances: 1,
+  },
+  next_capsule: {
+    type: 'next_capsule', label: 'Next Capsule',
+    gridSize: { cols: 1, rows: 1 },
+    allowedSizes: [{ cols: 1, rows: 1 }, { cols: 2, rows: 1 }],
+    maxInstances: 1,
+  },
+  dream_count: {
+    type: 'dream_count', label: 'Dream Places',
+    gridSize: { cols: 1, rows: 1 },
+    allowedSizes: [{ cols: 1, rows: 1 }, { cols: 2, rows: 1 }],
+    maxInstances: 1,
+  },
 };
 
 // ── Helpers ──────────────────────────────────────────────

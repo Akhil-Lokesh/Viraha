@@ -35,8 +35,8 @@ export function MiniMapWidget({ size, color }: { size: WidgetGridSize; color?: s
       const maplibregl = (await import('maplibre-gl')).default;
 
       const style = theme.palette.mode === 'dark'
-        ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
-        : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+        ? 'https://tiles.openfreemap.org/styles/dark'
+        : 'https://tiles.openfreemap.org/styles/positron';
 
       map = new maplibregl.Map({
         container: mapContainerRef.current,
