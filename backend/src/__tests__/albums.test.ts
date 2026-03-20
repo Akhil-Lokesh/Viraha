@@ -78,7 +78,7 @@ describe('Albums API', () => {
       const cookie = getAuthCookie(user.id);
 
       const res = await request(app)
-        .put(`/api/v1/albums/${album.id}`)
+        .patch(`/api/v1/albums/${album.id}`)
         .set('Cookie', cookie)
         .send({ startDate: '2024-06-01T00:00:00.000Z' });
 
