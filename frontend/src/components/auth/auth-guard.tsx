@@ -2,19 +2,20 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAuthStore, useAuthHydrated } from '@/lib/stores/auth-store';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
+  const hydrated = useAuthHydrated();
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
+    if (hydrated && !user) {
       router.replace('/sign-in');
     }
-  }, [user, router]);
+  }, [hydrated, user, router]);
 
-  if (!user) return null;
+  if (!hydrated || !user) return null;
 
   return <>{children}</>;
 }

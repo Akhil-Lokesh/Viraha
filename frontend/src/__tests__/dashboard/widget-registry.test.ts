@@ -73,7 +73,8 @@ describe('getSizeLabel', () => {
   });
 
   it('should fall back to formatted size for unknown combos', () => {
-    expect(getSizeLabel({ cols: 3, rows: 3 })).toBe('3×3');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(getSizeLabel({ cols: 3, rows: 3 } as any)).toBe('3×3');
   });
 });
 

@@ -80,7 +80,10 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        window.location.href = '/sign-in';
+        // Only redirect if not already on an auth page to prevent loops
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/sign-')) {
+          window.location.href = '/sign-in';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
