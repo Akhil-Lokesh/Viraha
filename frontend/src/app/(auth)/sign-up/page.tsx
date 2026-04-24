@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -16,6 +16,7 @@ import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import LinearProgress from '@mui/material/LinearProgress';
 import { register as registerUser } from '@/lib/api/auth';
+import { fetchCsrfToken } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import Button from '@mui/material/Button';
 import { toast } from 'sonner';
@@ -77,6 +78,10 @@ export default function SignUpPage() {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchCsrfToken();
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
 
   const {

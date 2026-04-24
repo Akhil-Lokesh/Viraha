@@ -15,7 +15,18 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [hydrated, user, router]);
 
-  if (!hydrated || !user) return null;
+  // Show nothing (matching bg) while store hydrates or redirecting
+  if (!hydrated || !user) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'var(--mui-palette-background-default, #141218)',
+        }}
+      />
+    );
+  }
 
   return <>{children}</>;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -15,6 +15,7 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import { login } from '@/lib/api/auth';
+import { fetchCsrfToken } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import Button from '@mui/material/Button';
 import { toast } from 'sonner';
@@ -49,6 +50,10 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  useEffect(() => {
+    fetchCsrfToken();
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -60,10 +65,11 @@ export default function SignInPage() {
   async function onSubmit(values: SignInValues) {
     setLoading(true);
     try {
+      await fetchCsrfToken();
       const res = await login(values);
       setUser(res.user);
       toast.success('Welcome back!');
-      router.push('/');
+      router.push('/home');
     } catch (err: unknown) {
       const errData = (err as { response?: { data?: { error?: { message?: string } | string } } })?.response?.data?.error;
       const message = typeof errData === 'string' ? errData : errData?.message || 'Invalid credentials';
