@@ -40,9 +40,12 @@ const envSchema = z.object({
     if (data.NODE_ENV !== 'production') return true;
     const isPlaceholder = (val: string) =>
       PLACEHOLDER_SECRETS.some((p) => val.toLowerCase().includes(p));
-    return !isPlaceholder(data.JWT_SECRET) && !isPlaceholder(data.JWT_REFRESH_SECRET);
+    if (isPlaceholder(data.JWT_SECRET) || isPlaceholder(data.JWT_REFRESH_SECRET)) return false;
+    // CSRF_SECRET is required in production and must not be a placeholder.
+    if (!data.CSRF_SECRET || isPlaceholder(data.CSRF_SECRET)) return false;
+    return true;
   },
-  { message: 'JWT_SECRET and JWT_REFRESH_SECRET must not be placeholder values in production' },
+  { message: 'JWT_SECRET, JWT_REFRESH_SECRET, and CSRF_SECRET must be set to non-placeholder values in production' },
 );
 
 const parsed = envSchema.safeParse(process.env);

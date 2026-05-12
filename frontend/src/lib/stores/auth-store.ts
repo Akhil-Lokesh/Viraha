@@ -10,6 +10,29 @@ interface AuthState {
   isAuthenticated: () => boolean;
 }
 
+// Non-PII subset of User persisted to localStorage.
+// Email and other sensitive fields stay in-memory only (fetched fresh from /me).
+type PersistedUser = Pick<
+  User,
+  'id' | 'username' | 'displayName' | 'avatar' | 'isPrivate' | 'showLocation'
+>;
+
+interface PersistedAuthState {
+  user: PersistedUser | null;
+}
+
+function stripToPersisted(user: User | PersistedUser | null): PersistedUser | null {
+  if (!user) return null;
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    avatar: user.avatar,
+    isPrivate: user.isPrivate,
+    showLocation: user.showLocation,
+  };
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -20,13 +43,21 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'viraha-auth',
-      version: 1,
+      version: 2,
+      partialize: (state): PersistedAuthState => ({
+        user: stripToPersisted(state.user),
+      }),
       migrate: (persistedState: unknown, version: number) => {
         if (version === 0) {
           const old = persistedState as Record<string, unknown>;
-          return { user: old.user ?? null };
+          return { user: stripToPersisted(old.user as User | null) };
         }
-        return persistedState as AuthState;
+        if (version === 1) {
+          // v1 → v2: strip PII (email, bio, home*, timestamps) from persisted user.
+          const old = persistedState as { user?: User | null };
+          return { user: stripToPersisted(old.user ?? null) };
+        }
+        return persistedState as PersistedAuthState;
       },
     }
   )
