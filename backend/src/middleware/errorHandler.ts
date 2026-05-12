@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod/v4';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import { Sentry } from '../lib/sentry';
+import { captureException } from '../lib/sentry';
 import { logger } from '../lib/logger';
 
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
@@ -36,7 +36,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
   }
 
   // Report unexpected errors to Sentry
-  Sentry.captureException(err);
+  captureException(err);
 
   res.status(500).json({
     success: false,
