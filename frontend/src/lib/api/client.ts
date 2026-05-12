@@ -81,8 +81,13 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError);
         // Only redirect if not already on an auth page to prevent loops
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/sign-')) {
-          window.location.href = '/sign-in';
+        if (typeof window !== 'undefined') {
+          const onAuthPage = ['/sign-in', '/sign-up', '/forgot-password', '/reset-password'].some(
+            (p) => window.location.pathname.startsWith(p)
+          );
+          if (!onAuthPage) {
+            window.location.href = '/sign-in';
+          }
         }
         return Promise.reject(refreshError);
       } finally {

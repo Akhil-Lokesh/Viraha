@@ -10,6 +10,7 @@ export interface User {
   homeLat: number | null;
   homeLng: number | null;
   isPrivate: boolean;
+  showLocation?: boolean;
   emailVerified: boolean;
   isActive: boolean;
   lastLoginAt: string | null;

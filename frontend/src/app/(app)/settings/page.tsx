@@ -464,7 +464,7 @@ function AppearanceTab() {
 function PrivacyTab() {
   const { user, setUser } = useAuthStore();
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate ?? false);
-  const [showLocation, setShowLocation] = useState(true);
+  const [showLocation, setShowLocation] = useState(user?.showLocation ?? true);
   const [saving, setSaving] = useState(false);
 
   async function handlePrivateChange(value: boolean) {

@@ -18,6 +18,7 @@ export function useFollowUser() {
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['follows', userId] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
   });
 }
@@ -29,6 +30,7 @@ export function useUnfollowUser() {
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ['follows', userId] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
   });
 }
