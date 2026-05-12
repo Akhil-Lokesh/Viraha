@@ -93,6 +93,36 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    // Privacy gate (mirrors getPostById): use 404 to avoid leaking existence
+    if (post.userId !== req.user?.userId) {
+      if (post.privacy === 'private') {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Post not found' },
+        });
+        return;
+      }
+      if (post.privacy === 'followers') {
+        if (!req.user) {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Post not found' },
+          });
+          return;
+        }
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: post.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Post not found' },
+          });
+          return;
+        }
+      }
+    }
+
     const comments = await prisma.comment.findMany({
       where: { postId, parentId: null, isDeleted: false },
       take: limit + 1,
@@ -128,6 +158,55 @@ export async function getReplies(req: Request, res: Response, next: NextFunction
     const commentId = req.params.commentId as string;
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = req.query.cursor as string | undefined;
+
+    // Load parent comment and verify post privacy before exposing replies
+    const parentComment = await prisma.comment.findUnique({ where: { id: commentId } });
+    if (!parentComment || parentComment.isDeleted) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Comment not found' },
+      });
+      return;
+    }
+
+    const post = await prisma.post.findUnique({ where: { id: parentComment.postId } });
+    if (!post || post.isDeleted) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Post not found' },
+      });
+      return;
+    }
+
+    // Privacy gate (mirrors getPostById): use 404 to avoid leaking existence
+    if (post.userId !== req.user?.userId) {
+      if (post.privacy === 'private') {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Post not found' },
+        });
+        return;
+      }
+      if (post.privacy === 'followers') {
+        if (!req.user) {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Post not found' },
+          });
+          return;
+        }
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: req.user.userId, followingId: post.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Post not found' },
+          });
+          return;
+        }
+      }
+    }
 
     const replies = await prisma.comment.findMany({
       where: { parentId: commentId, isDeleted: false },

@@ -328,6 +328,15 @@ export async function addPostToAlbum(req: Request, res: Response, next: NextFunc
       return;
     }
 
+    // Only allow adding the user's own posts to their album
+    if (post.userId !== album.userId) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'You can only add your own posts to your albums' },
+      });
+      return;
+    }
+
     // Determine sort order (append to end)
     const lastAlbumPost = await prisma.albumPost.findFirst({
       where: { albumId },
@@ -469,8 +478,43 @@ export async function getAlbumPosts(req: Request, res: Response, next: NextFunct
       },
     });
 
-    const hasMore = albumPosts.length > limit;
-    const items = hasMore ? albumPosts.slice(0, limit) : albumPosts;
+    // Pre-fetch follow set once to avoid N+1 lookups when filtering by privacy
+    let followedIds: Set<string> = new Set();
+    if (req.user) {
+      const authorIds = Array.from(
+        new Set(
+          albumPosts
+            .filter((ap) => ap.post.privacy === 'followers' && ap.post.userId !== req.user!.userId)
+            .map((ap) => ap.post.userId)
+        )
+      );
+      if (authorIds.length > 0) {
+        const follows = await prisma.follow.findMany({
+          where: {
+            followerId: req.user.userId,
+            followingId: { in: authorIds },
+            status: 'accepted',
+          },
+          select: { followingId: true },
+        });
+        followedIds = new Set(follows.map((f) => f.followingId));
+      }
+    }
+
+    // Filter individual post privacy. Album-level privacy was already checked.
+    const visibleAlbumPosts = albumPosts.filter((ap) => {
+      const post = ap.post;
+      if (req.user && post.userId === req.user.userId) return true;
+      if (post.privacy === 'private') return false;
+      if (post.privacy === 'followers') {
+        if (!req.user) return false;
+        return followedIds.has(post.userId);
+      }
+      return true;
+    });
+
+    const hasMore = visibleAlbumPosts.length > limit;
+    const items = hasMore ? visibleAlbumPosts.slice(0, limit) : visibleAlbumPosts;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
 
     res.json({
