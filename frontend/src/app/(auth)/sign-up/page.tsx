@@ -102,7 +102,7 @@ export default function SignUpPage() {
       const res = await registerUser(values);
       setUser(res.user);
       toast.success('Account created!');
-      router.push('/');
+      router.push('/home');
     } catch (err: unknown) {
       const errData = (err as { response?: { data?: { error?: { message?: string } | string } } })?.response?.data?.error;
       const message = typeof errData === 'string' ? errData : errData?.message || 'Registration failed';

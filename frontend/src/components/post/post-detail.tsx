@@ -2,6 +2,8 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Share2, MessageCircle, Send, Loader2, FolderPlus } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -30,6 +32,7 @@ function getImageUrl(url: string): string {
 }
 
 export function PostDetail({ post }: { post: Post }) {
+  const router = useRouter();
   const [currentPhoto, setCurrentPhoto] = useState(0);
   const [commentValue, setCommentValue] = useState('');
   const [isSaved, setIsSaved] = useState(post.isSaved ?? false);
@@ -100,6 +103,9 @@ export function PostDetail({ post }: { post: Post }) {
         onSuccess: () => {
           setCommentValue('');
         },
+        onError: () => {
+          toast.error('Failed to post comment');
+        },
       },
     );
   }
@@ -160,8 +166,14 @@ export function PostDetail({ post }: { post: Post }) {
           transition={{ delay: 0.3, duration: 0.5 }}
         >
           <IconButton
-            component={Link}
-            href="/"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/explore');
+              }
+            }}
+            aria-label="Go back"
             sx={{
               width: 44,
               height: 44,
@@ -372,6 +384,16 @@ export function PostDetail({ post }: { post: Post }) {
               '&:hover': { bgcolor: 'rgba(255,255,255,0.25)', color: '#fff' },
             }}
             aria-label="Share"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(
+                  `${window.location.origin}/post/${post.id}`,
+                );
+                toast.success('Link copied');
+              } catch {
+                toast.error('Failed to copy link');
+              }
+            }}
           >
             <Share2 style={{ height: 18, width: 18 }} />
           </IconButton>

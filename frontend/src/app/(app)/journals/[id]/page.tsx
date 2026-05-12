@@ -142,8 +142,8 @@ export default function JournalDetailPage() {
 
       toast.success('Journal updated');
       setEditing(false);
-    } catch (err) {
-      console.error('Journal save error:', err);
+    } catch {
+      // Error already surfaced to user via toast
       toast.error('Failed to save changes');
     } finally {
       setSaving(false);

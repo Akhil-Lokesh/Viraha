@@ -210,3 +210,18 @@ input, select, textarea {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Animation keyframes referenced via inline style on map page */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ping {
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}

@@ -11,9 +11,8 @@ import {
   Share2,
   Heart,
   Plane,
-  MoreHorizontal,
 } from 'lucide-react';
-import { Box, Typography, IconButton } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import type { Post } from '@/lib/types';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { useToggleSave } from '@/lib/hooks/use-saves';
@@ -188,7 +187,8 @@ export function PostCard({ post }: { post: Post }) {
                 </Box>
               )}
             </Box>
-            <IconButton
+            {/* TODO: dead button - "More options" menu not implemented yet. Hidden to avoid pretending to be live. */}
+            {/* <IconButton
               size="small"
               sx={{
                 p: 0.75,
@@ -202,7 +202,7 @@ export function PostCard({ post }: { post: Post }) {
               onClick={(e) => e.preventDefault()}
             >
               <MoreHorizontal style={{ height: 16, width: 16 }} />
-            </IconButton>
+            </IconButton> */}
           </Box>
 
           {/* Caption */}

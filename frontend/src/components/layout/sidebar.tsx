@@ -9,6 +9,7 @@ import {
   MapPin,
   LayoutGrid,
   BookMarked,
+  Bookmark,
   Waves,
   Plane,
   Route,
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/albums', icon: LayoutGrid, label: 'Albums' },
   { href: '/journals', icon: BookMarked, label: 'Journals' },
   { href: '/journeys', icon: Route, label: 'Journeys' },
+  { href: '/saved', icon: Bookmark, label: 'Saved' },
   { href: '/atlas', icon: Compass, label: 'Atlas' },
 ];
 

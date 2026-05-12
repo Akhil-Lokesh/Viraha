@@ -244,10 +244,11 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
                   )}
                   {isFollowing ? 'Following' : 'Follow'}
                 </Button>
-                <Button variant="outlined" disableElevation sx={{ gap: 1 }}>
+                {/* TODO: dead button - direct messaging not implemented yet. Hidden to avoid pretending to be live. */}
+                {/* <Button variant="outlined" disableElevation sx={{ gap: 1 }}>
                   <MessageCircle style={{ height: 16, width: 16 }} />
                   Message
-                </Button>
+                </Button> */}
               </>
             )}
           </Box>

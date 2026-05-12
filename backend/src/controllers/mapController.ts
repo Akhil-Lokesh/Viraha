@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheSet } from '../lib/cache';
 import crypto from 'crypto';
@@ -24,7 +25,7 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
 
     // Fetch post markers
     if (!type || type === 'all' || type === 'posts') {
-      const postWhere: any = {
+      const postWhere: Prisma.PostWhereInput = {
         isDeleted: false,
         privacy: 'public',
       };
@@ -36,8 +37,12 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
         postWhere.locationLng = { gte: Number(swLng), lte: Number(neLng) };
       }
 
-      if (startDate) postWhere.postedAt = { ...(postWhere.postedAt || {}), gte: new Date(startDate) };
-      if (endDate) postWhere.postedAt = { ...(postWhere.postedAt || {}), lte: new Date(endDate) };
+      if (startDate || endDate) {
+        const postedAt: Prisma.DateTimeFilter = {};
+        if (startDate) postedAt.gte = new Date(startDate);
+        if (endDate) postedAt.lte = new Date(endDate);
+        postWhere.postedAt = postedAt;
+      }
 
       const posts = await prisma.post.findMany({
         where: postWhere,
@@ -70,21 +75,22 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
 
     // Fetch journal entry markers
     if (!type || type === 'all' || type === 'journals') {
-      const entryWhere: any = {
+      const journalFilter: Prisma.JournalWhereInput = {
+        isDeleted: false,
+        privacy: 'public',
+        status: 'published',
+      };
+      if (userId) journalFilter.userId = userId;
+
+      const entryWhere: Prisma.JournalEntryWhereInput = {
         isDeleted: false,
         locationLat: { not: null },
         locationLng: { not: null },
-        journal: {
-          isDeleted: false,
-          privacy: 'public',
-          status: 'published',
-        },
+        journal: journalFilter,
       };
 
-      if (userId) entryWhere.journal.userId = userId;
-
       if (swLat && swLng && neLat && neLng) {
-        entryWhere.locationLat = { ...entryWhere.locationLat, gte: Number(swLat), lte: Number(neLat) };
+        entryWhere.locationLat = { not: null, gte: Number(swLat), lte: Number(neLat) };
         entryWhere.locationLng = { not: null, gte: Number(swLng), lte: Number(neLng) };
       }
 

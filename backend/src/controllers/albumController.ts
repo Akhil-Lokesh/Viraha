@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { CreateAlbumInput, UpdateAlbumInput, AddPostToAlbumInput } from '../validators/albumValidators';
 
@@ -53,7 +54,7 @@ export async function getAlbums(req: Request, res: Response, next: NextFunction)
     const cursor = req.query.cursor as string | undefined;
     const userId = req.query.userId as string | undefined;
 
-    const where: any = { isDeleted: false };
+    const where: Prisma.AlbumWhereInput = { isDeleted: false };
 
     if (userId) {
       where.userId = userId;

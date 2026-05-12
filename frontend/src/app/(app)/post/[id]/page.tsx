@@ -95,8 +95,11 @@ export default function PostPage({
     return <PostPageSkeleton />;
   }
 
-  // Use real data if available, otherwise fall back to mock
-  const resolvedPost = post ?? getMockPost(id);
+  // Only fall back to mock data outside production AND when there is no API error.
+  // This prevents demo mock data from silently masking real API failures.
+  const resolvedPost =
+    post ??
+    (!error && process.env.NODE_ENV !== 'production' ? getMockPost(id) : undefined);
 
   if (error && !resolvedPost) {
     return (

@@ -808,8 +808,8 @@ function MapControls({
           onLocate?.(coords);
           setWaitingForLocation(false);
         },
-        (error) => {
-          console.error("Error getting location:", error);
+        () => {
+          // Geolocation denied or unavailable — user decision, not an error
           setWaitingForLocation(false);
         }
       );

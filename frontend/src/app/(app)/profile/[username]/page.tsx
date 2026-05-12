@@ -164,7 +164,7 @@ export default function ProfilePage() {
             <MuiTab value="map" label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Map style={{ height: 16, width: 16 }} /> Map</Box>} />
             <MuiTab value="albums" label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><FolderOpen style={{ height: 16, width: 16 }} /> Albums</Box>} />
             <MuiTab value="journals" label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><BookOpen style={{ height: 16, width: 16 }} /> Journals</Box>} />
-            {(isOwnProfile || authUser) && (
+            {isOwnProfile && (
               <MuiTab value="saved" label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Bookmark style={{ height: 16, width: 16 }} /> Saved</Box>} />
             )}
           </MuiTabs>
