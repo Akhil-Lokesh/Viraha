@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Settings, UserPlus, UserCheck, MessageCircle, Loader2 } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
@@ -20,7 +20,18 @@ interface UserProfileHeaderProps {
 
 export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHeaderProps) {
   const [isFollowing, setIsFollowing] = useState(user.isFollowing ?? false);
+  const [followerCount, setFollowerCount] = useState(user.followerCount ?? 0);
   const [followDialog, setFollowDialog] = useState<'followers' | 'following' | null>(null);
+
+  // Re-sync local state when the profile prop changes (cross-screen follow updates,
+  // cached profile refreshes, navigating between profiles).
+  useEffect(() => {
+    setIsFollowing(user.isFollowing ?? false);
+  }, [user.isFollowing]);
+
+  useEffect(() => {
+    setFollowerCount(user.followerCount ?? 0);
+  }, [user.followerCount]);
 
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
@@ -31,7 +42,6 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
     .join(', ');
 
   const postCount = user.postCount ?? user._count?.posts ?? 0;
-  const followerCount = user.followerCount ?? 0;
   const followingCount = user.followingCount ?? 0;
 
   // Adjust displayed follower count based on optimistic follow/unfollow

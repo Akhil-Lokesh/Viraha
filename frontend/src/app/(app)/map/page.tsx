@@ -246,7 +246,13 @@ function MarkerPin({ marker }: { marker: MapMarkerData }) {
 
 // ─── Popup content ───────────────────────────────────
 
-function MarkerPopupContent({ marker }: { marker: MapMarkerData }) {
+function MarkerPopupContent({
+  marker,
+  onViewPlaceHistory,
+}: {
+  marker: MapMarkerData;
+  onViewPlaceHistory: (marker: MapMarkerData) => void;
+}) {
   const imageUrl = marker.thumbnail
     ? resolveImageUrl(marker.thumbnail)
     : null;
@@ -319,20 +325,40 @@ function MarkerPopupContent({ marker }: { marker: MapMarkerData }) {
         <LocationBadge location={marker.locationName} variant="subtle" />
       )}
 
-      <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
+        <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <Box
+            sx={{
+              display: 'block',
+              fontSize: '0.75rem',
+              color: 'secondary.main',
+              fontWeight: 500,
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {isJournal ? 'View journal' : 'View post'}
+          </Box>
+        </Link>
         <Box
+          component="button"
+          type="button"
+          onClick={() => onViewPlaceHistory(marker)}
           sx={{
             display: 'block',
-            mt: 1,
+            textAlign: 'left',
+            background: 'none',
+            border: 'none',
+            p: 0,
+            cursor: 'pointer',
             fontSize: '0.75rem',
-            color: 'secondary.main',
+            color: 'text.secondary',
             fontWeight: 500,
-            '&:hover': { textDecoration: 'underline' },
+            '&:hover': { color: 'text.primary', textDecoration: 'underline' },
           }}
         >
-          {isJournal ? 'View journal' : 'View post'}
+          View place history
         </Box>
-      </Link>
+      </Box>
     </Box>
   );
 }
@@ -387,7 +413,7 @@ export default function MapPage() {
     };
   }, [typeFilter, scopeFilter, user?.id, dateStart, dateEnd]);
 
-  const { data: markers, isLoading } = useMapMarkers(queryParams);
+  const { data: markers, isLoading, isError, refetch } = useMapMarkers(queryParams);
   const { data: resonanceData } = usePlaceResonance();
   const { data: wantToGoItems } = useWantToGo();
 
@@ -451,6 +477,43 @@ export default function MapPage() {
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading map...</Typography>
             </Box>
           </Box>
+        ) : isError ? (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: 'rgba(0,0,0,0.05)',
+            }}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, maxWidth: 320, textAlign: 'center', px: 3 }}>
+              <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                Couldn&apos;t load map data.
+              </Typography>
+              <Box
+                component="button"
+                type="button"
+                onClick={() => refetch()}
+                sx={{
+                  px: 2,
+                  py: 0.75,
+                  borderRadius: '8px',
+                  border: 1,
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                  color: 'text.primary',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                Retry
+              </Box>
+            </Box>
+          </Box>
         ) : (
           <Map
             center={[20, 30]}
@@ -468,7 +531,7 @@ export default function MapPage() {
                   latitude={marker.lat}
                 >
                   <MarkerContent>
-                    <Box onClick={() => handleMarkerClick(marker)} sx={{ cursor: 'pointer' }}>
+                    <Box sx={{ cursor: 'pointer' }}>
                       {resonance !== undefined ? (
                         <ResonancePin marker={marker} resonance={resonance} />
                       ) : (
@@ -477,7 +540,7 @@ export default function MapPage() {
                     </Box>
                   </MarkerContent>
                   <MarkerPopup closeButton>
-                    <MarkerPopupContent marker={marker} />
+                    <MarkerPopupContent marker={marker} onViewPlaceHistory={handleMarkerClick} />
                   </MarkerPopup>
                 </MapMarker>
               );
@@ -553,6 +616,40 @@ export default function MapPage() {
           endDate={dateEnd}
           onDateRangeChange={handleDateRangeChange}
         />
+
+        {/* Empty state -- shown when no markers match filters */}
+        {!isLoading && !isError && markerCount === 0 && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 15,
+              pointerEvents: 'none',
+              maxWidth: 360,
+              px: 3,
+              py: 2,
+              borderRadius: '12px',
+              bgcolor: (theme) =>
+                theme.palette.mode === 'dark'
+                  ? 'rgba(31,21,48,0.92)'
+                  : 'rgba(255,255,255,0.92)',
+              backdropFilter: 'blur(16px)',
+              border: 1,
+              borderColor: 'divider',
+              boxShadow: 2,
+              textAlign: 'center',
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+              No memories match these filters.
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Try widening your date range or removing filters.
+            </Typography>
+          </Box>
+        )}
 
         {/* Marker count badge */}
         <Box sx={{ position: 'absolute', top: 16, right: { xs: 16, md: 24 }, zIndex: 20 }}>

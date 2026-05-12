@@ -61,6 +61,10 @@ export function PostDetail({ post }: { post: Post }) {
   const followUser = useFollowUser();
   const unfollowUser = useUnfollowUser();
   const isFollowing = followStatus.data ?? false;
+  // Avoid flicker: only show the follow button once the status query has resolved,
+  // and never on the current user's own posts.
+  const canShowFollowButton =
+    !isOwnPost && isAuthenticated && !followStatus.isLoading;
 
   // Flatten paginated comments
   const comments: Comment[] =
@@ -461,7 +465,7 @@ export function PostDetail({ post }: { post: Post }) {
                   </Typography>
                 </Box>
               </Box>
-              {!isOwnPost && isAuthenticated && (
+              {canShowFollowButton && (
                 <Button
                   variant={isFollowing ? 'contained' : 'outlined'}
                   color={isFollowing ? 'secondary' : undefined}
