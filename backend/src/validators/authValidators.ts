@@ -12,10 +12,6 @@ export const loginSchema = z.object({
   password: z.string(),
 });
 
-export const refreshTokenSchema = z.object({
-  refreshToken: z.string(),
-});
-
 export const changePasswordSchema = z.object({
   currentPassword: z.string(),
   newPassword: z.string().min(8).max(128),
@@ -32,7 +28,6 @@ export const resetPasswordSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
-export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

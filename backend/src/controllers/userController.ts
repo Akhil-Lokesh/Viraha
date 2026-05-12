@@ -117,7 +117,28 @@ export async function searchUsers(req: Request, res: Response, next: NextFunctio
 
 export async function updateProfile(req: Request, res: Response, next: NextFunction) {
   try {
-    const data = req.body as UpdateProfileInput;
+    const {
+      displayName,
+      bio,
+      avatar,
+      homeCity,
+      homeCountry,
+      homeLat,
+      homeLng,
+      isPrivate,
+      showLocation,
+    } = req.body as UpdateProfileInput;
+
+    const data: UpdateProfileInput = {};
+    if (displayName !== undefined) data.displayName = displayName;
+    if (bio !== undefined) data.bio = bio;
+    if (avatar !== undefined) data.avatar = avatar;
+    if (homeCity !== undefined) data.homeCity = homeCity;
+    if (homeCountry !== undefined) data.homeCountry = homeCountry;
+    if (homeLat !== undefined) data.homeLat = homeLat;
+    if (homeLng !== undefined) data.homeLng = homeLng;
+    if (isPrivate !== undefined) data.isPrivate = isPrivate;
+    if (showLocation !== undefined) data.showLocation = showLocation;
 
     const user = await prisma.user.update({
       where: { id: req.user!.userId },
@@ -131,9 +152,7 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
       },
     });
 
-    const sanitized = user;
-
-    res.json({ success: true, data: { user: sanitized } });
+    res.json({ success: true, data: { user } });
   } catch (err) {
     next(err);
   }

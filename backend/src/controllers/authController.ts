@@ -7,8 +7,8 @@ import { RegisterInput, LoginInput, ChangePasswordInput, ForgotPasswordInput, Re
 import { sendPasswordResetEmail, sendWelcomeEmail } from '../lib/email';
 import { setAccessTokenCookie, setRefreshTokenCookie, clearAuthCookies } from '../utils/cookies';
 
-function sanitizeUser(user: any) {
-  const { passwordHash, ...rest } = user;
+function sanitizeUser<T extends { passwordHash?: string }>(user: T): Omit<T, 'passwordHash'> {
+  const { passwordHash: _passwordHash, ...rest } = user;
   return rest;
 }
 
@@ -186,6 +186,7 @@ export async function refreshTokenHandler(req: Request, res: Response, next: Nex
     }
 
     if (storedToken.expiresAt < new Date()) {
+      await prisma.refreshToken.delete({ where: { id: storedToken.id } }).catch(() => {});
       res.status(401).json({
         success: false,
         error: { code: 'UNAUTHORIZED', message: 'Invalid refresh token' },
@@ -224,10 +225,9 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
 
     if (refreshToken) {
       await prisma.refreshToken.deleteMany({
-        where: {
-          token: refreshToken,
-          userId: req.user!.userId,
-        },
+        where: req.user
+          ? { token: refreshToken, userId: req.user.userId }
+          : { token: refreshToken },
       });
     }
 

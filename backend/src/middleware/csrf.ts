@@ -6,7 +6,7 @@ const isProduction = env.NODE_ENV === 'production';
 
 const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
   getSecret: () => env.CSRF_SECRET || env.JWT_SECRET,
-  getSessionIdentifier: (req: Request) => req.cookies?.viraha_access || req.ip || 'anonymous',
+  getSessionIdentifier: (req: Request) => req.cookies?.viraha_refresh || req.ip || 'anonymous',
   cookieName: 'viraha_csrf',
   cookieOptions: {
     httpOnly: true,

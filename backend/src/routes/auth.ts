@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { register, login, me, refreshTokenHandler, logout, changePassword, forgotPassword, resetPassword } from '../controllers/authController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuth } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
-import { registerSchema, loginSchema, refreshTokenSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/authValidators';
+import { registerSchema, loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/authValidators';
 import { generateCsrfToken } from '../middleware/csrf';
 
 const router = Router();
@@ -15,8 +15,8 @@ router.get('/csrf-token', (req, res) => {
 router.post('/register', validateBody(registerSchema), register);
 router.post('/login', validateBody(loginSchema), login);
 router.get('/me', authenticate, me);
-router.post('/refresh', validateBody(refreshTokenSchema), refreshTokenHandler);
-router.post('/logout', authenticate, logout);
+router.post('/refresh', refreshTokenHandler);
+router.post('/logout', optionalAuth, logout);
 router.post('/change-password', authenticate, validateBody(changePasswordSchema), changePassword);
 router.post('/forgot-password', validateBody(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', validateBody(resetPasswordSchema), resetPassword);
