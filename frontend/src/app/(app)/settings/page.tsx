@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +12,9 @@ import FormLabel from '@mui/material/FormLabel';
 import MuiSwitch from '@mui/material/Switch';
 import MuiTabs from '@mui/material/Tabs';
 import MuiTab from '@mui/material/Tab';
+import MuiDialog from '@mui/material/Dialog';
+import MuiDialogContent from '@mui/material/DialogContent';
+import MuiDialogActions from '@mui/material/DialogActions';
 import { motion } from 'framer-motion';
 import { useThemeMode } from '@/lib/providers/mui-theme-provider';
 import {
@@ -91,6 +95,7 @@ function ProfileTab() {
   const {
     register,
     handleSubmit,
+    formState: { errors },
   } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -260,6 +265,11 @@ function ProfileTab() {
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
             {...register('displayName')}
           />
+          {errors.displayName && (
+            <Typography variant="caption" sx={{ color: 'error.main' }}>
+              {errors.displayName.message}
+            </Typography>
+          )}
         </Box>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -277,6 +287,11 @@ function ProfileTab() {
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' }, resize: 'none' }}
             {...register('bio')}
           />
+          {errors.bio && (
+            <Typography variant="caption" sx={{ color: 'error.main' }}>
+              {errors.bio.message}
+            </Typography>
+          )}
         </Box>
       </Box>
 
@@ -307,6 +322,11 @@ function ProfileTab() {
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
               {...register('homeCity')}
             />
+            {errors.homeCity && (
+              <Typography variant="caption" sx={{ color: 'error.main' }}>
+                {errors.homeCity.message}
+              </Typography>
+            )}
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <FormLabel htmlFor="homeCountry" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>
@@ -321,6 +341,11 @@ function ProfileTab() {
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
               {...register('homeCountry')}
             />
+            {errors.homeCountry && (
+              <Typography variant="caption" sx={{ color: 'error.main' }}>
+                {errors.homeCountry.message}
+              </Typography>
+            )}
           </Box>
         </Box>
       </Box>
@@ -466,9 +491,9 @@ function PrivacyTab() {
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate ?? false);
   const [showLocation, setShowLocation] = useState(user?.showLocation ?? true);
   const [saving, setSaving] = useState(false);
+  const [confirmPrivateOpen, setConfirmPrivateOpen] = useState(false);
 
-  async function handlePrivateChange(value: boolean) {
-    setIsPrivate(value);
+  async function persistPrivate(value: boolean) {
     setSaving(true);
     try {
       const updated = await updateProfile({ isPrivate: value });
@@ -480,6 +505,26 @@ function PrivacyTab() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handlePrivateChange(value: boolean) {
+    // Optimistic toggle, then confirm before persisting when switching ON.
+    setIsPrivate(value);
+    if (value) {
+      setConfirmPrivateOpen(true);
+      return;
+    }
+    void persistPrivate(value);
+  }
+
+  function handleConfirmPrivate() {
+    setConfirmPrivateOpen(false);
+    void persistPrivate(true);
+  }
+
+  function handleCancelPrivate() {
+    setConfirmPrivateOpen(false);
+    setIsPrivate(false);
   }
 
   async function handleShowLocationChange(value: boolean) {
@@ -575,6 +620,61 @@ function PrivacyTab() {
           />
         </Box>
       </Box>
+
+      <MuiDialog
+        open={confirmPrivateOpen}
+        onClose={handleCancelPrivate}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <Box sx={{ px: 3, pt: 3, pb: 1 }}>
+          <Box
+            sx={{
+              mx: 'auto',
+              mb: 1.5,
+              display: 'flex',
+              height: 48,
+              width: 48,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              bgcolor: 'rgba(245,158,11,0.1)',
+            }}
+          >
+            <Shield style={{ height: 24, width: 24, color: '#D97706' }} />
+          </Box>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: 600, textAlign: 'center' }}>
+            Switch to a private account?
+          </Typography>
+        </Box>
+        <MuiDialogContent sx={{ pt: 2 }}>
+          <Typography sx={{ textAlign: 'center', fontSize: '0.875rem', color: 'text.secondary' }}>
+            Switching to private means your future posts won&apos;t appear in public
+            feeds. Followers will continue to see them.
+          </Typography>
+        </MuiDialogContent>
+        <MuiDialogActions sx={{ px: 3, pb: 3, flexDirection: 'column', gap: 1 }}>
+          <Button
+            variant="contained"
+            disableElevation
+            onClick={handleConfirmPrivate}
+            disabled={saving}
+            sx={{ width: '100%', bgcolor: 'secondary.main', '&:hover': { bgcolor: 'secondary.dark' } }}
+          >
+            {saving ? 'Saving...' : 'Make account private'}
+          </Button>
+          <Button
+            variant="text"
+            disableElevation
+            onClick={handleCancelPrivate}
+            disabled={saving}
+            sx={{ width: '100%' }}
+          >
+            Cancel
+          </Button>
+        </MuiDialogActions>
+      </MuiDialog>
     </Box>
   );
 }
@@ -713,8 +813,25 @@ function AccountTab() {
   );
 }
 
+const VALID_TABS = ['profile', 'appearance', 'privacy', 'account'] as const;
+type SettingsTab = (typeof VALID_TABS)[number];
+
+function isSettingsTab(value: string | null): value is SettingsTab {
+  return value !== null && (VALID_TABS as readonly string[]).includes(value);
+}
+
 function SettingsContent() {
-  const [activeTab, setActiveTab] = useState('profile');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab: SettingsTab = isSettingsTab(tabParam) ? tabParam : 'profile';
+
+  function handleTabChange(value: string) {
+    if (!isSettingsTab(value)) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
 
   return (
     <Box
@@ -752,7 +869,7 @@ function SettingsContent() {
       <Box sx={{ width: '100%' }}>
         <MuiTabs
           value={activeTab}
-          onChange={(_, v) => setActiveTab(v)}
+          onChange={(_, v) => handleTabChange(v)}
           sx={{
             minHeight: 36,
             mb: 3,
@@ -786,7 +903,9 @@ function SettingsContent() {
 export default function SettingsPage() {
   return (
     <AuthGuard>
-      <SettingsContent />
+      <Suspense fallback={null}>
+        <SettingsContent />
+      </Suspense>
     </AuthGuard>
   );
 }

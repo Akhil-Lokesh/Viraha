@@ -15,6 +15,7 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import LinearProgress from '@mui/material/LinearProgress';
+import { useTheme } from '@mui/material/styles';
 import { register as registerUser } from '@/lib/api/auth';
 import { fetchCsrfToken } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -53,12 +54,23 @@ const staggerItem = {
   },
 };
 
-function getPasswordStrength(password: string): {
+interface StrengthPalette {
+  error: string;
+  warning: string;
+  success: string;
+  successDark: string;
+  empty: string;
+}
+
+function getPasswordStrength(
+  password: string,
+  palette: StrengthPalette,
+): {
   score: number;
   label: string;
   color: string;
 } {
-  if (!password) return { score: 0, label: '', color: 'grey.300' };
+  if (!password) return { score: 0, label: '', color: palette.empty };
 
   let score = 0;
   if (password.length >= 8) score++;
@@ -67,17 +79,25 @@ function getPasswordStrength(password: string): {
   if (/[0-9]/.test(password)) score++;
   if (/[^a-zA-Z0-9]/.test(password)) score++;
 
-  if (score <= 1) return { score: 1, label: 'Weak', color: '#ef4444' };
-  if (score <= 2) return { score: 2, label: 'Fair', color: '#f97316' };
-  if (score <= 3) return { score: 3, label: 'Good', color: '#eab308' };
-  if (score <= 4) return { score: 4, label: 'Strong', color: '#10b981' };
-  return { score: 5, label: 'Very strong', color: '#059669' };
+  if (score <= 1) return { score: 1, label: 'Weak', color: palette.error };
+  if (score <= 2) return { score: 2, label: 'Fair', color: palette.warning };
+  if (score <= 3) return { score: 3, label: 'Good', color: palette.warning };
+  if (score <= 4) return { score: 4, label: 'Strong', color: palette.success };
+  return { score: 5, label: 'Very strong', color: palette.successDark };
 }
 
 export default function SignUpPage() {
   const router = useRouter();
+  const theme = useTheme();
   const setUser = useAuthStore((s) => s.setUser);
   const [loading, setLoading] = useState(false);
+  const strengthPalette: StrengthPalette = {
+    error: theme.palette.error.main,
+    warning: theme.palette.warning.main,
+    success: theme.palette.success.main,
+    successDark: theme.palette.success.dark,
+    empty: theme.palette.action.disabledBackground,
+  };
 
   useEffect(() => {
     fetchCsrfToken();
@@ -94,7 +114,10 @@ export default function SignUpPage() {
   });
 
   const passwordValue = watch('password', '');
-  const strength = useMemo(() => getPasswordStrength(passwordValue), [passwordValue]);
+  const strength = useMemo(
+    () => getPasswordStrength(passwordValue, strengthPalette),
+    [passwordValue, strengthPalette],
+  );
 
   async function onSubmit(values: SignUpValues) {
     setLoading(true);

@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Globe,
   Lock,
+  Users,
 } from 'lucide-react';
 import { Box, Typography, Collapse } from '@mui/material';
 import Button from '@mui/material/Button';
@@ -25,16 +26,21 @@ import { uploadPhotos } from '@/lib/api/media';
 import { PhotoUpload } from './photo-upload';
 import { toast } from 'sonner';
 
-const createPostFormSchema = z.object({
-  caption: z.string().max(2000).optional(),
-  locationName: z.string().max(255).optional(),
-  locationCity: z.string().max(100).optional(),
-  locationCountry: z.string().max(100).optional(),
-  locationLat: z.number().min(-90).max(90),
-  locationLng: z.number().min(-180).max(180),
-  tags: z.string().optional(),
-  privacy: z.string().optional(),
-});
+const createPostFormSchema = z
+  .object({
+    caption: z.string().max(2000).optional(),
+    locationName: z.string().max(255).optional(),
+    locationCity: z.string().max(100).optional(),
+    locationCountry: z.string().max(100).optional(),
+    locationLat: z.number().min(-90).max(90),
+    locationLng: z.number().min(-180).max(180),
+    tags: z.string().optional(),
+    privacy: z.string().optional(),
+  })
+  .refine((data) => data.locationLat !== 0 || data.locationLng !== 0, {
+    message: 'Please pick a location',
+    path: ['locationLat'],
+  });
 
 type FormValues = z.infer<typeof createPostFormSchema>;
 
@@ -72,6 +78,15 @@ export function CreatePostForm() {
       privacy: 'public',
     },
   });
+
+  function onInvalid(formErrors: typeof errors) {
+    const firstMessage =
+      formErrors.locationLat?.message ||
+      formErrors.locationLng?.message ||
+      formErrors.caption?.message ||
+      'Please fix the highlighted fields';
+    toast.error(firstMessage);
+  }
 
   async function onSubmit(values: FormValues) {
     if (files.length === 0) {
@@ -111,7 +126,7 @@ export function CreatePostForm() {
   }
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box component="form" onSubmit={handleSubmit(onSubmit, onInvalid)} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Section 1: Photos */}
       <motion.div
         custom={0}
@@ -449,6 +464,12 @@ export function CreatePostForm() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Globe style={{ height: 14, width: 14, color: 'var(--mui-palette-text-secondary)' }} />
                       <span>Public</span>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="followers">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Users style={{ height: 14, width: 14, color: 'var(--mui-palette-text-secondary)' }} />
+                      <span>Followers only</span>
                     </Box>
                   </MenuItem>
                   <MenuItem value="private">
