@@ -45,4 +45,53 @@ describe('sanitizeHtml', () => {
     const clean = sanitizeHtml(dirty);
     expect(clean).not.toContain('javascript:');
   });
+
+  describe('Tiptap text-align style allowlist (commit 0eb829b)', () => {
+    it('should preserve a bare text-align: center style', () => {
+      const input = '<p style="text-align: center">x</p>';
+      const clean = sanitizeHtml(input);
+      expect(clean).toContain('style="text-align: center"');
+      expect(clean).toContain('>x</p>');
+    });
+
+    it('should preserve text-align: left | right | justify', () => {
+      for (const value of ['left', 'right', 'justify']) {
+        const clean = sanitizeHtml(`<p style="text-align: ${value}">x</p>`);
+        expect(clean).toContain(`style="text-align: ${value}"`);
+      }
+    });
+
+    it('should strip an unrelated style property like background: url(...)', () => {
+      const input = '<p style="background: url(http://evil)">x</p>';
+      const clean = sanitizeHtml(input);
+      expect(clean).not.toContain('background');
+      expect(clean).not.toContain('url(');
+      // Tag content survives; the style attribute is dropped entirely.
+      expect(clean).toContain('>x</p>');
+      expect(clean).not.toContain('style=');
+    });
+
+    it('should strip a compound style (text-align + background) — regex anchor rejects multi-property', () => {
+      const input = '<p style="text-align: center; background: url(http://evil)">x</p>';
+      const clean = sanitizeHtml(input);
+      expect(clean).not.toContain('background');
+      expect(clean).not.toContain('url(');
+      expect(clean).not.toContain('style=');
+      expect(clean).toContain('>x</p>');
+    });
+
+    it('should reject non-allowlisted text-align values like inherit', () => {
+      const input = '<p style="text-align: inherit">x</p>';
+      const clean = sanitizeHtml(input);
+      expect(clean).not.toContain('inherit');
+      expect(clean).not.toContain('style=');
+    });
+
+    it('should be case-insensitive on the property name and value', () => {
+      const input = '<p style="TEXT-ALIGN: CENTER">x</p>';
+      const clean = sanitizeHtml(input);
+      // The hook normalises to lowercase
+      expect(clean).toContain('style="text-align: center"');
+    });
+  });
 });
