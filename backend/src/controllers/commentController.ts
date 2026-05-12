@@ -26,6 +26,31 @@ export async function createComment(req: Request, res: Response, next: NextFunct
       return;
     }
 
+    // Privacy gate (mirrors getComments): non-owners cannot write to private
+    // posts, and must be accepted followers to write on followers-only posts.
+    // Returns 404 to avoid leaking post existence.
+    if (post.userId !== userId) {
+      if (post.privacy === 'private') {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Post not found' },
+        });
+        return;
+      }
+      if (post.privacy === 'followers') {
+        const follow = await prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: userId, followingId: post.userId } },
+        });
+        if (!follow || follow.status !== 'accepted') {
+          res.status(404).json({
+            success: false,
+            error: { code: 'NOT_FOUND', message: 'Post not found' },
+          });
+          return;
+        }
+      }
+    }
+
     // If replying, verify parent comment exists
     if (parentId) {
       const parent = await prisma.comment.findUnique({ where: { id: parentId } });

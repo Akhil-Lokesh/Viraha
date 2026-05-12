@@ -4,6 +4,22 @@ import { prisma } from '../lib/prisma';
 import { cacheGet, cacheSet } from '../lib/cache';
 import crypto from 'crypto';
 
+interface MapMarker {
+  id: string;
+  type: 'post' | 'journal';
+  lat: number;
+  lng: number;
+  thumbnail: string | null;
+  title: string;
+  locationName: string | null;
+  date: string;
+  journalId?: string;
+}
+
+interface MapMarkersResult {
+  markers: MapMarker[];
+}
+
 export async function getMapMarkers(req: Request, res: Response, next: NextFunction) {
   try {
     const {
@@ -15,13 +31,13 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
 
     const cacheKey = `map:${swLat}:${swLng}:${neLat}:${neLng}:${type || 'all'}:${userId || ''}:${startDate || ''}:${endDate || ''}`;
     const cacheHash = crypto.createHash('md5').update(cacheKey).digest('hex');
-    const cached = await cacheGet<any>(`map:${cacheHash}`);
+    const cached = await cacheGet<MapMarkersResult>(`map:${cacheHash}`);
     if (cached) {
       res.json({ success: true, data: cached });
       return;
     }
 
-    const markers: any[] = [];
+    const markers: MapMarker[] = [];
 
     // Fetch post markers
     if (!type || type === 'all' || type === 'posts') {
@@ -144,7 +160,7 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
       }
     }
 
-    const result = { markers };
+    const result: MapMarkersResult = { markers };
     await cacheSet(`map:${cacheHash}`, result, 60);
 
     res.json({ success: true, data: result });

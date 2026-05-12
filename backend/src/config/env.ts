@@ -10,6 +10,9 @@ const PLACEHOLDER_SECRETS = [
   'secret',
   'jwt-secret',
   'changeme',
+  'change_me',
+  'change-me',
+  'placeholder',
 ];
 
 const envSchema = z.object({
