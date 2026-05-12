@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { deleteFile } from '../lib/storage';
 import { CreatePostInput, UpdatePostInput } from '../validators/postValidators';
@@ -14,8 +15,9 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
   try {
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = req.query.cursor as string | undefined;
+    const filterUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
-    const where: any = { isDeleted: false };
+    const where: Prisma.PostWhereInput = { isDeleted: false };
 
     if (req.user) {
       // Get followed user IDs for followers-only content
@@ -32,6 +34,10 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
       ];
     } else {
       where.privacy = 'public';
+    }
+
+    if (filterUserId) {
+      where.userId = filterUserId;
     }
 
     const posts = await prisma.post.findMany({
