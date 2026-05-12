@@ -56,3 +56,6 @@ next-env.d.ts
 
 # Misc
 *.pem
+
+# Claude Code runtime
+.claude/scheduled_tasks.lock

@@ -1,0 +1,51 @@
+
+ [31m❯[39m src/__tests__/journals.test.ts [2m([22m[2m8 tests[22m[2m | [22m[33m8 skipped[39m[2m)[22m[33m 5338[2mms[22m[39m
+[90mstdout[2m | src/__tests__/feed.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+ [31m❯[39m src/__tests__/feed.test.ts [2m([22m[2m4 tests[22m[2m | [22m[33m4 skipped[39m[2m)[22m[33m 7096[2mms[22m[39m
+ [31m❯[39m src/__tests__/validators.test.ts [2m([22m[2m12 tests[22m[2m | [22m[33m12 skipped[39m[2m)[22m[33m 3235[2mms[22m[39m
+[90mstdout[2m | src/__tests__/follows.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (0) from .env -- tip: 🛡️ auth for agents: https://vestauth.com
+
+ [31m❯[39m src/__tests__/follows.test.ts [2m([22m[2m6 tests[22m[2m | [22m[33m6 skipped[39m[2m)[22m[33m 6361[2mms[22m[39m
+[90mstdout[2m | src/__tests__/albums.test.ts
+[22m[39m[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+
+ [31m❯[39m src/__tests__/albums.test.ts [2m([22m[2m5 tests[22m[2m | [22m[33m5 skipped[39m[2m)[22m[33m 5016[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 7 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/__tests__/albums.test.ts[2m [ src/__tests__/albums.test.ts ][22m
+[41m[1m FAIL [22m[49m src/__tests__/auth.test.ts[2m [ src/__tests__/auth.test.ts ][22m
+[41m[1m FAIL [22m[49m src/__tests__/feed.test.ts[2m [ src/__tests__/feed.test.ts ][22m
+[41m[1m FAIL [22m[49m src/__tests__/follows.test.ts[2m [ src/__tests__/follows.test.ts ][22m
+[41m[1m FAIL [22m[49m src/__tests__/journals.test.ts[2m [ src/__tests__/journals.test.ts ][22m
+[41m[1m FAIL [22m[49m src/__tests__/posts.test.ts[2m [ src/__tests__/posts.test.ts ][22m
+[41m[1m FAIL [22m[49m src/__tests__/validators.test.ts[2m [ src/__tests__/validators.test.ts ][22m
+[31m[1mError[22m: Command failed: npx prisma migrate deploy
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Error: P1001: Can't reach database server at `localhost:5434`
+
+Please make sure your database server is running at `localhost:5434`.
+[39m
+[36m [2m❯[22m src/__tests__/setup.ts:[2m51:3[22m[39m
+    [90m 49|[39m [34mbeforeAll[39m([35masync[39m () [33m=>[39m {
+    [90m 50|[39m   [90m// Run migrations against the test database[39m
+    [90m 51|[39m   [34mexecSync[39m([32m'npx prisma migrate deploy'[39m[33m,[39m {
+    [90m   |[39m   [31m^[39m
+    [90m 52|[39m     env[33m:[39m { [33m...[39mprocess[33m.[39menv[33m,[39m [33mDATABASE_URL[39m[33m:[39m [33mTEST_DATABASE_URL[39m }[33m,[39m
+    [90m 53|[39m     stdio[33m:[39m [32m'pipe'[39m[33m,[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m7 failed[39m[22m[90m (7)[39m
+[2m      Tests [22m [33m56 skipped[39m[90m (56)[39m
+[2m   Start at [22m 01:22:28
+[2m   Duration [22m 61.79s[2m (transform 1.19s, setup 1.39s, import 17.28s, tests 37.37s, environment 1ms)[22m
+
+EXIT: 0
