@@ -6,6 +6,7 @@ import type { User } from '../types';
 interface AuthState {
   user: User | null;
   setUser: (user: User) => void;
+  updateUser: (patch: Partial<User>) => void;
   logout: () => void;
   isAuthenticated: () => boolean;
 }
@@ -38,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       setUser: (user) => set({ user }),
+      updateUser: (patch) => set((state) => (state.user ? { user: { ...state.user, ...patch } } : { user: null })),
       logout: () => set({ user: null }),
       isAuthenticated: () => !!get().user,
     }),

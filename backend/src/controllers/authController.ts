@@ -3,8 +3,8 @@ import { prisma } from '../lib/prisma';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { randomBytes } from 'crypto';
-import { RegisterInput, LoginInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput } from '../validators/authValidators';
-import { sendPasswordResetEmail, sendWelcomeEmail } from '../lib/email';
+import { RegisterInput, LoginInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput, VerifyEmailInput } from '../validators/authValidators';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendVerificationEmail } from '../lib/email';
 import { setAccessTokenCookie, setRefreshTokenCookie, clearAuthCookies } from '../utils/cookies';
 
 function sanitizeUser<T extends { passwordHash?: string }>(user: T): Omit<T, 'passwordHash'> {
@@ -51,8 +51,19 @@ export async function register(req: Request, res: Response, next: NextFunction) 
       },
     });
 
-    // Send welcome email (fire-and-forget)
+    // Issue email verification token (fire-and-forget delivery)
+    const verificationToken = randomBytes(32).toString('hex');
+    await prisma.emailVerification.create({
+      data: {
+        userId: user.id,
+        token: verificationToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+
+    // Send welcome + verification emails (fire-and-forget)
     sendWelcomeEmail(email, username).catch(() => {});
+    sendVerificationEmail(email, verificationToken).catch(() => {});
 
     setAccessTokenCookie(res, accessToken);
     setRefreshTokenCookie(res, refreshToken);
@@ -323,6 +334,104 @@ export async function forgotPassword(req: Request, res: Response, next: NextFunc
     res.json({
       success: true,
       data: { message: 'If an account with that email exists, a reset link has been sent.' },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function verifyEmail(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { token } = req.body as VerifyEmailInput;
+
+    const record = await prisma.emailVerification.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'This verification link is invalid or has expired.' },
+      });
+      return;
+    }
+
+    if (record.user.emailVerified) {
+      await prisma.emailVerification.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      });
+      res.json({
+        success: true,
+        data: { message: 'Email already verified.' },
+      });
+      return;
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: record.userId },
+        data: { emailVerified: true },
+      }),
+      prisma.emailVerification.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: { message: 'Email verified successfully.' },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resendVerification(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'User not found' },
+      });
+      return;
+    }
+
+    if (user.emailVerified) {
+      res.json({
+        success: true,
+        data: { message: 'Email already verified.' },
+      });
+      return;
+    }
+
+    // Invalidate any existing verification tokens for this user
+    await prisma.emailVerification.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const token = randomBytes(32).toString('hex');
+
+    await prisma.emailVerification.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+
+    await sendVerificationEmail(user.email, token);
+
+    res.json({
+      success: true,
+      data: { message: 'Verification email sent.' },
     });
   } catch (err) {
     next(err);

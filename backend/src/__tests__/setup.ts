@@ -28,6 +28,7 @@ const TABLE_NAMES = [
   'follows',
   'refresh_tokens',
   'password_resets',
+  'email_verifications',
   'journals',
   'albums',
   'posts',

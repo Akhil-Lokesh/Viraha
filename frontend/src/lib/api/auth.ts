@@ -45,3 +45,11 @@ export async function forgotPassword(email: string): Promise<void> {
 export async function resetPassword(token: string, newPassword: string): Promise<void> {
   await apiClient.post('/auth/reset-password', { token, newPassword });
 }
+
+export async function verifyEmail(token: string): Promise<void> {
+  await apiClient.post('/auth/verify-email', { token });
+}
+
+export async function resendVerification(): Promise<void> {
+  await apiClient.post('/auth/resend-verification');
+}

@@ -48,6 +48,38 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   }
 }
 
+export async function sendVerificationEmail(to: string, token: string): Promise<boolean> {
+  const verifyUrl = `${env.CORS_ORIGIN}/verify-email?token=${token}`;
+  const client = await getResend();
+
+  if (!client) {
+    logger.debug({ to }, 'Verification email delivery skipped (no Resend client)');
+    return false;
+  }
+
+  try {
+    await client.emails.send({
+      from: env.RESEND_FROM_EMAIL,
+      to,
+      subject: 'Verify your Viraha email',
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #1a1a1a;">Verify your email</h2>
+          <p style="color: #666;">Click the link below to verify your Viraha email address. This link expires in 24 hours.</p>
+          <a href="${verifyUrl}" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; margin: 16px 0;">
+            Verify Email
+          </a>
+          <p style="color: #999; font-size: 12px;">If you didn't sign up for Viraha, you can ignore this email.</p>
+        </div>
+      `,
+    });
+    return true;
+  } catch (err) {
+    logger.error({ err }, 'Failed to send verification email');
+    return false;
+  }
+}
+
 export async function sendWelcomeEmail(to: string, username: string): Promise<boolean> {
   const client = await getResend();
 
