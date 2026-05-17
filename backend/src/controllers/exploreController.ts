@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheSet } from '../lib/cache';
+import { getHiddenUserIds } from '../lib/blocks';
 
 export async function getTrendingLocations(req: Request, res: Response, next: NextFunction) {
   try {
@@ -101,36 +102,39 @@ export async function getFeaturedContent(req: Request, res: Response, next: Next
   try {
     const limit = Math.min(Number(req.query.limit) || 12, 30);
 
-    const cacheKey = `explore:featured:${limit}`;
-    const cached = await cacheGet<any>(cacheKey);
-    if (cached) {
-      res.json({ success: true, data: cached });
-      return;
-    }
+    // Cache the unfiltered pool, then filter per-viewer for block visibility.
+    // Larger pool ensures we can still return `limit` items after filtering.
+    const poolSize = limit * 3;
+    const cacheKey = `explore:featured:pool:${poolSize}`;
+    let pool = await cacheGet<any[]>(cacheKey);
 
-    const posts = await prisma.post.findMany({
-      where: {
-        isDeleted: false,
-        privacy: 'public',
-      },
-      orderBy: { saveCount: 'desc' },
-      take: limit,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
+    if (!pool) {
+      pool = await prisma.post.findMany({
+        where: {
+          isDeleted: false,
+          privacy: 'public',
+        },
+        orderBy: { saveCount: 'desc' },
+        take: poolSize,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatar: true,
+            },
           },
         },
-      },
-    });
+      });
+      await cacheSet(cacheKey, pool, 900);
+    }
 
-    const result = { posts };
-    await cacheSet(cacheKey, result, 900);
+    const hiddenIds = req.user ? await getHiddenUserIds(req.user.userId) : [];
+    const hidden = new Set(hiddenIds);
+    const posts = pool.filter((p: any) => !hidden.has(p.userId)).slice(0, limit);
 
-    res.json({ success: true, data: result });
+    res.json({ success: true, data: { posts } });
   } catch (err) {
     next(err);
   }

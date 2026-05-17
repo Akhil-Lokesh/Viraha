@@ -29,6 +29,7 @@ const TABLE_NAMES = [
   'refresh_tokens',
   'password_resets',
   'email_verifications',
+  'blocks',
   'journals',
   'albums',
   'posts',

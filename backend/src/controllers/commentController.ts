@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { CreateCommentInput, UpdateCommentInput } from '../validators/commentValidators';
 import { createActivity } from '../utils/activity';
+import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
 
 const userSelect = {
   id: true,
@@ -33,6 +34,17 @@ export async function createComment(req: Request, res: Response, next: NextFunct
         error: { code: 'COMMENTS_DISABLED', message: 'Comments are disabled on this post' },
       });
       return;
+    }
+
+    // Block visibility: if either side has blocked the other, present 404
+    if (post.userId !== userId) {
+      if (await isBlockedBetween(userId, post.userId)) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Post not found' },
+        });
+        return;
+      }
     }
 
     // Privacy gate (mirrors getComments): non-owners cannot write to private
@@ -157,8 +169,15 @@ export async function getComments(req: Request, res: Response, next: NextFunctio
       }
     }
 
+    const hiddenIds = req.user ? await getHiddenUserIds(req.user.userId) : [];
+
     const comments = await prisma.comment.findMany({
-      where: { postId, parentId: null, isDeleted: false },
+      where: {
+        postId,
+        parentId: null,
+        isDeleted: false,
+        ...(hiddenIds.length > 0 && { userId: { notIn: hiddenIds } }),
+      },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { createdAt: 'asc' },
@@ -242,8 +261,14 @@ export async function getReplies(req: Request, res: Response, next: NextFunction
       }
     }
 
+    const hiddenIdsForReplies = req.user ? await getHiddenUserIds(req.user.userId) : [];
+
     const replies = await prisma.comment.findMany({
-      where: { parentId: commentId, isDeleted: false },
+      where: {
+        parentId: commentId,
+        isDeleted: false,
+        ...(hiddenIdsForReplies.length > 0 && { userId: { notIn: hiddenIdsForReplies } }),
+      },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { createdAt: 'asc' },

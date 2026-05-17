@@ -46,3 +46,32 @@ export async function searchUsers(q: string): Promise<UserSearchResult[]> {
   const res = await apiClient.get<SearchUsersResponse>('/users/search', { params: { q } });
   return res.data.data.users;
 }
+
+export interface BlockedUserEntry {
+  id: string;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatar: string | null;
+  };
+}
+
+interface BlockedUsersResponse {
+  success: boolean;
+  data: { items: BlockedUserEntry[]; nextCursor: string | null };
+}
+
+export async function blockUser(userId: string): Promise<void> {
+  await apiClient.post(`/users/${userId}/block`);
+}
+
+export async function unblockUser(userId: string): Promise<void> {
+  await apiClient.delete(`/users/${userId}/block`);
+}
+
+export async function getBlockedUsers(): Promise<BlockedUserEntry[]> {
+  const res = await apiClient.get<BlockedUsersResponse>('/users/me/blocks');
+  return res.data.data.items;
+}

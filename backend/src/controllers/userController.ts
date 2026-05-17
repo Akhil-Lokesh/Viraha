@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { UpdateProfileInput } from '../validators/userValidators';
+import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
 
 export async function getUserByUsername(req: Request, res: Response, next: NextFunction) {
   try {
@@ -33,6 +34,17 @@ export async function getUserByUsername(req: Request, res: Response, next: NextF
         error: { code: 'NOT_FOUND', message: 'User not found' },
       });
       return;
+    }
+
+    // Hide blocked / blocker-of profiles behind a 404 (no leakage)
+    if (req.user && req.user.userId !== user.id) {
+      if (await isBlockedBetween(req.user.userId, user.id)) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'User not found' },
+        });
+        return;
+      }
     }
 
     let isFollowing = false;
@@ -76,9 +88,12 @@ export async function searchUsers(req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    const hiddenIds = req.user ? await getHiddenUserIds(req.user.userId) : [];
+
     const users = await prisma.user.findMany({
       where: {
         isActive: true,
+        ...(hiddenIds.length > 0 && { id: { notIn: hiddenIds } }),
         OR: [
           { username: { contains: q, mode: 'insensitive' } },
           { displayName: { contains: q, mode: 'insensitive' } },

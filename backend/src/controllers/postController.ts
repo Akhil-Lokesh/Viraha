@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { deleteFile } from '../lib/storage';
+import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
 import { CreatePostInput, UpdatePostInput } from '../validators/postValidators';
 
 const userSelect = {
@@ -32,11 +33,24 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
         { privacy: 'followers', userId: { in: followedIds } },
         { userId: req.user.userId },
       ];
+
+      const hiddenIds = await getHiddenUserIds(req.user.userId);
+      if (hiddenIds.length > 0) {
+        where.userId = { notIn: hiddenIds };
+      }
     } else {
       where.privacy = 'public';
     }
 
     if (filterUserId) {
+      // Specific-user filter wins, but still respect block visibility
+      if (req.user && req.user.userId !== filterUserId) {
+        const blocked = await isBlockedBetween(req.user.userId, filterUserId);
+        if (blocked) {
+          res.json({ success: true, data: { items: [], nextCursor: null } });
+          return;
+        }
+      }
       where.userId = filterUserId;
     }
 
@@ -81,6 +95,18 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
         error: { code: 'NOT_FOUND', message: 'Post not found' },
       });
       return;
+    }
+
+    // Block visibility: hide existence from blocked/blocker pairs
+    if (req.user && post.userId !== req.user.userId) {
+      const blocked = await isBlockedBetween(req.user.userId, post.userId);
+      if (blocked) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Post not found' },
+        });
+        return;
+      }
     }
 
     // Check privacy
@@ -201,10 +227,13 @@ export async function searchPosts(req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    const hiddenIds = req.user ? await getHiddenUserIds(req.user.userId) : [];
+
     const posts = await prisma.post.findMany({
       where: {
         isDeleted: false,
         privacy: 'public',
+        ...(hiddenIds.length > 0 && { userId: { notIn: hiddenIds } }),
         OR: [
           { caption: { contains: q, mode: 'insensitive' } },
           { locationName: { contains: q, mode: 'insensitive' } },

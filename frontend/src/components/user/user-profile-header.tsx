@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Settings, UserPlus, UserCheck, MessageCircle, Loader2 } from 'lucide-react';
+import { MapPin, Settings, UserPlus, UserCheck, MessageCircle, Loader2, Ban } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
+import { toast } from 'sonner';
 import { fadeInUp } from '@/lib/animations';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { LocationBadge } from '@/components/shared/location-badge';
 import Button from '@mui/material/Button';
 import { useFollowUser, useUnfollowUser } from '@/lib/hooks/use-follows';
+import { useBlockUser } from '@/lib/hooks/use-user';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { UserProfile } from '@/lib/types';
 import { FollowListDialog } from './follow-list-dialog';
 
@@ -35,7 +38,29 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
 
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
+  const blockMutation = useBlockUser();
+  const router = useRouter();
   const isFollowLoading = followMutation.isPending || unfollowMutation.isPending;
+
+  function handleBlock() {
+    if (blockMutation.isPending) return;
+    const ok =
+      typeof window !== 'undefined'
+        ? window.confirm(
+            `Block @${user.username}? They will be removed from your followers and following, and you'll no longer see each other's content.`,
+          )
+        : true;
+    if (!ok) return;
+    blockMutation.mutate(user.id, {
+      onSuccess: () => {
+        toast.success(`Blocked @${user.username}`);
+        router.push('/feed');
+      },
+      onError: () => {
+        toast.error('Could not block user');
+      },
+    });
+  }
 
   const homeLocation = [user.homeCity, user.homeCountry]
     .filter(Boolean)
@@ -254,11 +279,18 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
                   )}
                   {isFollowing ? 'Following' : 'Follow'}
                 </Button>
-                {/* TODO: dead button - direct messaging not implemented yet. Hidden to avoid pretending to be live. */}
-                {/* <Button variant="outlined" disableElevation sx={{ gap: 1 }}>
-                  <MessageCircle style={{ height: 16, width: 16 }} />
-                  Message
-                </Button> */}
+                <Button
+                  variant="outlined"
+                  color="error"
+                  disableElevation
+                  sx={{ gap: 1 }}
+                  onClick={handleBlock}
+                  disabled={blockMutation.isPending}
+                  aria-label={`Block ${user.username}`}
+                >
+                  <Ban style={{ height: 16, width: 16 }} />
+                  Block
+                </Button>
               </>
             )}
           </Box>

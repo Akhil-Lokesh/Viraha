@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { createActivity } from '../utils/activity';
+import { isBlockedBetween } from '../lib/blocks';
 
 const userSelect = {
   id: true,
@@ -24,6 +25,15 @@ export async function followUser(req: Request, res: Response, next: NextFunction
 
     const targetUser = await prisma.user.findUnique({ where: { id: followingId } });
     if (!targetUser) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'User not found' },
+      });
+      return;
+    }
+
+    // If either side has blocked the other, present the same 404 as a non-existent user
+    if (await isBlockedBetween(followerId, followingId)) {
       res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'User not found' },
