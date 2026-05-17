@@ -39,6 +39,7 @@ export interface Post {
   isSaved?: boolean;
   isDeleted: boolean;
   travelMode?: string | null;
+  allowComments: boolean;
   createdAt: string;
   updatedAt: string;
   user?: User;
@@ -86,12 +87,14 @@ export interface CreatePostInput {
   privacy?: string;
   tags?: string[];
   travelMode?: string;
+  allowComments?: boolean;
 }
 
 export interface UpdatePostInput {
   caption?: string;
   privacy?: string;
   tags?: string[];
+  allowComments?: boolean;
 }
 
 export interface UpdateProfileInput {

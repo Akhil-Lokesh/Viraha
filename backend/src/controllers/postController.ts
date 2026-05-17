@@ -139,6 +139,7 @@ export async function createPost(req: Request, res: Response, next: NextFunction
         privacy: data.privacy,
         tags: data.tags || [],
         travelMode: data.travelMode,
+        ...(data.allowComments !== undefined && { allowComments: data.allowComments }),
       },
       include: { user: { select: userSelect } },
     });
@@ -178,6 +179,7 @@ export async function updatePost(req: Request, res: Response, next: NextFunction
         ...(data.caption !== undefined && { caption: data.caption }),
         ...(data.privacy !== undefined && { privacy: data.privacy }),
         ...(data.tags !== undefined && { tags: data.tags }),
+        ...(data.allowComments !== undefined && { allowComments: data.allowComments }),
       },
       include: { user: { select: userSelect } },
     });

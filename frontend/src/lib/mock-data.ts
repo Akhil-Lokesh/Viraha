@@ -197,6 +197,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-02-21T08:00:00Z',
     updatedAt: '2025-02-21T08:00:00Z',
+    allowComments: true,
     user: mockUsers[0],
   },
   {
@@ -220,6 +221,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-01-16T14:00:00Z',
     updatedAt: '2025-01-16T14:00:00Z',
+    allowComments: true,
     user: mockUsers[1],
   },
   {
@@ -243,6 +245,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-03-01T18:00:00Z',
     updatedAt: '2025-03-01T18:00:00Z',
+    allowComments: true,
     user: mockUsers[2],
   },
   {
@@ -266,6 +269,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-02-10T20:00:00Z',
     updatedAt: '2025-02-10T20:00:00Z',
+    allowComments: true,
     user: mockUsers[3],
   },
   {
@@ -289,6 +293,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-01-05T15:00:00Z',
     updatedAt: '2025-01-05T15:00:00Z',
+    allowComments: true,
     user: mockUsers[4],
   },
   {
@@ -312,6 +317,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-02-28T22:00:00Z',
     updatedAt: '2025-02-28T22:00:00Z',
+    allowComments: true,
     user: mockUsers[0],
   },
   {
@@ -335,6 +341,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-01-20T14:00:00Z',
     updatedAt: '2025-01-20T14:00:00Z',
+    allowComments: true,
     user: mockUsers[1],
   },
   {
@@ -358,6 +365,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-03-05T18:00:00Z',
     updatedAt: '2025-03-05T18:00:00Z',
+    allowComments: true,
     user: mockUsers[2],
   },
   {
@@ -381,6 +389,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-02-06T10:00:00Z',
     updatedAt: '2025-02-06T10:00:00Z',
+    allowComments: true,
     user: mockUsers[3],
   },
   {
@@ -404,6 +413,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-01-29T07:00:00Z',
     updatedAt: '2025-01-29T07:00:00Z',
+    allowComments: true,
     user: mockUsers[4],
   },
   {
@@ -427,6 +437,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-03-08T16:00:00Z',
     updatedAt: '2025-03-08T16:00:00Z',
+    allowComments: true,
     user: mockUsers[0],
   },
   {
@@ -450,6 +461,7 @@ export const mockPosts: Post[] = [
     isDeleted: false,
     createdAt: '2025-02-15T09:00:00Z',
     updatedAt: '2025-02-15T09:00:00Z',
+    allowComments: true,
     user: mockUsers[1],
   },
 ];

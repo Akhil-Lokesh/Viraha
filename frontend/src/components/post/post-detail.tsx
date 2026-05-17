@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Share2, MessageCircle, Send, Loader2, FolderPlus } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Share2, MessageCircle, MessageCircleOff, Send, Loader2, FolderPlus } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Box, Typography, Divider } from '@mui/material';
 import Button from '@mui/material/Button';
@@ -15,6 +15,7 @@ import TextField from '@mui/material/TextField';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { LocationBadge } from '@/components/shared/location-badge';
 import { useComments, useCreateComment } from '@/lib/hooks/use-comments';
+import { useUpdatePost } from '@/lib/hooks/use-posts';
 import { useToggleSave } from '@/lib/hooks/use-saves';
 import { useFollowStatus, useFollowUser, useUnfollowUser } from '@/lib/hooks/use-follows';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -54,6 +55,22 @@ export function PostDetail({ post }: { post: Post }) {
 
   // Save
   const toggleSave = useToggleSave();
+
+  // Post owner controls
+  const updatePost = useUpdatePost();
+  function handleToggleComments() {
+    updatePost.mutate(
+      { id: post.id, data: { allowComments: !post.allowComments } },
+      {
+        onSuccess: () => {
+          toast.success(post.allowComments ? 'Comments disabled' : 'Comments enabled');
+        },
+        onError: () => {
+          toast.error('Could not update post');
+        },
+      },
+    );
+  }
 
   // Follow
   const isOwnPost = authUser?.id === post.user?.id;
@@ -554,12 +571,26 @@ export function PostDetail({ post }: { post: Post }) {
 
           {/* -- Comments Section ------------------------------------------ */}
           <Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '1rem', mb: 2.5 }}>
-              Comments
-              <Box component="span" sx={{ ml: 1, fontSize: '0.875rem', fontWeight: 400, color: 'text.secondary' }}>
-                ({post.commentCount})
-              </Box>
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5 }}>
+              <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
+                Comments
+                <Box component="span" sx={{ ml: 1, fontSize: '0.875rem', fontWeight: 400, color: 'text.secondary' }}>
+                  ({post.commentCount})
+                </Box>
+              </Typography>
+              {isOwnPost && (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={handleToggleComments}
+                  disabled={updatePost.isPending}
+                  startIcon={post.allowComments ? <MessageCircleOff size={14} /> : <MessageCircle size={14} />}
+                  sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary' }}
+                >
+                  {post.allowComments ? 'Disable comments' : 'Enable comments'}
+                </Button>
+              )}
+            </Box>
 
             {commentsLoading ? (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
@@ -567,7 +598,9 @@ export function PostDetail({ post }: { post: Post }) {
               </Box>
             ) : comments.length === 0 ? (
               <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', py: 2 }}>
-                No comments yet. Be the first to share your thoughts.
+                {post.allowComments
+                  ? 'No comments yet. Be the first to share your thoughts.'
+                  : 'Comments are disabled on this post.'}
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
@@ -654,8 +687,8 @@ export function PostDetail({ post }: { post: Post }) {
               </Box>
             )}
 
-            {/* Comment input -- only if authenticated */}
-            {isAuthenticated && (
+            {/* Comment input -- only if authenticated AND comments enabled on this post */}
+            {isAuthenticated && post.allowComments && (
               <Box
                 component="form"
                 onSubmit={handleCommentSubmit}

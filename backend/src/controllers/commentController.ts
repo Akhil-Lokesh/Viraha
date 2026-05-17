@@ -26,6 +26,15 @@ export async function createComment(req: Request, res: Response, next: NextFunct
       return;
     }
 
+    // Comments may be disabled per-post by the author.
+    if (!post.allowComments) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'COMMENTS_DISABLED', message: 'Comments are disabled on this post' },
+      });
+      return;
+    }
+
     // Privacy gate (mirrors getComments): non-owners cannot write to private
     // posts, and must be accepted followers to write on followers-only posts.
     // Returns 404 to avoid leaking post existence.

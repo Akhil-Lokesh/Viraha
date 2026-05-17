@@ -79,8 +79,9 @@ model Post {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  travelMode   String? @map("travel_mode") @db.VarChar(20)
-  showLocation Boolean @default(true) @map("show_location")
+  travelMode    String? @map("travel_mode") @db.VarChar(20)
+  showLocation  Boolean @default(true) @map("show_location")
+  allowComments Boolean @default(true) @map("allow_comments")
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   comments     Comment[]

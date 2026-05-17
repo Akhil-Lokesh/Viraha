@@ -14,12 +14,14 @@ export const createPostSchema = z.object({
   privacy: z.enum(['private', 'followers', 'public']).default('public'),
   tags: z.array(z.string().max(50)).max(20).optional(),
   travelMode: z.enum(['local', 'traveling']).optional(),
+  allowComments: z.boolean().optional(),
 });
 
 export const updatePostSchema = z.object({
   caption: z.string().max(2000).optional(),
   privacy: z.enum(['private', 'followers', 'public']).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
+  allowComments: z.boolean().optional(),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;
