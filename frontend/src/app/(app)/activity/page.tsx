@@ -12,6 +12,8 @@ import {
   Reply,
   CheckCheck,
   Loader2,
+  Heart,
+  Check,
 } from 'lucide-react';
 import { useActivities, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '@/lib/hooks/use-activities';
 import { AuthGuard } from '@/components/auth/auth-guard';
@@ -29,30 +31,42 @@ function resolveImageUrl(url: string): string {
   return `${API_BASE}${url}`;
 }
 
-const activityIcons = {
+const activityIcons: Record<Activity['type'], typeof UserPlus> = {
   follow: UserPlus,
+  follow_request: UserPlus,
+  follow_accepted: Check,
   comment: MessageCircle,
   reply: Reply,
   save: Bookmark,
-} as const;
+  like: Heart,
+};
 
-const activityColors = {
+const activityColors: Record<Activity['type'], { bgcolor: string; color: string }> = {
   follow: { bgcolor: 'rgba(59,130,246,0.1)', color: '#2563EB' },
+  follow_request: { bgcolor: 'rgba(59,130,246,0.1)', color: '#2563EB' },
+  follow_accepted: { bgcolor: 'rgba(59,130,246,0.1)', color: '#2563EB' },
   comment: { bgcolor: 'rgba(16,185,129,0.1)', color: '#059669' },
   reply: { bgcolor: 'rgba(139,92,246,0.1)', color: '#7C3AED' },
   save: { bgcolor: 'rgba(245,158,11,0.1)', color: '#D97706' },
-} as const;
+  like: { bgcolor: 'rgba(239,68,68,0.1)', color: '#DC2626' },
+};
 
 function activityMessage(activity: Activity): string {
   switch (activity.type) {
     case 'follow':
       return 'started following you';
+    case 'follow_request':
+      return 'requested to follow you';
+    case 'follow_accepted':
+      return 'accepted your follow request';
     case 'comment':
       return 'commented on your post';
     case 'reply':
       return 'replied to your comment';
     case 'save':
       return 'saved your post';
+    case 'like':
+      return 'liked your post';
     default:
       return 'interacted with you';
   }
@@ -200,6 +214,27 @@ function ActivityContent() {
     [data]
   );
 
+  const groupedActivities = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const yesterday = today - 86_400_000;
+
+    const groups: Array<{ label: string; items: typeof activities }> = [
+      { label: 'Today', items: [] },
+      { label: 'Yesterday', items: [] },
+      { label: 'Earlier', items: [] },
+    ];
+
+    for (const activity of activities) {
+      const ts = new Date(activity.createdAt).getTime();
+      if (ts >= today) groups[0].items.push(activity);
+      else if (ts >= yesterday) groups[1].items.push(activity);
+      else groups[2].items.push(activity);
+    }
+
+    return groups.filter((group) => group.items.length > 0);
+  }, [activities]);
+
   return (
     <Box
       component={motion.div}
@@ -291,12 +326,31 @@ function ActivityContent() {
         </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mx: { xs: -2, md: 0 } }}>
-          {activities.map((activity) => (
-            <ActivityItem
-              key={activity.id}
-              activity={activity}
-              onMarkRead={(id) => markAsRead.mutate(id)}
-            />
+          {groupedActivities.map((group) => (
+            <Box key={group.label} sx={{ mb: 1 }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  display: 'block',
+                  px: 2,
+                  pt: 1,
+                  pb: 0.5,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  color: 'text.secondary',
+                }}
+              >
+                {group.label}
+              </Typography>
+              {group.items.map((activity) => (
+                <ActivityItem
+                  key={activity.id}
+                  activity={activity}
+                  onMarkRead={(id) => markAsRead.mutate(id)}
+                />
+              ))}
+            </Box>
           ))}
 
           {hasNextPage && (

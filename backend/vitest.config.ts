@@ -7,6 +7,16 @@ export default defineConfig({
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['src/__tests__/**/*.test.ts'],
     testTimeout: 30000,
+    // Integration tests share one Postgres database — run files serially so
+    // afterEach() truncations from one file don't wipe data the other file
+    // is mid-assertion on.
+    fileParallelism: false,
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

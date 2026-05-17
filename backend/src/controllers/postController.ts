@@ -41,10 +41,32 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
     const items = hasMore ? posts.slice(0, limit) : posts;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
 
+    let savedPostIds = new Set<string>();
+    let likedPostIds = new Set<string>();
+    if (req.user) {
+      const postIds = items.map((p) => p.id);
+      const [saves, reactions] = await Promise.all([
+        prisma.save.findMany({
+          where: { userId: req.user.userId, postId: { in: postIds } },
+          select: { postId: true },
+        }),
+        prisma.reaction.findMany({
+          where: { userId: req.user.userId, postId: { in: postIds }, type: 'like' },
+          select: { postId: true },
+        }),
+      ]);
+      savedPostIds = new Set(saves.map((s) => s.postId));
+      likedPostIds = new Set(reactions.map((r) => r.postId));
+    }
+
     res.json({
       success: true,
       data: {
-        items,
+        items: items.map((post) => ({
+          ...post,
+          isSaved: savedPostIds.has(post.id),
+          isLiked: likedPostIds.has(post.id),
+        })),
         nextCursor,
       },
     });
@@ -78,7 +100,30 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    res.json({ success: true, data: { post } });
+    let isSaved = false;
+    let isLiked = false;
+    if (req.user) {
+      const [save, reaction] = await Promise.all([
+        prisma.save.findUnique({
+          where: { userId_postId: { userId: req.user.userId, postId: post.id } },
+          select: { id: true },
+        }),
+        prisma.reaction.findUnique({
+          where: {
+            userId_postId_type: {
+              userId: req.user.userId,
+              postId: post.id,
+              type: 'like',
+            },
+          },
+          select: { id: true },
+        }),
+      ]);
+      isSaved = !!save;
+      isLiked = !!reaction;
+    }
+
+    res.json({ success: true, data: { post: { ...post, isSaved, isLiked } } });
   } catch (err) {
     next(err);
   }
@@ -187,13 +232,21 @@ export async function searchPosts(req: Request, res: Response, next: NextFunctio
     const nextCursor = hasMore ? items[items.length - 1].id : null;
 
     let savedPostIds = new Set<string>();
+    let likedPostIds = new Set<string>();
     if (req.user) {
       const postIds = items.map((p) => p.id);
-      const saves = await prisma.save.findMany({
-        where: { userId: req.user.userId, postId: { in: postIds } },
-        select: { postId: true },
-      });
+      const [saves, reactions] = await Promise.all([
+        prisma.save.findMany({
+          where: { userId: req.user.userId, postId: { in: postIds } },
+          select: { postId: true },
+        }),
+        prisma.reaction.findMany({
+          where: { userId: req.user.userId, postId: { in: postIds }, type: 'like' },
+          select: { postId: true },
+        }),
+      ]);
       savedPostIds = new Set(saves.map((s) => s.postId));
+      likedPostIds = new Set(reactions.map((r) => r.postId));
     }
 
     res.json({
@@ -202,6 +255,7 @@ export async function searchPosts(req: Request, res: Response, next: NextFunctio
         items: items.map((post) => ({
           ...post,
           isSaved: savedPostIds.has(post.id),
+          isLiked: likedPostIds.has(post.id),
         })),
         nextCursor,
       },

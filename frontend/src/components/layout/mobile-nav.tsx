@@ -3,16 +3,26 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Globe, Plus, MapPin, LayoutGrid, BookMarked } from 'lucide-react';
+import { Globe, Plus, MapPin, Bell, BookMarked } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useAuthHydrated } from '@/lib/stores/auth-store';
+import { NotificationBell } from '@/components/activity/notification-bell';
 
-const tabs = [
+interface Tab {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  isFab?: true;
+  isBell?: true;
+}
+
+const tabs: Tab[] = [
   { href: '/explore', icon: Globe, label: 'Explore' },
   { href: '/map', icon: MapPin, label: 'Map' },
-  { href: '/create/post', icon: Plus, label: 'Create', isFab: true as const },
-  { href: '/albums', icon: LayoutGrid, label: 'Albums' },
+  { href: '/create/post', icon: Plus, label: 'Create', isFab: true },
+  { href: '/activity', icon: Bell, label: 'Activity', isBell: true },
   { href: '/journals', icon: BookMarked, label: 'Journals' },
 ];
 
@@ -127,11 +137,17 @@ export function BottomNav() {
                   </motion.div>
                 )}
 
-                <Box
-                  component={tab.icon}
-                  sx={{ width: 22, height: 22, position: 'relative', zIndex: 1 }}
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
+                {tab.isBell ? (
+                  <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 22 }}>
+                    <NotificationBell size={22} />
+                  </Box>
+                ) : (
+                  <Box
+                    component={tab.icon}
+                    sx={{ width: 22, height: 22, position: 'relative', zIndex: 1 }}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                )}
                 <Typography
                   sx={{
                     fontSize: 10,

@@ -17,6 +17,7 @@ import { Box, Typography, IconButton } from '@mui/material';
 import type { Post } from '@/lib/types';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { useToggleSave } from '@/lib/hooks/use-saves';
+import { useToggleLike } from '@/lib/hooks/use-reactions';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
@@ -30,7 +31,10 @@ function resolveImageUrl(url: string): string {
 export function PostCard({ post }: { post: Post }) {
   const [saved, setSaved] = useState(post.isSaved ?? false);
   const [saveCount, setSaveCount] = useState(post.saveCount ?? 0);
+  const [liked, setLiked] = useState(post.isLiked ?? false);
+  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
   const toggleSave = useToggleSave();
+  const toggleLike = useToggleLike();
 
   const imageUrl = post.mediaUrls[0]
     ? resolveImageUrl(post.mediaUrls[0])
@@ -56,6 +60,20 @@ export function PostCard({ post }: { post: Post }) {
       onError: () => {
         setSaved(wasSaved);
         setSaveCount((c) => (wasSaved ? c + 1 : c - 1));
+      },
+    });
+  }
+
+  function handleLike(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount((c) => (wasLiked ? Math.max(0, c - 1) : c + 1));
+    toggleLike.mutate(post.id, {
+      onError: () => {
+        setLiked(wasLiked);
+        setLikeCount((c) => (wasLiked ? c + 1 : Math.max(0, c - 1)));
       },
     });
   }
@@ -321,6 +339,44 @@ export function PostCard({ post }: { post: Post }) {
                 )}
               </Box>
             </Link>
+
+            {/* Like */}
+            <Box
+              component="button"
+              onClick={handleLike}
+              aria-label={liked ? 'Unlike post' : 'Like post'}
+              aria-pressed={liked}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                px: 1,
+                py: 0.5,
+                borderRadius: '9999px',
+                transition: 'all 0.2s',
+                border: 'none',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
+                color: liked ? '#EF4444' : 'text.secondary',
+                '&:hover': {
+                  color: '#EF4444',
+                  bgcolor: 'rgba(239, 68, 68, 0.08)',
+                },
+              }}
+            >
+              <Heart
+                style={{
+                  height: 18,
+                  width: 18,
+                  fill: liked ? 'currentColor' : 'none',
+                }}
+              />
+              {likeCount > 0 && (
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                  {likeCount}
+                </Typography>
+              )}
+            </Box>
 
             {/* Save/Bookmark */}
             <Box

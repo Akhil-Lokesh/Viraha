@@ -11,17 +11,28 @@ import {
   BookMarked,
   Waves,
   Plane,
+  Bell,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Avatar, Box, ButtonBase, Tooltip } from '@mui/material';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useAuthHydrated } from '@/lib/stores/auth-store';
 import { useTravelMode, useUpdateTravelMode } from '@/lib/hooks/use-travel';
 import { useTravelStore } from '@/lib/stores/travel-store';
+import { NotificationBell } from '@/components/activity/notification-bell';
 
-const navItems = [
+interface NavItem {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  isBell?: boolean;
+}
+
+const navItems: NavItem[] = [
   { href: '/home', icon: Home, label: 'Home' },
   { href: '/explore', icon: Globe, label: 'Explore' },
   { href: '/map', icon: MapPin, label: 'Map' },
+  { href: '/activity', icon: Bell, label: 'Notifications', isBell: true },
   { href: '/albums', icon: LayoutGrid, label: 'Albums' },
   { href: '/journals', icon: BookMarked, label: 'Journals' },
 ];
@@ -148,19 +159,33 @@ export function Sidebar() {
                       }}
                     />
                   )}
-                  <Box
-                    component={item.icon}
-                    sx={{
-                      position: 'relative',
-                      zIndex: 10,
-                      width: 22,
-                      height: 22,
-                      color: active
-                        ? 'primary.main'
-                        : 'rgba(255, 255, 255, 0.7)',
-                      transition: 'color 0.2s',
-                    }}
-                  />
+                  {item.isBell ? (
+                    <Box
+                      sx={{
+                        position: 'relative',
+                        zIndex: 10,
+                        display: 'flex',
+                        color: active ? 'primary.main' : 'rgba(255, 255, 255, 0.7)',
+                        transition: 'color 0.2s',
+                      }}
+                    >
+                      <NotificationBell size={22} />
+                    </Box>
+                  ) : (
+                    <Box
+                      component={item.icon}
+                      sx={{
+                        position: 'relative',
+                        zIndex: 10,
+                        width: 22,
+                        height: 22,
+                        color: active
+                          ? 'primary.main'
+                          : 'rgba(255, 255, 255, 0.7)',
+                        transition: 'color 0.2s',
+                      }}
+                    />
+                  )}
                 </Box>
               </Link>
             </Tooltip>

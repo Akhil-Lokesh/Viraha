@@ -35,7 +35,9 @@ export interface Post {
   tags: string[];
   commentCount: number;
   saveCount: number;
+  likeCount: number;
   isSaved?: boolean;
+  isLiked?: boolean;
   isDeleted: boolean;
   travelMode?: string | null;
   createdAt: string;
@@ -141,7 +143,7 @@ export interface Activity {
   id: string;
   userId: string;
   actorId: string;
-  type: 'follow' | 'comment' | 'reply' | 'save';
+  type: 'follow' | 'follow_request' | 'follow_accepted' | 'comment' | 'reply' | 'save' | 'like';
   postId: string | null;
   commentId: string | null;
   read: boolean;
