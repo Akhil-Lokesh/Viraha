@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { register, login, me, refreshTokenHandler, logout, changePassword, forgotPassword, resetPassword, verifyEmail, resendVerification } from '../controllers/authController';
+import { register, login, me, refreshTokenHandler, logout, changePassword, forgotPassword, resetPassword, verifyEmail, resendVerification, googleSignIn } from '../controllers/authController';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
-import { registerSchema, loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema } from '../validators/authValidators';
+import { registerSchema, loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, googleSignInSchema } from '../validators/authValidators';
 import { generateCsrfToken } from '../middleware/csrf';
 import { authLimiter } from '../middleware/rateLimiter';
 
@@ -23,5 +23,6 @@ router.post('/forgot-password', validateBody(forgotPasswordSchema), forgotPasswo
 router.post('/reset-password', validateBody(resetPasswordSchema), resetPassword);
 router.post('/verify-email', validateBody(verifyEmailSchema), verifyEmail);
 router.post('/resend-verification', authLimiter, authenticate, resendVerification);
+router.post('/google', authLimiter, validateBody(googleSignInSchema), googleSignIn);
 
 export default router;

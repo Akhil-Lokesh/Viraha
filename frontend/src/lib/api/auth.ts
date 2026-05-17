@@ -53,3 +53,8 @@ export async function verifyEmail(token: string): Promise<void> {
 export async function resendVerification(): Promise<void> {
   await apiClient.post('/auth/resend-verification');
 }
+
+export async function googleSignIn(idToken: string): Promise<{ user: User }> {
+  const res = await apiClient.post<AuthApiResponse>('/auth/google', { idToken });
+  return { user: res.data.data.user };
+}

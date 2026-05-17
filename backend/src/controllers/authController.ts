@@ -1,11 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
+import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { prisma } from '../lib/prisma';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { randomBytes } from 'crypto';
-import { RegisterInput, LoginInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput, VerifyEmailInput } from '../validators/authValidators';
+import { env } from '../config/env';
+import { RegisterInput, LoginInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput, VerifyEmailInput, GoogleSignInInput } from '../validators/authValidators';
 import { sendPasswordResetEmail, sendWelcomeEmail, sendVerificationEmail } from '../lib/email';
 import { setAccessTokenCookie, setRefreshTokenCookie, clearAuthCookies } from '../utils/cookies';
+
+let googleClient: OAuth2Client | null = null;
+function getGoogleClient(): OAuth2Client | null {
+  if (!env.GOOGLE_CLIENT_ID) return null;
+  if (googleClient) return googleClient;
+  googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+  return googleClient;
+}
+
+async function generateUniqueUsername(seed: string): Promise<string> {
+  // Sanitize and clamp seed to ~24 chars, leaving headroom for a random suffix
+  const cleaned = seed.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 24) || 'user';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const suffix = attempt === 0 ? '' : `_${randomBytes(3).toString('hex')}`;
+    const candidate = `${cleaned}${suffix}`.slice(0, 30);
+    const existing = await prisma.user.findUnique({ where: { username: candidate } });
+    if (!existing) return candidate;
+  }
+  // Fall back to a fully random username
+  return `user_${randomBytes(8).toString('hex')}`;
+}
 
 function sanitizeUser<T extends { passwordHash?: string }>(user: T): Omit<T, 'passwordHash'> {
   const { passwordHash: _passwordHash, ...rest } = user;
@@ -432,6 +455,128 @@ export async function resendVerification(req: Request, res: Response, next: Next
     res.json({
       success: true,
       data: { message: 'Verification email sent.' },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function googleSignIn(req: Request, res: Response, next: NextFunction) {
+  try {
+    const client = getGoogleClient();
+    if (!client) {
+      res.status(503).json({
+        success: false,
+        error: { code: 'GOOGLE_OAUTH_DISABLED', message: 'Google sign-in is not configured on this server.' },
+      });
+      return;
+    }
+
+    const { idToken } = req.body as GoogleSignInInput;
+
+    let payload: TokenPayload | undefined;
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Could not verify Google identity token.' },
+      });
+      return;
+    }
+
+    if (!payload || !payload.sub || !payload.email) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Google token did not return required fields.' },
+      });
+      return;
+    }
+
+    const { sub: googleId, email, email_verified: emailVerified, name, picture } = payload;
+
+    // Look up by Google ID first
+    let user = await prisma.user.findUnique({ where: { googleId } });
+
+    if (!user) {
+      // Try to link to an existing local account by email — only if Google has
+      // verified the email. Otherwise reject to prevent takeover.
+      const existingByEmail = await prisma.user.findUnique({ where: { email } });
+      if (existingByEmail) {
+        if (!emailVerified) {
+          res.status(409).json({
+            success: false,
+            error: { code: 'EMAIL_IN_USE', message: 'An account with this email already exists.' },
+          });
+          return;
+        }
+        // Link
+        user = await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            googleId,
+            authProvider: existingByEmail.authProvider ?? 'google',
+            emailVerified: true,
+            ...(picture && !existingByEmail.avatar ? { avatar: picture } : {}),
+          },
+        });
+      } else {
+        // Brand new user
+        const username = await generateUniqueUsername(
+          (name as string | undefined) ?? email.split('@')[0],
+        );
+        const passwordHash = await hashPassword(randomBytes(32).toString('hex'));
+        user = await prisma.user.create({
+          data: {
+            username,
+            email,
+            passwordHash,
+            displayName: (name as string | undefined) ?? username,
+            avatar: picture ?? null,
+            googleId,
+            authProvider: 'google',
+            emailVerified: !!emailVerified,
+          },
+        });
+
+        sendWelcomeEmail(email, username).catch(() => {});
+      }
+    }
+
+    if (!user.isActive) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Account has been deactivated' },
+      });
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    setAccessTokenCookie(res, accessToken);
+    setRefreshTokenCookie(res, refreshToken);
+
+    res.json({
+      success: true,
+      data: { user: sanitizeUser(user) },
     });
   } catch (err) {
     next(err);

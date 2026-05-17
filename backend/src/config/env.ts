@@ -38,6 +38,8 @@ const envSchema = z.object({
   // Resend (optional — email sending disabled if not set)
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().optional().default('noreply@viraha.app'),
+  // Google OAuth (optional — Sign-in-with-Google disabled if not set)
+  GOOGLE_CLIENT_ID: z.string().optional(),
 }).refine(
   (data) => {
     if (data.NODE_ENV !== 'production') return true;
