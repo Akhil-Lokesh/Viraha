@@ -56,7 +56,15 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('Invalid environment variables:', parsed.error.format());
+  // The logger imports env transitively, so it cannot be used safely here.
+  // Emit a structured fatal record straight to stderr instead.
+  process.stderr.write(
+    JSON.stringify({
+      level: 'fatal',
+      msg: 'Invalid environment variables',
+      errors: parsed.error.format(),
+    }) + '\n'
+  );
   process.exit(1);
 }
 

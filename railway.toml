@@ -4,5 +4,8 @@ dockerfilePath = "backend/Dockerfile"
 
 [deploy]
 healthcheckPath = "/health"
+# Allow time for `prisma migrate deploy` + server start before Railway kills the
+# container as unhealthy.
+healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

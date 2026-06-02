@@ -59,3 +59,7 @@ next-env.d.ts
 
 # Claude Code runtime
 .claude/scheduled_tasks.lock
+
+# pnpm (project standardizes on npm)
+pnpm-lock.yaml
+pnpm-workspace.yaml

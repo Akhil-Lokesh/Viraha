@@ -6,7 +6,9 @@ const isProduction = env.NODE_ENV === 'production';
 const BASE_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax',
+  // Cross-site in prod (Vercel frontend ↔ Railway backend) requires SameSite=None;
+  // None mandates Secure, which holds in production. Keep Lax locally (same-site, no HTTPS).
+  sameSite: isProduction ? 'none' : 'lax',
 };
 
 const ACCESS_COOKIE = 'viraha_access';

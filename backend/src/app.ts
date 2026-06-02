@@ -10,6 +10,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter, authLimiter, uploadLimiter } from './middleware/rateLimiter';
 import { doubleCsrfProtection } from './middleware/csrf';
 import { prisma } from './lib/prisma';
+import { redis } from './lib/redis';
 
 import authRoutes from './routes/auth';
 import postRoutes from './routes/posts';
@@ -85,17 +86,40 @@ if (env.NODE_ENV === 'production') {
 app.use(express.json());
 app.use(cookieParser());
 
-// Static files (uploaded images)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Static files (uploaded images) — dev-only fallback. Production serves media from R2.
+if (env.NODE_ENV !== 'production') {
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+}
 
-// Health check with DB connectivity
+// Health check with DB + Redis connectivity.
+// 503 only when the DB is down; Redis being disabled/unreachable is non-fatal.
 app.get('/health', async (_req, res) => {
+  let dbOk = false;
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'ok', db: 'connected' });
+    dbOk = true;
   } catch {
-    res.status(503).json({ status: 'degraded', db: 'disconnected' });
+    dbOk = false;
   }
+
+  let redisStatus: 'connected' | 'disconnected' | 'disabled';
+  if (!redis) {
+    redisStatus = 'disabled';
+  } else {
+    try {
+      redisStatus = (await redis.ping()) === 'PONG' ? 'connected' : 'disconnected';
+    } catch {
+      redisStatus = 'disconnected';
+    }
+  }
+
+  const db = dbOk ? 'connected' : 'disconnected';
+  if (!dbOk) {
+    res.status(503).json({ status: 'degraded', db, redis: redisStatus });
+    return;
+  }
+
+  res.json({ status: 'ok', db, redis: redisStatus });
 });
 
 // Rate limiting

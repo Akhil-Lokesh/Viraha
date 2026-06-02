@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.*
+coverage
+*.log
+uploads/*
+!uploads/.gitkeep
+.next
+*.tsbuildinfo

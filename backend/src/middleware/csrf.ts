@@ -12,7 +12,9 @@ const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
   cookieName: 'viraha_csrf',
   cookieOptions: {
     httpOnly: true,
-    sameSite: 'lax' as const,
+    // Cross-site in prod requires SameSite=None (mandates Secure, which holds in prod).
+    // Keep Lax locally to avoid requiring HTTPS in development.
+    sameSite: isProduction ? 'none' : 'lax',
     secure: isProduction,
     path: '/',
   },

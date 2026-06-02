@@ -13,6 +13,15 @@ export default defineConfig({
       reporter: ['text', 'html', 'lcov'],
       include: ['src/**/*.ts'],
       exclude: ['src/__tests__/**', 'src/**/*.d.ts'],
+      // Conservative regression-floor (actual coverage not yet measured against a
+      // running test DB). Prevents coverage collapsing to zero; ratchet toward 80
+      // once the suite is measured in CI.
+      thresholds: {
+        lines: 40,
+        functions: 40,
+        branches: 35,
+        statements: 40,
+      },
     },
   },
 });
