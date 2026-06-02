@@ -14,6 +14,13 @@ export default defineConfig({
       reporter: ['text', 'html', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/__tests__/**', 'src/**/*.d.ts'],
+      // Realistic starting floor; ratchet these up toward 80 as coverage grows.
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 60,
+        statements: 70,
+      },
     },
   },
   resolve: {

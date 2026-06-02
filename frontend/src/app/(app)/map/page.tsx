@@ -1,16 +1,10 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
 import { MapPin, Loader2, BookOpen } from 'lucide-react';
-import {
-  Map,
-  MapMarker,
-  MarkerContent,
-  MarkerPopup,
-  MapControls,
-} from '@/components/ui/map';
 import { useMapMarkers } from '@/lib/hooks/use-map';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { usePlaceResonance } from '@/lib/hooks/use-viraha';
@@ -38,6 +32,40 @@ const mapboxStyleUrls = MAPBOX_TOKEN
       dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${MAPBOX_TOKEN}`,
     }
   : undefined;
+
+// ─── Dynamic map components ──────────────────────────
+// MapLibre (~350KB) is loaded only on the client, keeping it out of the
+// initial bundle. All consumers of @/components/ui/map are dynamic so the
+// maplibre-gl module is not pulled in statically.
+
+function MapSkeleton() {
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'rgba(0,0,0,0.05)',
+      }}
+    >
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+        <Loader2 style={{ height: 32, width: 32, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }} />
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading map...</Typography>
+      </Box>
+    </Box>
+  );
+}
+
+const Map = dynamic(() => import('@/components/ui/map').then((m) => m.Map), {
+  ssr: false,
+  loading: () => <MapSkeleton />,
+});
+const MapMarker = dynamic(() => import('@/components/ui/map').then((m) => m.MapMarker), { ssr: false });
+const MarkerContent = dynamic(() => import('@/components/ui/map').then((m) => m.MarkerContent), { ssr: false });
+const MarkerPopup = dynamic(() => import('@/components/ui/map').then((m) => m.MarkerPopup), { ssr: false });
+const MapControls = dynamic(() => import('@/components/ui/map').then((m) => m.MapControls), { ssr: false });
 
 // ─── Filter types ────────────────────────────────────
 

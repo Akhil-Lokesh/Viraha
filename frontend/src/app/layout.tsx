@@ -16,7 +16,11 @@ export const viewport: Viewport = {
   ],
 };
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Viraha — Keep your travels alive",
     template: "%s | Viraha",
@@ -34,6 +38,15 @@ export const metadata: Metadata = {
     description:
       "Preserve your travel memories. Map your journeys. Share your story.",
     type: "website",
+    siteName: "Viraha",
+    url: SITE_URL,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Viraha — Keep your travels alive",
+    description:
+      "Preserve your travel memories. Map your journeys. Share your story.",
   },
 };
 

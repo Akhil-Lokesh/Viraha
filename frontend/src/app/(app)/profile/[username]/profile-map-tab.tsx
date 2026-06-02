@@ -1,17 +1,43 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
 import { MapPin } from 'lucide-react';
-import {
-  Map as MapComponent,
-  MapMarker,
-  MarkerContent,
-  MarkerPopup,
-  MapControls,
-} from '@/components/ui/map';
 import { LocationBadge } from '@/components/shared/location-badge';
 import type { Post } from '@/lib/types';
+
+// ─── Dynamic map components ──────────────────────────
+// MapLibre (~350KB) loads only on the client, keeping it out of the initial
+// bundle. Every consumer of @/components/ui/map is dynamic so the maplibre-gl
+// module is not statically pulled in.
+
+function MapSkeleton() {
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'rgba(0,0,0,0.05)',
+      }}
+    >
+      <Typography variant="body2" color="text.secondary">
+        Loading map...
+      </Typography>
+    </Box>
+  );
+}
+
+const MapComponent = dynamic(() => import('@/components/ui/map').then((m) => m.Map), {
+  ssr: false,
+  loading: () => <MapSkeleton />,
+});
+const MapMarker = dynamic(() => import('@/components/ui/map').then((m) => m.MapMarker), { ssr: false });
+const MarkerContent = dynamic(() => import('@/components/ui/map').then((m) => m.MarkerContent), { ssr: false });
+const MarkerPopup = dynamic(() => import('@/components/ui/map').then((m) => m.MarkerPopup), { ssr: false });
+const MapControls = dynamic(() => import('@/components/ui/map').then((m) => m.MapControls), { ssr: false });
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 

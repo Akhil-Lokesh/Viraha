@@ -1,19 +1,42 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Box, Typography, InputBase } from '@mui/material';
+import { Box, Typography, InputBase, Skeleton } from '@mui/material';
 import Button from '@mui/material/Button';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { RichTextEditor, getPlainTextExcerpt } from '@/components/journal/rich-text-editor';
 import { ColorPicker } from '@/components/journal/color-picker';
 import { useCreateJournal, useCreateEntry } from '@/lib/hooks/use-journals';
 import { useJournalColorsStore, DEFAULT_COLOR } from '@/lib/stores/journal-colors-store';
+import { sanitizeHtml } from '@/lib/utils/sanitize-html';
 import { fadeInUp } from '@/lib/animations';
+
+// Tiptap (~180KB) loads only on the client, keeping it out of the initial
+// bundle. The editor module is referenced solely through this dynamic import.
+const RichTextEditor = dynamic(
+  () => import('@/components/journal/rich-text-editor').then((m) => m.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <Skeleton variant="rounded" animation="pulse" sx={{ height: 320, width: '100%', borderRadius: '12px' }} />
+    ),
+  },
+);
+
+// Plain-text excerpt derived from editor HTML. Kept local so this page does
+// not statically import the Tiptap-heavy editor module.
+function getPlainTextExcerpt(html: string, maxLength = 200): string {
+  const div = typeof document !== 'undefined' ? document.createElement('div') : null;
+  if (!div) return '';
+  div.innerHTML = sanitizeHtml(html);
+  const text = div.textContent || div.innerText || '';
+  return text.length > maxLength ? text.slice(0, maxLength).trimEnd() + '...' : text;
+}
 
 export default function CreateJournalPage() {
   const router = useRouter();
