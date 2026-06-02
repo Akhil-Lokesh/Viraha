@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
+import { clearAuthCookies } from '../utils/cookies';
 
 export async function handleExportData(req: Request, res: Response, next: NextFunction) {
   try {
@@ -105,8 +106,7 @@ export async function handleDeleteAccount(req: Request, res: Response, next: Nex
     await prisma.user.delete({ where: { id: userId } });
 
     // Clear auth cookies
-    res.clearCookie('viraha_access');
-    res.clearCookie('viraha_refresh');
+    clearAuthCookies(res);
 
     res.json({ success: true, message: 'Account deleted' });
   } catch (err) {

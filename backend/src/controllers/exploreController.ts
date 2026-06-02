@@ -8,49 +8,50 @@ export async function getTrendingLocations(req: Request, res: Response, next: Ne
     const cacheKey = 'explore:trending-locations';
     const cached = await cacheGet<any>(cacheKey);
     if (cached) {
+      res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
       res.json({ success: true, data: cached });
       return;
     }
 
-    const posts = await prisma.post.findMany({
+    // Aggregate counts in the database instead of pulling ~500 rows into JS.
+    const grouped = await prisma.post.groupBy({
+      by: ['locationCity', 'locationCountry'],
       where: {
         isDeleted: false,
         privacy: 'public',
         locationCity: { not: null },
       },
-      select: {
-        locationCity: true,
-        locationCountry: true,
-        mediaThumbnails: true,
-        mediaUrls: true,
-      },
-      orderBy: { postedAt: 'desc' },
-      take: 500,
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 12,
     });
 
-    const cityMap = new Map<string, { city: string; country: string; photo: string | null; count: number }>();
-
-    for (const p of posts) {
-      const key = `${p.locationCity}:${p.locationCountry}`;
-      if (!cityMap.has(key)) {
-        const photo = p.mediaThumbnails[0] || p.mediaUrls[0] || null;
-        cityMap.set(key, {
-          city: p.locationCity!,
-          country: p.locationCountry || '',
-          photo,
-          count: 0,
+    // Fetch one cover image per top city (most recent public post).
+    const locations = await Promise.all(
+      grouped.map(async (g) => {
+        const cover = await prisma.post.findFirst({
+          where: {
+            isDeleted: false,
+            privacy: 'public',
+            locationCity: g.locationCity,
+            locationCountry: g.locationCountry,
+          },
+          select: { mediaThumbnails: true, mediaUrls: true },
+          orderBy: { postedAt: 'desc' },
         });
-      }
-      cityMap.get(key)!.count++;
-    }
-
-    const locations = Array.from(cityMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 12);
+        return {
+          city: g.locationCity as string,
+          country: g.locationCountry || '',
+          photo: cover ? cover.mediaThumbnails[0] || cover.mediaUrls[0] || null : null,
+          count: g._count.id,
+        };
+      })
+    );
 
     const result = { locations };
     await cacheSet(cacheKey, result, 900);
 
+    res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -62,6 +63,7 @@ export async function getTrendingTags(req: Request, res: Response, next: NextFun
     const cacheKey = 'explore:trending-tags';
     const cached = await cacheGet<any>(cacheKey);
     if (cached) {
+      res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
       res.json({ success: true, data: cached });
       return;
     }
@@ -92,6 +94,7 @@ export async function getTrendingTags(req: Request, res: Response, next: NextFun
     const result = { tags };
     await cacheSet(cacheKey, result, 900);
 
+    res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

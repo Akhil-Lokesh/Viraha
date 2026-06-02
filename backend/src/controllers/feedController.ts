@@ -16,13 +16,25 @@ export async function getPersonalizedFeed(req: Request, res: Response, next: Nex
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = req.query.cursor as string | undefined;
 
-    // Get IDs of users the current user follows
-    const follows = await prisma.follow.findMany({
-      where: { followerId: userId, status: 'accepted' },
-      select: { followingId: true },
-    });
+    // Short per-user cache. Keyed by userId + cursor; the response is fully
+    // derived from those two inputs, so it is safe to reuse for this user.
+    // Short TTL bounds staleness from new posts/saves without invalidation.
+    const cacheKey = `feed:personal:${userId}:${cursor || 'first'}`;
+    const cached = await cacheGet<{ items: unknown[]; nextCursor: string | null }>(cacheKey);
+    if (cached) {
+      res.json({ success: true, data: cached });
+      return;
+    }
+
+    // Independent lookups run in parallel.
+    const [follows, hiddenIds] = await Promise.all([
+      prisma.follow.findMany({
+        where: { followerId: userId, status: 'accepted' },
+        select: { followingId: true },
+      }),
+      getHiddenUserIds(userId),
+    ]);
     const followedIds = follows.map((f) => f.followingId);
-    const hiddenIds = await getHiddenUserIds(userId);
 
     // Include own posts + followed users' posts, excluding blocked users
     const feedUserIds = [userId, ...followedIds].filter((id) => !hiddenIds.includes(id));
@@ -39,7 +51,8 @@ export async function getPersonalizedFeed(req: Request, res: Response, next: Nex
       },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-      orderBy: { postedAt: 'desc' },
+      // Tie-break on id so cursor pagination never skips rows sharing a postedAt.
+      orderBy: [{ postedAt: 'desc' }, { id: 'desc' }],
       include: { user: { select: userSelect } },
     });
 
@@ -55,16 +68,18 @@ export async function getPersonalizedFeed(req: Request, res: Response, next: Nex
     });
     const savedPostIds = new Set(saves.map((s) => s.postId));
 
-    res.json({
-      success: true,
-      data: {
-        items: items.map((post) => ({
-          ...post,
-          isSaved: savedPostIds.has(post.id),
-        })),
-        nextCursor,
-      },
-    });
+    const responseData = {
+      items: items.map((post) => ({
+        ...post,
+        isSaved: savedPostIds.has(post.id),
+      })),
+      nextCursor,
+    };
+
+    // Best-effort short-lived cache for this user+cursor.
+    await cacheSet(cacheKey, responseData, 45);
+
+    res.json({ success: true, data: responseData });
   } catch (err) {
     next(err);
   }
@@ -111,7 +126,8 @@ export async function getDiscoverFeed(req: Request, res: Response, next: NextFun
       },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-      orderBy: { postedAt: 'desc' },
+      // Tie-break on id so cursor pagination never skips rows sharing a postedAt.
+      orderBy: [{ postedAt: 'desc' }, { id: 'desc' }],
       include: { user: { select: userSelect } },
     });
 

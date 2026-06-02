@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
 import { CreateJournalInput, UpdateJournalInput, CreateJournalEntryInput, UpdateJournalEntryInput } from '../validators/journalValidators';
 
 const userSelect = {
@@ -70,10 +71,6 @@ export async function getJournals(req: Request, res: Response, next: NextFunctio
 
     const where: Prisma.JournalWhereInput = { isDeleted: false };
 
-    if (userId) {
-      where.userId = userId;
-    }
-
     if (req.user) {
       const follows = await prisma.follow.findMany({
         where: { followerId: req.user.userId, status: 'accepted' },
@@ -86,9 +83,26 @@ export async function getJournals(req: Request, res: Response, next: NextFunctio
         { privacy: 'followers', status: 'published', userId: { in: followedIds } },
         { userId: req.user.userId },
       ];
+
+      const hiddenIds = await getHiddenUserIds(req.user.userId);
+      if (hiddenIds.length > 0) {
+        where.userId = { notIn: hiddenIds };
+      }
     } else {
       where.privacy = 'public';
       where.status = 'published';
+    }
+
+    if (userId) {
+      // Specific-user filter wins, but still respect block visibility
+      if (req.user && req.user.userId !== userId) {
+        const blocked = await isBlockedBetween(req.user.userId, userId);
+        if (blocked) {
+          res.json({ success: true, data: { items: [], nextCursor: null } });
+          return;
+        }
+      }
+      where.userId = userId;
     }
 
     const journals = await prisma.journal.findMany({
@@ -120,6 +134,7 @@ export async function getJournalById(req: Request, res: Response, next: NextFunc
         entries: {
           where: { isDeleted: false },
           orderBy: { sortOrder: 'asc' },
+          take: 50,
         },
       },
     });
@@ -184,6 +199,7 @@ export async function getJournalBySlug(req: Request, res: Response, next: NextFu
         entries: {
           where: { isDeleted: false },
           orderBy: { sortOrder: 'asc' },
+          take: 50,
         },
       },
     });
@@ -566,6 +582,8 @@ export async function deleteEntry(req: Request, res: Response, next: NextFunctio
         },
       }),
     ]);
+
+    await recalculateWordCount(journalId);
 
     res.json({ success: true, data: { message: 'Entry deleted' } });
   } catch (err) {

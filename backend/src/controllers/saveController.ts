@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { createActivity } from '../utils/activity';
 
@@ -30,13 +31,26 @@ export async function toggleSave(req: Request, res: Response, next: NextFunction
 
     if (existing) {
       // Unsave
-      await prisma.$transaction([
-        prisma.save.delete({ where: { id: existing.id } }),
-        prisma.post.update({
-          where: { id: postId },
-          data: { saveCount: { decrement: 1 } },
-        }),
-      ]);
+      try {
+        await prisma.$transaction([
+          prisma.save.delete({ where: { id: existing.id } }),
+          prisma.post.update({
+            where: { id: postId },
+            data: { saveCount: { decrement: 1 } },
+          }),
+        ]);
+      } catch (txErr) {
+        // Concurrent unsave already removed the row (P2025): treat as success.
+        // Skip the count decrement so it isn't double-counted.
+        if (
+          txErr instanceof Prisma.PrismaClientKnownRequestError &&
+          txErr.code === 'P2025'
+        ) {
+          res.json({ success: true, data: { saved: false } });
+          return;
+        }
+        throw txErr;
+      }
 
       const updatedPost = await prisma.post.findUnique({
         where: { id: postId },

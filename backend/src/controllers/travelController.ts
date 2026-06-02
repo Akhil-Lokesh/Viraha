@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
+import { getHiddenUserIds } from '../lib/blocks';
 import { UpdateTravelModeInput } from '../validators/travelValidators';
 
 const userSelect = {
@@ -140,6 +141,9 @@ export async function getNearbyFeed(req: Request, res: Response, next: NextFunct
 
     const { minLat, maxLat, minLng, maxLng } = getBoundingBox(lat, lng, radius);
 
+    // Exclude content authored by users in a block relationship with the viewer
+    const hiddenIds = await getHiddenUserIds(req.user!.userId);
+
     // Fetch posts within bounding box (coarse filter)
     const posts = await prisma.post.findMany({
       where: {
@@ -147,6 +151,7 @@ export async function getNearbyFeed(req: Request, res: Response, next: NextFunct
         privacy: 'public',
         locationLat: { gte: minLat, lte: maxLat },
         locationLng: { gte: minLng, lte: maxLng },
+        ...(hiddenIds.length > 0 && { userId: { notIn: hiddenIds } }),
       },
       ...(cursor && {
         cursor: { id: cursor },

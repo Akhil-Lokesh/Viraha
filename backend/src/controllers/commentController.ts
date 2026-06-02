@@ -72,9 +72,11 @@ export async function createComment(req: Request, res: Response, next: NextFunct
       }
     }
 
-    // If replying, verify parent comment exists
+    // If replying, verify parent comment exists. Keep the fetched parent in
+    // scope so the activity notification below can reuse it (no second lookup).
+    let parent: Awaited<ReturnType<typeof prisma.comment.findUnique>> = null;
     if (parentId) {
-      const parent = await prisma.comment.findUnique({ where: { id: parentId } });
+      parent = await prisma.comment.findUnique({ where: { id: parentId } });
       if (!parent || parent.isDeleted || parent.postId !== postId) {
         res.status(404).json({
           success: false,
@@ -97,10 +99,9 @@ export async function createComment(req: Request, res: Response, next: NextFunct
 
     // Create activity for post owner (or parent comment owner for replies)
     if (parentId) {
-      const parentComment = await prisma.comment.findUnique({ where: { id: parentId } });
-      if (parentComment) {
+      if (parent) {
         await createActivity({
-          userId: parentComment.userId,
+          userId: parent.userId,
           actorId: userId,
           type: 'reply',
           postId,

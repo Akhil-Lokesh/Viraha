@@ -7,6 +7,17 @@ export async function createReport(req: Request, res: Response, next: NextFuncti
     const userId = req.user!.userId;
     const { targetType, targetId, reason, details } = req.body as CreateReportInput;
 
+    // Suppress duplicate reports from the same reporter for the same target.
+    const existing = await prisma.report.findFirst({
+      where: { reporterId: userId, targetType, targetId },
+    });
+    if (existing) {
+      res
+        .status(409)
+        .json({ success: false, error: 'You have already reported this content' });
+      return;
+    }
+
     const report = await prisma.report.create({
       data: {
         reporterId: userId,

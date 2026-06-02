@@ -28,6 +28,7 @@ export async function getActivities(req: Request, res: Response, next: NextFunct
             mediaUrls: true,
             mediaThumbnails: true,
             locationName: true,
+            isDeleted: true,
           },
         },
         comment: {
@@ -39,8 +40,15 @@ export async function getActivities(req: Request, res: Response, next: NextFunct
       },
     });
 
-    const hasMore = activities.length > limit;
-    const items = hasMore ? activities.slice(0, limit) : activities;
+    // Tombstone soft-deleted posts: keep the activity row but null the post so
+    // the client can render a "post unavailable" placeholder. (Prisma cannot
+    // filter a to-one relation inside select, so we null it post-query.)
+    const sanitized = activities.map((activity) =>
+      activity.post?.isDeleted ? { ...activity, post: null } : activity
+    );
+
+    const hasMore = sanitized.length > limit;
+    const items = hasMore ? sanitized.slice(0, limit) : sanitized;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
 
     res.json({

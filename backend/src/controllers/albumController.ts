@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
 import { CreateAlbumInput, UpdateAlbumInput, AddPostToAlbumInput } from '../validators/albumValidators';
 
 const userSelect = {
@@ -56,10 +57,6 @@ export async function getAlbums(req: Request, res: Response, next: NextFunction)
 
     const where: Prisma.AlbumWhereInput = { isDeleted: false };
 
-    if (userId) {
-      where.userId = userId;
-    }
-
     if (req.user) {
       const follows = await prisma.follow.findMany({
         where: { followerId: req.user.userId, status: 'accepted' },
@@ -72,8 +69,25 @@ export async function getAlbums(req: Request, res: Response, next: NextFunction)
         { privacy: 'followers', userId: { in: followedIds } },
         { userId: req.user.userId },
       ];
+
+      const hiddenIds = await getHiddenUserIds(req.user.userId);
+      if (hiddenIds.length > 0) {
+        where.userId = { notIn: hiddenIds };
+      }
     } else {
       where.privacy = 'public';
+    }
+
+    if (userId) {
+      // Specific-user filter wins, but still respect block visibility
+      if (req.user && req.user.userId !== userId) {
+        const blocked = await isBlockedBetween(req.user.userId, userId);
+        if (blocked) {
+          res.json({ success: true, data: { items: [], nextCursor: null } });
+          return;
+        }
+      }
+      where.userId = userId;
     }
 
     const albums = await prisma.album.findMany({
@@ -464,8 +478,32 @@ export async function getAlbumPosts(req: Request, res: Response, next: NextFunct
       }
     }
 
+    // Pre-resolve which followers-only authors the viewer can see, so per-post
+    // privacy can be pushed into the Prisma where clause. This keeps cursor
+    // pagination accurate (no post-query filtering that would undercount the page).
+    let followedAuthorIds: string[] = [];
+    if (req.user) {
+      const follows = await prisma.follow.findMany({
+        where: { followerId: req.user.userId, status: 'accepted' },
+        select: { followingId: true },
+      });
+      followedAuthorIds = follows.map((f) => f.followingId);
+    }
+
+    // Visible post conditions, mirroring the post-list privacy rules.
+    const postVisibility: Prisma.PostWhereInput['OR'] = [{ privacy: 'public' }];
+    if (req.user) {
+      postVisibility.push({ userId: req.user.userId });
+      if (followedAuthorIds.length > 0) {
+        postVisibility.push({ privacy: 'followers', userId: { in: followedAuthorIds } });
+      }
+    }
+
     const albumPosts = await prisma.albumPost.findMany({
-      where: { albumId, post: { isDeleted: false } },
+      where: {
+        albumId,
+        post: { isDeleted: false, OR: postVisibility },
+      },
       take: limit + 1,
       ...(cursor && {
         cursor: { id: cursor },
@@ -479,43 +517,8 @@ export async function getAlbumPosts(req: Request, res: Response, next: NextFunct
       },
     });
 
-    // Pre-fetch follow set once to avoid N+1 lookups when filtering by privacy
-    let followedIds: Set<string> = new Set();
-    if (req.user) {
-      const authorIds = Array.from(
-        new Set(
-          albumPosts
-            .filter((ap) => ap.post.privacy === 'followers' && ap.post.userId !== req.user!.userId)
-            .map((ap) => ap.post.userId)
-        )
-      );
-      if (authorIds.length > 0) {
-        const follows = await prisma.follow.findMany({
-          where: {
-            followerId: req.user.userId,
-            followingId: { in: authorIds },
-            status: 'accepted',
-          },
-          select: { followingId: true },
-        });
-        followedIds = new Set(follows.map((f) => f.followingId));
-      }
-    }
-
-    // Filter individual post privacy. Album-level privacy was already checked.
-    const visibleAlbumPosts = albumPosts.filter((ap) => {
-      const post = ap.post;
-      if (req.user && post.userId === req.user.userId) return true;
-      if (post.privacy === 'private') return false;
-      if (post.privacy === 'followers') {
-        if (!req.user) return false;
-        return followedIds.has(post.userId);
-      }
-      return true;
-    });
-
-    const hasMore = visibleAlbumPosts.length > limit;
-    const items = hasMore ? visibleAlbumPosts.slice(0, limit) : visibleAlbumPosts;
+    const hasMore = albumPosts.length > limit;
+    const items = hasMore ? albumPosts.slice(0, limit) : albumPosts;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
 
     res.json({

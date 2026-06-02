@@ -228,6 +228,21 @@ export async function refreshTokenHandler(req: Request, res: Response, next: Nex
       return;
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: storedToken.userId },
+      select: { isActive: true },
+    });
+
+    if (!user?.isActive) {
+      await prisma.refreshToken.deleteMany({ where: { userId: storedToken.userId } });
+      clearAuthCookies(res);
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Account is deactivated' },
+      });
+      return;
+    }
+
     await prisma.refreshToken.delete({ where: { id: storedToken.id } });
 
     const accessToken = generateAccessToken(storedToken.userId);

@@ -298,9 +298,23 @@ export async function deletePost(req: Request, res: Response, next: NextFunction
       return;
     }
 
-    await prisma.post.update({
-      where: { id },
-      data: { isDeleted: true },
+    await prisma.$transaction(async (tx) => {
+      await tx.post.update({
+        where: { id },
+        data: { isDeleted: true },
+      });
+
+      // Keep Album.postCount accurate: decrement every album this post belongs to.
+      const albumPosts = await tx.albumPost.findMany({
+        where: { postId: id },
+        select: { albumId: true },
+      });
+      if (albumPosts.length > 0) {
+        await tx.album.updateMany({
+          where: { id: { in: albumPosts.map((ap) => ap.albumId) } },
+          data: { postCount: { decrement: 1 } },
+        });
+      }
     });
 
     // Delete associated media files (fire-and-forget)

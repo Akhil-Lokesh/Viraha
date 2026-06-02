@@ -13,3 +13,9 @@ export const updateProfileSchema = z.object({
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const deleteAccountSchema = z.object({
+  confirmUsername: z.string().max(30),
+});
+
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
