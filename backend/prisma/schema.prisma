@@ -55,6 +55,7 @@ model User {
   scrapbooks         Scrapbook[]
   blocking           Block[]             @relation("blocking")
   blockedBy          Block[]             @relation("blocked")
+  reports            Report[]            @relation("reports")
 
   @@map("users")
 }
@@ -96,6 +97,10 @@ model Post {
   @@index([postedAt])
   @@index([privacy])
   @@index([userId, privacy, postedAt])
+  @@index([locationLat, locationLng])
+  @@index([saveCount])
+  @@index([locationCity])
+  @@index([locationCountry])
   @@map("posts")
 }
 
@@ -319,12 +324,13 @@ model JournalEntry {
   journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
 
   @@index([journalId, sortOrder])
+  @@index([locationLat, locationLng])
   @@map("journal_entries")
 }
 
 model Report {
   id         String   @id @default(uuid()) @db.Uuid
-  reporterId String   @map("reporter_id") @db.Uuid
+  reporterId String?  @map("reporter_id") @db.Uuid
   targetType String   @map("target_type") @db.VarChar(30)
   targetId   String   @map("target_id") @db.Uuid
   reason     String   @db.VarChar(50)
@@ -332,6 +338,8 @@ model Report {
   status     String   @default("pending") @db.VarChar(20)
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
+
+  reporter User? @relation("reports", fields: [reporterId], references: [id], onDelete: SetNull)
 
   @@index([targetType, targetId])
   @@index([reporterId])
@@ -416,6 +424,7 @@ model PlaceNote {
 
   @@unique([userId, placeId])
   @@index([userId])
+  @@index([locationLat, locationLng])
   @@map("place_notes")
 }
 
@@ -440,6 +449,7 @@ model WantToGo {
 
   @@index([userId, status])
   @@index([userId, createdAt])
+  @@index([locationLat, locationLng])
   @@map("want_to_go")
 }
 
