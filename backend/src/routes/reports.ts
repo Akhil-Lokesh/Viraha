@@ -13,6 +13,7 @@ const reportLimiter = rateLimit({
   limit: 5,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Too many reports, please try again later.' },

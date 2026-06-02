@@ -6,10 +6,12 @@ import { createTestUser, prisma } from './factories';
 const verifyIdToken = vi.fn();
 
 vi.mock('google-auth-library', () => {
+  // Use a class so `new OAuth2Client()` is always a valid constructor — a
+  // vi.fn().mockImplementation arrow is not reliably newable after vi.resetModules().
   return {
-    OAuth2Client: vi.fn().mockImplementation(() => ({
-      verifyIdToken,
-    })),
+    OAuth2Client: class {
+      verifyIdToken = verifyIdToken;
+    },
   };
 });
 

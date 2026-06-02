@@ -59,7 +59,8 @@ export async function processAndUploadImage(
   originalMimetype: string
 ): Promise<ProcessedImage> {
   if (!isAllowedImage(buffer)) {
-    throw new Error('Unsupported or corrupt image file');
+    // 415 so the error handler returns a clean 4xx (not a 500 + spurious Sentry).
+    throw Object.assign(new Error('Unsupported or corrupt image file'), { statusCode: 415 });
   }
 
   const id = `${Date.now()}-${uuidv4()}`;
@@ -103,7 +104,8 @@ export async function processAndUploadAvatar(
   buffer: Buffer
 ): Promise<string> {
   if (!isAllowedImage(buffer)) {
-    throw new Error('Unsupported or corrupt image file');
+    // 415 so the error handler returns a clean 4xx (not a 500 + spurious Sentry).
+    throw Object.assign(new Error('Unsupported or corrupt image file'), { statusCode: 415 });
   }
 
   const id = `${Date.now()}-${uuidv4()}`;

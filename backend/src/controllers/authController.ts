@@ -233,7 +233,19 @@ export async function refreshTokenHandler(req: Request, res: Response, next: Nex
       select: { isActive: true },
     });
 
-    if (!user?.isActive) {
+    if (!user) {
+      // Token's user no longer exists (hard-deleted). Treat exactly like an
+      // invalid token — 401, not 403 — so we don't reveal the account existed.
+      await prisma.refreshToken.deleteMany({ where: { userId: storedToken.userId } });
+      clearAuthCookies(res);
+      res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Invalid refresh token' },
+      });
+      return;
+    }
+
+    if (!user.isActive) {
       await prisma.refreshToken.deleteMany({ where: { userId: storedToken.userId } });
       clearAuthCookies(res);
       res.status(403).json({

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod/v4';
+import { Prisma } from '@prisma/client';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 import { captureException } from '../lib/sentry';
 import { logger } from '../lib/logger';
@@ -33,6 +34,26 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
       error: { code: 'UNAUTHORIZED', message: 'Invalid token' },
     });
     return;
+  }
+
+  // Known Prisma client errors — map to clean 4xx instead of a 500.
+  // P2023 = malformed input (e.g. a non-UUID id in the path) -> treat as not found.
+  // P2025 = record required but not found. P2002 = unique constraint violation.
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2023' || err.code === 'P2025') {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Resource not found' },
+      });
+      return;
+    }
+    if (err.code === 'P2002') {
+      res.status(409).json({
+        success: false,
+        error: { code: 'CONFLICT', message: 'Resource already exists' },
+      });
+      return;
+    }
   }
 
   // http-errors-style client errors (e.g. csrf-csrf throws a ForbiddenError with

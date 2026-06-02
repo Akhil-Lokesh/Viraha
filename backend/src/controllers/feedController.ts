@@ -16,10 +16,12 @@ export async function getPersonalizedFeed(req: Request, res: Response, next: Nex
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = req.query.cursor as string | undefined;
 
-    // Short per-user cache. Keyed by userId + cursor; the response is fully
-    // derived from those two inputs, so it is safe to reuse for this user.
+    // Short per-user cache. Keyed by userId + limit + cursor; the response is
+    // fully derived from those inputs, so it is safe to reuse for this user.
+    // (limit must be in the key — otherwise a ?limit=5 response would be served
+    // to a later ?limit=20 request, silently short-paging it.)
     // Short TTL bounds staleness from new posts/saves without invalidation.
-    const cacheKey = `feed:personal:${userId}:${cursor || 'first'}`;
+    const cacheKey = `feed:personal:${userId}:${limit}:${cursor || 'first'}`;
     const cached = await cacheGet<{ items: unknown[]; nextCursor: string | null }>(cacheKey);
     if (cached) {
       res.json({ success: true, data: cached });

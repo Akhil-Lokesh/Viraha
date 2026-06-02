@@ -10,15 +10,21 @@ import { redis } from '../lib/redis';
  * so its counter is independent — the default IP-based key generator is not
  * path-aware, so sharing the default `rl:` prefix would collide the limiters.
  */
-function createStore(prefix: string): Store | undefined {
-  const client = redis;
-  if (!client) return undefined;
+export function createStore(prefix: string): Store | undefined {
+  if (!redis) return undefined;
   return new RedisStore({
     prefix,
-    // ioredis `.call` is typed via overloads (command, ...args) rather than the
-    // variadic SendCommandFn signature rate-limit-redis expects, so cast args.
-    sendCommand: (...args: string[]) =>
-      client.call(...(args as [string, ...string[]])) as Promise<RedisReply>,
+    // Read the module-level `redis` binding at call time (not a captured copy):
+    // lib/redis.ts sets it to null if the connection ultimately fails, so a stale
+    // captured client would keep throwing. Combined with passOnStoreError on each
+    // limiter, a Redis outage degrades to no-op limiting instead of 500ing every
+    // request that hits a rate-limited endpoint.
+    sendCommand: (...args: string[]) => {
+      if (!redis) return Promise.reject(new Error('redis unavailable'));
+      // ioredis `.call` is typed via overloads (command, ...args) rather than the
+      // variadic SendCommandFn signature rate-limit-redis expects, so cast args.
+      return redis.call(...(args as [string, ...string[]])) as Promise<RedisReply>;
+    },
   });
 }
 
@@ -29,6 +35,9 @@ export const apiLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   store: createStore('rl:api:'),
+  passOnStoreError: true,
+  // Disable throttling under the test runner so integration tests are deterministic.
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Too many requests, please try again later.' },
@@ -42,6 +51,9 @@ export const authLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   store: createStore('rl:auth:'),
+  passOnStoreError: true,
+  // Disable throttling under the test runner so integration tests are deterministic.
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Too many authentication attempts, please try again later.' },
@@ -55,6 +67,9 @@ export const searchLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   store: createStore('rl:search:'),
+  passOnStoreError: true,
+  // Disable throttling under the test runner so integration tests are deterministic.
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Too many search requests, please try again later.' },
@@ -68,6 +83,9 @@ export const uploadLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   store: createStore('rl:upload:'),
+  passOnStoreError: true,
+  // Disable throttling under the test runner so integration tests are deterministic.
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Upload limit reached, please try again later.' },

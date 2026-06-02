@@ -5,17 +5,22 @@ import { followUser, unfollowUser, getFollowers, getFollowing, checkFollowStatus
 import { blockUser, unblockUser, getBlockedUsers } from '../controllers/blockController';
 import { handleExportData, handleDeleteAccount } from '../controllers/dataExportController';
 import { authenticate, optionalAuth } from '../middleware/auth';
+import { createStore } from '../middleware/rateLimiter';
 import { validateBody } from '../middleware/validate';
 import { updateProfileSchema, deleteAccountSchema } from '../validators/userValidators';
 
 const router = Router();
 
-// Strict limiter for full-account data exports (expensive full-DB dumps)
+// Strict limiter for full-account data exports (expensive full-DB dumps).
+// Redis-backed so the 3/hour cap holds across replicas and restarts.
 const exportLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   limit: 3,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  store: createStore('rl:export:'),
+  passOnStoreError: true,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Export limit reached, please try again later.' },

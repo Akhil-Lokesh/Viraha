@@ -311,7 +311,9 @@ export async function deletePost(req: Request, res: Response, next: NextFunction
       });
       if (albumPosts.length > 0) {
         await tx.album.updateMany({
-          where: { id: { in: albumPosts.map((ap) => ap.albumId) } },
+          // Guard against drift below zero (postCount: { gt: 0 }) so a double
+          // delete or pre-existing drift can't push the counter negative.
+          where: { id: { in: albumPosts.map((ap) => ap.albumId) }, postCount: { gt: 0 } },
           data: { postCount: { decrement: 1 } },
         });
       }
