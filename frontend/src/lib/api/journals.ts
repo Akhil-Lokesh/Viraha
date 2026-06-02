@@ -62,7 +62,7 @@ export async function createJournal(input: CreateJournalInput): Promise<Journal>
 }
 
 export async function updateJournal(id: string, input: UpdateJournalInput): Promise<Journal> {
-  const res = await apiClient.patch<JournalResponse>(`/journals/${id}`, input);
+  const res = await apiClient.put<JournalResponse>(`/journals/${id}`, input);
   return res.data.data.journal;
 }
 
@@ -87,7 +87,7 @@ export async function createJournalEntry(journalId: string, input: CreateJournal
 }
 
 export async function updateJournalEntry(journalId: string, entryId: string, input: UpdateJournalEntryInput): Promise<JournalEntry> {
-  const res = await apiClient.patch<JournalEntryResponse>(`/journals/${journalId}/entries/${entryId}`, input);
+  const res = await apiClient.put<JournalEntryResponse>(`/journals/${journalId}/entries/${entryId}`, input);
   return res.data.data.entry;
 }
 

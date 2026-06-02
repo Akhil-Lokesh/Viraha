@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   BookMarked,
   Bookmark,
+  Bell,
   Waves,
   Plane,
   Route,
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/journeys', icon: Route, label: 'Journeys' },
   { href: '/saved', icon: Bookmark, label: 'Saved' },
   { href: '/atlas', icon: Compass, label: 'Atlas' },
+  { href: '/activity', icon: Bell, label: 'Activity' },
 ];
 
 export function Sidebar() {
@@ -191,6 +193,12 @@ export function Sidebar() {
         >
           <ButtonBase
             onClick={handleToggleTravel}
+            aria-label={
+              isTraveling
+                ? 'Switch to local mode'
+                : 'Switch to traveling mode'
+            }
+            aria-pressed={isTraveling}
             sx={{
               position: 'relative',
               width: 38,

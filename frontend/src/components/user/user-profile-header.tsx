@@ -214,7 +214,16 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
             </Box>
             <Box sx={{ height: 40, width: 1, bgcolor: 'divider' }} />
             <Box
+              role="button"
+              tabIndex={0}
+              aria-label="View followers"
               onClick={() => setFollowDialog('followers')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setFollowDialog('followers');
+                }
+              }}
               sx={{ textAlign: 'center', cursor: 'pointer', '&:hover': { opacity: 0.7 }, transition: 'opacity 0.15s' }}
             >
               <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: 'text.primary' }}>
@@ -234,7 +243,16 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
             </Box>
             <Box sx={{ height: 40, width: 1, bgcolor: 'divider' }} />
             <Box
+              role="button"
+              tabIndex={0}
+              aria-label="View following"
               onClick={() => setFollowDialog('following')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setFollowDialog('following');
+                }
+              }}
               sx={{ textAlign: 'center', cursor: 'pointer', '&:hover': { opacity: 0.7 }, transition: 'opacity 0.15s' }}
             >
               <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: 'text.primary' }}>

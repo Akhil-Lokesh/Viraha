@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import { Box } from '@mui/material';
@@ -20,6 +20,7 @@ export function ImageLightbox({
 }: ImageLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [zoomed, setZoomed] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -27,6 +28,14 @@ export function ImageLightbox({
       setZoomed(false);
     }
   }, [open, initialIndex]);
+
+  // Move focus into the dialog when it opens so keyboard nav and screen
+  // readers start inside the lightbox.
+  useEffect(() => {
+    if (open) {
+      containerRef.current?.focus();
+    }
+  }, [open]);
 
   const goNext = useCallback(() => {
     if (currentIndex < images.length - 1) {
@@ -56,6 +65,32 @@ export function ImageLightbox({
         case 'ArrowLeft':
           goPrev();
           break;
+        case 'Tab': {
+          // Trap focus within the dialog so tabbing never leaves the lightbox.
+          const container = containerRef.current;
+          if (!container) break;
+          const focusable = container.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable.length === 0) {
+            e.preventDefault();
+            container.focus();
+            break;
+          }
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          const active = document.activeElement;
+          if (e.shiftKey) {
+            if (active === first || active === container) {
+              e.preventDefault();
+              last.focus();
+            }
+          } else if (active === last) {
+            e.preventDefault();
+            first.focus();
+          }
+          break;
+        }
       }
     }
 
@@ -74,6 +109,11 @@ export function ImageLightbox({
     <AnimatePresence>
       {open && (
         <motion.div
+          ref={containerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo viewer"
+          tabIndex={-1}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -86,6 +126,7 @@ export function ImageLightbox({
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: 'rgba(0,0,0,0.95)',
+            outline: 'none',
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();

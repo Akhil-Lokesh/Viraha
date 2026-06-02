@@ -20,6 +20,6 @@ export async function autocomplete(input: string, lat?: number, lng?: number): P
 }
 
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
-  const res = await apiClient.get<DetailsResponse>(`/places/details/${placeId}`);
+  const res = await apiClient.get<DetailsResponse>(`/places/${placeId}`);
   return res.data.data.place;
 }

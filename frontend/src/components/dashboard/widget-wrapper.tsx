@@ -82,6 +82,7 @@ export function WidgetWrapper({
           {/* Color picker button */}
           <Box
             component="button"
+            aria-label="Change widget colour"
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => setColorAnchor(e.currentTarget)}
             sx={{
               position: 'absolute',
@@ -129,6 +130,8 @@ export function WidgetWrapper({
               <Box
                 key={wc.hex}
                 component="button"
+                aria-label={wc.name}
+                aria-pressed={widget.color === wc.hex}
                 onClick={() => {
                   onChangeColor?.(widget.id, wc.hex);
                   setColorAnchor(null);
@@ -159,6 +162,7 @@ export function WidgetWrapper({
           {/* Delete button */}
           <Box
             component="button"
+            aria-label="Remove widget"
             onClick={() => onRemove(widget.id)}
             sx={{
               position: 'absolute',
@@ -274,6 +278,8 @@ export function WidgetWrapper({
 
               {/* Resize drag handle */}
               <Box
+                role="button"
+                aria-label="Resize widget"
                 onPointerDown={(e: React.PointerEvent) => {
                   e.stopPropagation();
                   onResizeDragStart(widget.id, e);

@@ -342,18 +342,20 @@ export default function JournalDetailPage() {
               {publishMutation.isPending ? 'Publishing...' : 'Publish'}
             </Button>
           )}
-          <Button
-            variant="outlined"
-            disableElevation
-            onClick={startEditing}
-            sx={{
-              borderRadius: '9999px',
-              gap: 0.75,
-            }}
-          >
-            <Pencil style={{ width: 14, height: 14 }} />
-            Edit
-          </Button>
+          {isOwner && (
+            <Button
+              variant="outlined"
+              disableElevation
+              onClick={startEditing}
+              sx={{
+                borderRadius: '9999px',
+                gap: 0.75,
+              }}
+            >
+              <Pencil style={{ width: 14, height: 14 }} />
+              Edit
+            </Button>
+          )}
         </Box>
       </Box>
 

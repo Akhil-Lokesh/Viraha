@@ -51,7 +51,7 @@ export default function HomePage() {
       />
 
       {/* FAB — Create new entry */}
-      <Link href="/create/post" style={{ textDecoration: 'none', color: 'inherit' }}>
+      <Link href="/create/post" aria-label="Create new post" style={{ textDecoration: 'none', color: 'inherit' }}>
         <Box
           sx={{
             position: 'fixed',

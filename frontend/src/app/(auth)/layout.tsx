@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { useAuthStore } from '@/lib/stores/auth-store';
+import { useAuthStore, useAuthHydrated } from '@/lib/stores/auth-store';
 import { heroPhotos } from '@/lib/mock-data';
 import { fadeIn } from '@/lib/animations';
 
@@ -16,6 +16,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const user = useAuthStore((s) => s.user);
+  const hydrated = useAuthHydrated();
   const router = useRouter();
 
   useEffect(() => {
@@ -23,6 +24,10 @@ export default function AuthLayout({
       router.replace('/');
     }
   }, [user, router]);
+
+  // Wait for the persisted store to hydrate before deciding what to render,
+  // otherwise logged-in users briefly see the sign-in form on a hard reload.
+  if (!hydrated) return null;
 
   if (user) return null;
 

@@ -71,6 +71,7 @@ export function WidgetCatalogDrawer({ open, onClose, widgets, onAdd }: WidgetCat
         </Typography>
         <Box
           component="button"
+          aria-label="Close"
           onClick={handleClose}
           sx={{
             width: 32,

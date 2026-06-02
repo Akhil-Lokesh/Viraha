@@ -82,6 +82,7 @@ function IconButton({ onClick, title, children }: { onClick: () => void; title: 
       component="button"
       onClick={onClick}
       title={title}
+      aria-label={title}
       sx={{
         width: 36,
         height: 36,

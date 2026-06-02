@@ -89,6 +89,11 @@ export function PhotoCarousel({
               '.MuiBox-root:hover > &, &:hover, &:focus': {
                 opacity: 1,
               },
+              '&:focus-visible': {
+                opacity: 1,
+                outline: '2px solid white',
+                outlineOffset: 2,
+              },
             }}
           >
             <ChevronLeft style={{ width: 20, height: 20 }} />
@@ -117,6 +122,11 @@ export function PhotoCarousel({
               transition: 'opacity 0.2s',
               '.MuiBox-root:hover > &, &:hover, &:focus': {
                 opacity: 1,
+              },
+              '&:focus-visible': {
+                opacity: 1,
+                outline: '2px solid white',
+                outlineOffset: 2,
               },
             }}
           >

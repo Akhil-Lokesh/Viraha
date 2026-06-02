@@ -25,6 +25,7 @@ import { useTrendingLocations } from '@/lib/hooks/use-explore';
 import { useMapMarkers } from '@/lib/hooks/use-map';
 import { PostCard } from '@/components/post/post-card';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import { EmptyState } from '@/components/shared/empty-state';
 import {
   fadeInUp,
   fadeIn,
@@ -78,6 +79,7 @@ function SidebarMap() {
   const theme = useTheme();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<unknown>(null);
+  const markersRef = useRef<import('maplibre-gl').Marker[]>([]);
   const isDark = theme.palette.mode === 'dark';
 
   const { data: markers } = useMapMarkers({
@@ -169,10 +171,12 @@ function SidebarMap() {
               : ''),
         );
 
-        new maplibregl.Marker({ element: el })
+        const marker = new maplibregl.Marker({ element: el })
           .setLngLat([m.lng, m.lat])
           .setPopup(popup)
           .addTo(map);
+
+        markersRef.current.push(marker);
       });
     }
 
@@ -182,6 +186,12 @@ function SidebarMap() {
     } else {
       map.on('load', addMarkers);
     }
+
+    return () => {
+      map.off('load', addMarkers);
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+    };
   }, [markers]);
 
   return (
@@ -479,7 +489,7 @@ export default function ExplorePage() {
   const discover = useDiscoverFeed();
 
   const active = activeTab === 'following' ? following : discover;
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = active;
+  const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = active;
 
   const posts = data?.pages.flatMap((page) => page.items || []).filter(Boolean) || [];
 
@@ -966,6 +976,28 @@ export default function ExplorePage() {
             >
               {isLoading ? (
                 <FeedSkeleton />
+              ) : isError ? (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                  }}
+                >
+                  <EmptyState
+                    icon="compass"
+                    title="Couldn't load your feed"
+                    description="Something went wrong while loading posts. Please try again."
+                  />
+                  <Button
+                    variant="contained"
+                    disableElevation
+                    onClick={() => refetch()}
+                    sx={{ mt: -4 }}
+                  >
+                    Try Again
+                  </Button>
+                </Box>
               ) : posts.length === 0 ? (
                 <Box
                   component={motion.div}

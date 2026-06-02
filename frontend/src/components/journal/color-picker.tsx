@@ -37,7 +37,7 @@ export function ColorPicker({ selected, onChange }: ColorPickerProps) {
               key={c.key}
               component="button"
               onClick={() => onChange(c.key)}
-              title={c.label}
+              aria-label={c.label}
               sx={{
                 width: 32,
                 height: 32,
@@ -56,6 +56,11 @@ export function ColorPicker({ selected, onChange }: ColorPickerProps) {
                 outline: 'none',
                 '&:hover': {
                   transform: 'scale(1.15)',
+                },
+                '&:focus-visible': {
+                  outline: '2px solid',
+                  outlineColor: 'primary.main',
+                  outlineOffset: 2,
                 },
               }}
             >

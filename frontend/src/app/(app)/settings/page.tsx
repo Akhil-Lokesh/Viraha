@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, Suspense } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,7 +34,6 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { updateProfile } from '@/lib/api/users';
 import { changePassword } from '@/lib/api/auth';
 import { uploadAvatar } from '@/lib/api/media';
-import { AuthGuard } from '@/components/auth/auth-guard';
 import { toast } from 'sonner';
 
 const passwordSchema = z.object({
@@ -95,6 +94,7 @@ function ProfileTab() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -105,6 +105,18 @@ function ProfileTab() {
       homeCountry: user?.homeCountry || '',
     },
   });
+
+  // The persisted store holds only a partial user, so bio/home* arrive later
+  // when /me repopulates the store. Reinitialize the form whenever the user
+  // identity changes so saved values are not silently overwritten with blanks.
+  useEffect(() => {
+    reset({
+      displayName: user?.displayName || '',
+      bio: user?.bio || '',
+      homeCity: user?.homeCity || '',
+      homeCountry: user?.homeCountry || '',
+    });
+  }, [user, reset]);
 
   async function onSubmit(values: ProfileValues) {
     setLoading(true);
@@ -902,10 +914,8 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <AuthGuard>
-      <Suspense fallback={null}>
-        <SettingsContent />
-      </Suspense>
-    </AuthGuard>
+    <Suspense fallback={null}>
+      <SettingsContent />
+    </Suspense>
   );
 }

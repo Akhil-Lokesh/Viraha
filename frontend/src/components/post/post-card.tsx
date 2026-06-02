@@ -9,7 +9,6 @@ import {
   MessageCircle,
   Bookmark,
   Share2,
-  Heart,
   Plane,
 } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
@@ -326,6 +325,7 @@ export function PostCard({ post }: { post: Post }) {
             <Box
               component="button"
               onClick={handleSave}
+              aria-label={saved ? 'Unsave post' : 'Save post'}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -362,6 +362,7 @@ export function PostCard({ post }: { post: Post }) {
             <Box
               component="button"
               onClick={handleShare}
+              aria-label="Share post"
               sx={{
                 display: 'flex',
                 alignItems: 'center',

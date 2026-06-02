@@ -46,7 +46,7 @@ export default function ErrorPage({
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Something went wrong</Typography>
         <Typography sx={{ color: 'text.secondary', maxWidth: 448 }}>
-          {error.message || 'An unexpected error occurred. Don\u2019t worry, your memories are safe.'}
+          An unexpected error occurred. Don&rsquo;t worry, your memories are safe.
         </Typography>
       </Box>
       <Button variant="contained" disableElevation onClick={reset} size="large">

@@ -1,26 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useAuthStore } from '../stores/auth-store';
-import { getMe } from '../api/auth';
 
+// The session /me fetch is performed once at app level in <CsrfInitializer />.
+// This hook only reads from the store via granular selectors to avoid
+// re-running the fetch per consumer and to minimise re-renders.
 export function useAuth() {
-  const { user, setUser, logout, isAuthenticated } =
-    useAuthStore();
-
-  useEffect(() => {
-    if (!user) {
-      getMe()
-        .then(setUser)
-        .catch(() => {
-          // Not authenticated or token expired
-        });
-    }
-  }, [user, setUser]);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
   return {
     user,
-    isAuthenticated: isAuthenticated(),
+    isAuthenticated: !!user,
     logout,
   };
 }

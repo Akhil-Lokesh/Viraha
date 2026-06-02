@@ -1,9 +1,11 @@
 'use client';
 
 import { Box, Typography, LinearProgress, Skeleton, Chip } from '@mui/material';
+import Button from '@mui/material/Button';
 import { alpha } from '@mui/material/styles';
-import { Globe, MapPin, Camera, BookOpen, Compass, Sparkles } from 'lucide-react';
+import { Globe, MapPin, Camera, BookOpen, Sparkles } from 'lucide-react';
 import { useAtlas } from '@/lib/hooks/use-atlas';
+import { EmptyState } from '@/components/shared/empty-state';
 
 const CONTINENTS = ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Oceania', 'Antarctica'];
 
@@ -18,7 +20,7 @@ const CONTINENT_COLORS: Record<string, string> = {
 };
 
 export default function AtlasPage() {
-  const { data: atlas, isLoading } = useAtlas();
+  const { data: atlas, isLoading, error, refetch } = useAtlas();
 
   if (isLoading) {
     return (
@@ -33,7 +35,22 @@ export default function AtlasPage() {
     );
   }
 
-  if (!atlas) return null;
+  if (error || !atlas) {
+    return (
+      <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, md: 3 }, py: 4 }}>
+        <EmptyState
+          icon="compass"
+          title="Could not load your atlas"
+          description="Something went wrong loading your travel data. Please try again."
+        />
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: -4 }}>
+          <Button variant="contained" disableElevation onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
 
   const { stats, countries, cities, travelStyle } = atlas;
 

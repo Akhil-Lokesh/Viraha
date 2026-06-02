@@ -31,6 +31,8 @@ function resolveImageUrl(url: string): string {
 
 const activityIcons = {
   follow: UserPlus,
+  follow_request: UserPlus,
+  follow_accepted: CheckCheck,
   comment: MessageCircle,
   reply: Reply,
   save: Bookmark,
@@ -38,15 +40,23 @@ const activityIcons = {
 
 const activityColors = {
   follow: { bgcolor: 'rgba(59,130,246,0.1)', color: '#2563EB' },
+  follow_request: { bgcolor: 'rgba(59,130,246,0.1)', color: '#2563EB' },
+  follow_accepted: { bgcolor: 'rgba(16,185,129,0.1)', color: '#059669' },
   comment: { bgcolor: 'rgba(16,185,129,0.1)', color: '#059669' },
   reply: { bgcolor: 'rgba(139,92,246,0.1)', color: '#7C3AED' },
   save: { bgcolor: 'rgba(245,158,11,0.1)', color: '#D97706' },
 } as const;
 
+const defaultActivityColor = { bgcolor: 'rgba(107,114,128,0.1)', color: '#4B5563' } as const;
+
 function activityMessage(activity: Activity): string {
   switch (activity.type) {
     case 'follow':
       return 'started following you';
+    case 'follow_request':
+      return 'requested to follow you';
+    case 'follow_accepted':
+      return 'accepted your follow request';
     case 'comment':
       return 'commented on your post';
     case 'reply':
@@ -78,8 +88,8 @@ function ActivityItem({
   activity: Activity;
   onMarkRead: (id: string) => void;
 }) {
-  const Icon = activityIcons[activity.type];
-  const colorStyle = activityColors[activity.type];
+  const Icon = activityIcons[activity.type] ?? Bell;
+  const colorStyle = activityColors[activity.type] ?? defaultActivityColor;
   const thumb = activity.post?.mediaThumbnails?.[0] || activity.post?.mediaUrls?.[0];
 
   return (
@@ -159,12 +169,12 @@ function ActivityItem({
 
       {/* Post thumbnail */}
       {thumb && activity.postId && (
-        <Link href={`/post/${activity.postId}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+        <Link href={`/post/${activity.postId}`} aria-label="View post" style={{ textDecoration: 'none', color: 'inherit' }}>
           <Box sx={{ flexShrink: 0 }}>
             <Box sx={{ width: 44, height: 44, borderRadius: '8px', overflow: 'hidden', border: 1, borderColor: 'divider' }}>
               <img
                 src={resolveImageUrl(thumb)}
-                alt=""
+                alt="View post"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </Box>

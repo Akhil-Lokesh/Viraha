@@ -23,7 +23,7 @@ import type {
 
 export function useJournals(userId?: string) {
   return useInfiniteQuery({
-    queryKey: ['journals', userId],
+    queryKey: ['journals', 'list', userId],
     queryFn: ({ pageParam }) => getJournals(pageParam as string | undefined, userId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -32,7 +32,7 @@ export function useJournals(userId?: string) {
 
 export function useJournal(id: string) {
   return useQuery({
-    queryKey: ['journals', id],
+    queryKey: ['journals', 'detail', id],
     queryFn: () => getJournalById(id),
     enabled: !!id,
   });
@@ -48,7 +48,7 @@ export function useJournalBySlug(slug: string) {
 
 export function useJournalEntries(journalId: string) {
   return useInfiniteQuery({
-    queryKey: ['journals', journalId, 'entries'],
+    queryKey: ['journals', 'entries', journalId],
     queryFn: ({ pageParam }) => getJournalEntries(journalId, pageParam as string | undefined),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -61,7 +61,7 @@ export function useCreateJournal() {
   return useMutation({
     mutationFn: (input: CreateJournalInput) => createJournal(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
+      queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
     },
   });
 }
@@ -70,8 +70,9 @@ export function useUpdateJournal() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateJournalInput }) => updateJournal(id, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['journals', 'detail', id] });
+      queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
     },
   });
 }
@@ -80,8 +81,9 @@ export function useDeleteJournal() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteJournal(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['journals', 'detail', id] });
+      queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
     },
   });
 }
@@ -90,8 +92,9 @@ export function usePublishJournal() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => publishJournal(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['journals', 'detail', id] });
+      queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
     },
   });
 }
@@ -101,8 +104,9 @@ export function useCreateEntry() {
   return useMutation({
     mutationFn: ({ journalId, input }: { journalId: string; input: CreateJournalEntryInput }) =>
       createJournalEntry(journalId, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    onSuccess: (_data, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['journals', 'entries', journalId] });
+      queryClient.invalidateQueries({ queryKey: ['journals', 'detail', journalId] });
     },
   });
 }
@@ -112,8 +116,9 @@ export function useUpdateEntry() {
   return useMutation({
     mutationFn: ({ journalId, entryId, input }: { journalId: string; entryId: string; input: UpdateJournalEntryInput }) =>
       updateJournalEntry(journalId, entryId, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    onSuccess: (_data, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['journals', 'entries', journalId] });
+      queryClient.invalidateQueries({ queryKey: ['journals', 'detail', journalId] });
     },
   });
 }
@@ -123,8 +128,9 @@ export function useDeleteEntry() {
   return useMutation({
     mutationFn: ({ journalId, entryId }: { journalId: string; entryId: string }) =>
       deleteJournalEntry(journalId, entryId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    onSuccess: (_data, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['journals', 'entries', journalId] });
+      queryClient.invalidateQueries({ queryKey: ['journals', 'detail', journalId] });
     },
   });
 }

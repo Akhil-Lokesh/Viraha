@@ -192,8 +192,8 @@ export default function ProfilePage() {
               <Box sx={{ borderRadius: '12px', overflow: 'hidden', border: 1, borderColor: 'divider', height: 500 }}>
                 <MapComponent
                   center={[
-                    Number(mapPosts[0].locationLng),
-                    Number(mapPosts[0].locationLat),
+                    Number(mapPosts[0]?.locationLng ?? 0),
+                    Number(mapPosts[0]?.locationLat ?? 0),
                   ]}
                   zoom={mapPosts.length === 1 ? 8 : 2}
                   styles={mapboxStyleUrls}

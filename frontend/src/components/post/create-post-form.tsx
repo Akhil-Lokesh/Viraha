@@ -24,6 +24,8 @@ import FormLabel from '@mui/material/FormLabel';
 import { useCreatePost } from '@/lib/hooks/use-posts';
 import { uploadPhotos } from '@/lib/api/media';
 import { PhotoUpload } from './photo-upload';
+import { LocationAutocomplete } from '@/components/shared/location-autocomplete';
+import type { PlaceDetails } from '@/lib/types';
 import { toast } from 'sonner';
 
 const createPostFormSchema = z
@@ -69,6 +71,7 @@ export function CreatePostForm() {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(createPostFormSchema),
@@ -88,6 +91,14 @@ export function CreatePostForm() {
     toast.error(firstMessage);
   }
 
+  function handlePlaceSelect(place: PlaceDetails) {
+    setValue('locationLat', place.lat, { shouldValidate: true });
+    setValue('locationLng', place.lng, { shouldValidate: true });
+    setValue('locationName', place.name);
+    setValue('locationCity', place.city ?? '');
+    setValue('locationCountry', place.country ?? '');
+  }
+
   async function onSubmit(values: FormValues) {
     if (files.length === 0) {
       toast.error('Please add at least one photo');
@@ -101,7 +112,7 @@ export function CreatePostForm() {
         ? values.tags.split(',').map((t) => t.trim()).filter(Boolean)
         : [];
 
-      await createPost.mutateAsync({
+      const created = await createPost.mutateAsync({
         caption: values.caption || undefined,
         mediaUrls: urls,
         mediaThumbnails: thumbnails,
@@ -115,7 +126,7 @@ export function CreatePostForm() {
       });
 
       toast.success('Post created!');
-      router.push('/');
+      router.push(created?.id ? `/post/${created.id}` : '/home');
     } catch (err: unknown) {
       const errData = (err as { response?: { data?: { error?: { message?: string } | string } } })?.response?.data?.error;
       const message = typeof errData === 'string' ? errData : errData?.message || 'Failed to create post';
@@ -257,6 +268,18 @@ export function CreatePostForm() {
         </Box>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <FormLabel sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>
+              Search for a place
+            </FormLabel>
+            <LocationAutocomplete onSelect={handlePlaceSelect} placeholder="Search for a place..." />
+            {errors.locationLat && (
+              <Typography sx={{ fontSize: '0.75rem', color: 'error.main' }}>
+                {errors.locationLat.message}
+              </Typography>
+            )}
+          </Box>
+
           <Box
             sx={{
               display: 'grid',

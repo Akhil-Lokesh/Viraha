@@ -261,6 +261,7 @@ export default function SignUpPage() {
                       edge="end"
                       tabIndex={-1}
                       size="small"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
                         <EyeOff style={{ width: 20, height: 20 }} />
