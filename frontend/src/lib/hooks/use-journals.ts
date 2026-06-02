@@ -107,6 +107,8 @@ export function useCreateEntry() {
     onSuccess: (_data, { journalId }) => {
       queryClient.invalidateQueries({ queryKey: ['journals', 'entries', journalId] });
       queryClient.invalidateQueries({ queryKey: ['journals', 'detail', journalId] });
+      // entryCount / wordCount are shown on the journals grid — refresh the list too.
+      queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
     },
   });
 }
@@ -119,6 +121,8 @@ export function useUpdateEntry() {
     onSuccess: (_data, { journalId }) => {
       queryClient.invalidateQueries({ queryKey: ['journals', 'entries', journalId] });
       queryClient.invalidateQueries({ queryKey: ['journals', 'detail', journalId] });
+      // entryCount / wordCount are shown on the journals grid — refresh the list too.
+      queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
     },
   });
 }
@@ -131,6 +135,8 @@ export function useDeleteEntry() {
     onSuccess: (_data, { journalId }) => {
       queryClient.invalidateQueries({ queryKey: ['journals', 'entries', journalId] });
       queryClient.invalidateQueries({ queryKey: ['journals', 'detail', journalId] });
+      // entryCount / wordCount are shown on the journals grid — refresh the list too.
+      queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
     },
   });
 }

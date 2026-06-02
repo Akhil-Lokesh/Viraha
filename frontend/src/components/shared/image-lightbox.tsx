@@ -85,7 +85,9 @@ export function ImageLightbox({
               e.preventDefault();
               last.focus();
             }
-          } else if (active === last) {
+          } else if (active === last || active === container) {
+            // From the last element OR the container itself, forward-Tab wraps to
+            // the first focusable element instead of escaping the dialog.
             e.preventDefault();
             first.focus();
           }

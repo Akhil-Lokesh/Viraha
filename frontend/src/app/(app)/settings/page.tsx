@@ -95,7 +95,7 @@ function ProfileTab() {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -107,16 +107,19 @@ function ProfileTab() {
   });
 
   // The persisted store holds only a partial user, so bio/home* arrive later
-  // when /me repopulates the store. Reinitialize the form whenever the user
-  // identity changes so saved values are not silently overwritten with blanks.
+  // when /me repopulates the store. Reinitialize the form when fresh server data
+  // arrives — but only while the form is pristine, so we never clobber edits the
+  // user is actively typing (e.g. if an avatar upload or /me refresh fires setUser
+  // mid-edit, isDirty stays true and the reset is skipped).
   useEffect(() => {
+    if (isDirty) return;
     reset({
       displayName: user?.displayName || '',
       bio: user?.bio || '',
       homeCity: user?.homeCity || '',
       homeCountry: user?.homeCountry || '',
     });
-  }, [user, reset]);
+  }, [user, reset, isDirty]);
 
   async function onSubmit(values: ProfileValues) {
     setLoading(true);
