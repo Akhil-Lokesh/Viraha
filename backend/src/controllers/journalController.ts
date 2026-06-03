@@ -21,21 +21,19 @@ function countWords(content: string | null | undefined): number {
   return content.trim().split(/\s+/).filter(Boolean).length;
 }
 
-// Build a Prisma update op that applies a running delta to the journal's cached
-// wordCount, flooring the result at 0 so a stale count can never go negative.
-// Returned (not awaited) so the caller can compose it into the same transaction
-// as the entry mutation that produced the delta, keeping the count atomic.
+// Build an atomic update op that applies a running delta to the journal's cached
+// wordCount. The delta is applied in-database via GREATEST(word_count + delta, 0)
+// so the read-modify-write happens under the row lock inside a single statement —
+// a concurrent entry mutation can never clobber it with a stale absolute value.
+// The op is returned (not awaited) so the caller composes it into the same
+// transaction as the entry mutation that produced the delta. delta may be
+// negative (Postgres handles the subtraction and the GREATEST floors at 0).
 function wordCountUpdateOp(
   journalId: string,
-  currentWordCount: number,
   delta: number,
-): Prisma.PrismaPromise<Prisma.BatchPayload> | null {
+): Prisma.PrismaPromise<number> | null {
   if (delta === 0) return null;
-  const next = Math.max(0, currentWordCount + delta);
-  return prisma.journal.updateMany({
-    where: { id: journalId },
-    data: { wordCount: next },
-  });
+  return prisma.$executeRaw`UPDATE journals SET word_count = GREATEST(word_count + ${delta}, 0) WHERE id = ${journalId}::uuid`;
 }
 
 function generateSlug(title: string): string {
@@ -538,10 +536,11 @@ export async function updateEntry(req: Request, res: Response, next: NextFunctio
 
     // Running-delta word count: only the changed entry's old vs new content
     // affects the cached total. Skip the journal write entirely when content
-    // is untouched or the word count is unchanged.
+    // is untouched or the word count is unchanged. The op applies the delta
+    // atomically in-database, so no stale read of journal.wordCount is needed.
     const wordDelta =
       data.content !== undefined ? countWords(data.content) - countWords(entry.content) : 0;
-    const wordCountOp = wordCountUpdateOp(journalId, journal.wordCount, wordDelta);
+    const wordCountOp = wordCountUpdateOp(journalId, wordDelta);
 
     const updateEntryOp = prisma.journalEntry.update({
       where: { id: entryId },
@@ -596,9 +595,11 @@ export async function deleteEntry(req: Request, res: Response, next: NextFunctio
     }
 
     // Running-delta word count: subtract only the deleted entry's words,
-    // flooring the resulting total at 0 (never re-scan all entries).
+    // flooring the resulting total at 0 (never re-scan all entries). Applied
+    // atomically in-database so a concurrent entry mutation can't clobber it
+    // with a stale absolute value.
     const removedWords = countWords(entry.content);
-    const nextWordCount = Math.max(0, journal.wordCount - removedWords);
+    const wordCountOp = wordCountUpdateOp(journalId, -removedWords);
 
     await prisma.$transaction([
       prisma.journalEntry.update({
@@ -609,9 +610,9 @@ export async function deleteEntry(req: Request, res: Response, next: NextFunctio
         where: { id: journalId },
         data: {
           entryCount: { decrement: journal.entryCount > 0 ? 1 : 0 },
-          wordCount: nextWordCount,
         },
       }),
+      ...(wordCountOp ? [wordCountOp] : []),
     ]);
 
     res.json({ success: true, data: { message: 'Entry deleted' } });

@@ -42,6 +42,10 @@ export function useUpdateComment() {
       updateComment(commentId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments'] });
+      // Replies are cached under ['replies', parentId]. The mutation context does
+      // not carry the parentId, so invalidate the whole 'replies' prefix to ensure
+      // an edited reply re-fetches its updated body instead of showing stale data.
+      queryClient.invalidateQueries({ queryKey: ['replies'] });
     },
   });
 }
@@ -53,6 +57,9 @@ export function useDeleteComment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      // Replies are cached under ['replies', parentId]; invalidate the prefix so a
+      // deleted reply is removed from its parent's replies list.
+      queryClient.invalidateQueries({ queryKey: ['replies'] });
     },
   });
 }

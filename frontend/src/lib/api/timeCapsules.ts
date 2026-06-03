@@ -3,7 +3,8 @@ import apiClient from './client';
 export interface TimeCapsule {
   id: string;
   userId: string;
-  content: string;
+  /** null while the capsule is still sealed; the backend withholds content until it is opened. */
+  content: string | null;
   locationName: string | null;
   locationLat: number | null;
   locationLng: number | null;

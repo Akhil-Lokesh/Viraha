@@ -20,6 +20,8 @@ export interface VirahaMoment {
   description: string | null;
   referenceType: string;
   referenceId: string;
+  /** Parent journal id when referenceType is 'journal_entry'; null otherwise. */
+  journalId?: string | null;
   thumbnail: string | null;
   locationName: string | null;
   yearsAgo: number | null;

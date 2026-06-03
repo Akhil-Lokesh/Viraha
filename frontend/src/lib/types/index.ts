@@ -50,6 +50,8 @@ export interface UserProfile extends User {
   followerCount?: number;
   followingCount?: number;
   isFollowing?: boolean;
+  /** True when the viewer has an outstanding pending follow request for this private profile. */
+  isPending?: boolean;
   _count?: {
     posts: number;
   };

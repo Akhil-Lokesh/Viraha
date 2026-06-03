@@ -23,14 +23,21 @@ const r2RemotePatterns: ReadonlyArray<RemotePattern> = [
   { protocol: 'https', hostname: 'pub-*.r2.dev' },
 ];
 
+// Build a CSP directive from a list of sources, dropping empty/falsy tokens so an
+// unset env var (e.g. NEXT_PUBLIC_R2_URL) never leaves a stray empty token.
+const directive = (name: string, sources: ReadonlyArray<string>): string =>
+  [name, ...sources.filter(Boolean)].join(' ');
+
 const cspDirectives = [
   "default-src 'self'",
   // 'unsafe-eval' removed: maplibre-gl v5 does not require eval. 'unsafe-inline' kept
   // until a nonce middleware pipeline exists (Next injects inline bootstrap scripts).
   `script-src 'self' 'unsafe-inline' api.mapbox.com`,
   `style-src 'self' 'unsafe-inline' api.mapbox.com`,
-  `img-src 'self' data: blob: *.mapbox.com *.openfreemap.org images.unsplash.com randomuser.me ${r2Url}`.trim(),
-  `connect-src 'self' ${apiOrigin} api.mapbox.com events.mapbox.com *.openfreemap.org maps.googleapis.com *.sentry.io ${r2Url}`.trim(),
+  // apiOrigin is included so host-prefixed /uploads avatars/thumbnails served by the
+  // backend (non-R2 and dev deploys) load instead of being CSP-blocked.
+  directive('img-src', ["'self'", 'data:', 'blob:', '*.mapbox.com', '*.openfreemap.org', 'images.unsplash.com', 'randomuser.me', apiOrigin, r2Url]),
+  directive('connect-src', ["'self'", apiOrigin, 'api.mapbox.com', 'events.mapbox.com', '*.openfreemap.org', 'maps.googleapis.com', '*.sentry.io', r2Url]),
   "worker-src 'self' blob:",
   "object-src 'none'",
   "frame-ancestors 'none'",

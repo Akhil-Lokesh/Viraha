@@ -5,7 +5,9 @@ import morgan from 'morgan';
 import { logger } from './lib/logger';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import { randomUUID } from 'crypto';
 import { env } from './config/env';
+import { setSessionIdCookie } from './utils/cookies';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter, authLimiter, uploadLimiter } from './middleware/rateLimiter';
 import { doubleCsrfProtection } from './middleware/csrf';
@@ -85,6 +87,22 @@ if (env.NODE_ENV === 'production') {
 }
 app.use(express.json());
 app.use(cookieParser());
+
+// Stable CSRF session identifier. Set a non-path-scoped `viraha_session_id` on
+// the first /api/v1 request (before any CSRF token is minted at
+// GET /auth/csrf-token) and never rotate it on login. csrf.ts binds the token
+// to this identifier at mint time and re-checks it at validation time, so a
+// stable id keeps tokens valid across the unauthenticated -> authenticated
+// transition and on /auth/refresh — without it, a token minted under req.ip
+// fails validation once the cookie appears (the C1 refresh 403).
+app.use('/api/v1', (req, res, next) => {
+  if (!req.cookies?.viraha_session_id) {
+    const sessionId = randomUUID();
+    req.cookies = { ...req.cookies, viraha_session_id: sessionId };
+    setSessionIdCookie(res, sessionId);
+  }
+  next();
+});
 
 // Static files (uploaded images) — dev-only fallback. In production, R2 is a
 // hard requirement (enforced in config/env.ts), so media is served from R2 and

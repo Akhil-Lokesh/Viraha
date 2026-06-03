@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -35,6 +35,10 @@ export function PostCard({ post }: { post: Post }) {
   const [saved, setSaved] = useState(post.isSaved ?? false);
   const [saveCount, setSaveCount] = useState(post.saveCount ?? 0);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  // The ReportDialog self-manages its open state via its trigger element. We keep
+  // that trigger OUTSIDE the Menu (so closing the Menu doesn't unmount the dialog)
+  // and click it programmatically from the in-menu "Report" row.
+  const reportTriggerRef = useRef<HTMLButtonElement>(null);
   const toggleSave = useToggleSave();
 
   // Feed cards use the generated thumbnail to save bandwidth; the full-res
@@ -237,20 +241,42 @@ export function PostCard({ post }: { post: Post }) {
               transformOrigin={{ horizontal: 'right', vertical: 'top' }}
               slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 160 } } }}
             >
-              <ReportDialog
-                targetType="post"
-                targetId={post.id}
-                trigger={
-                  <MuiMenuItem
-                    onClick={() => setMenuAnchor(null)}
-                    sx={{ fontSize: '0.875rem', borderRadius: 1, mx: 0.5, color: 'error.main' }}
-                  >
-                    <Flag size={16} style={{ marginRight: 8 }} />
-                    Report
-                  </MuiMenuItem>
-                }
-              />
+              <MuiMenuItem
+                onClick={() => {
+                  setMenuAnchor(null);
+                  reportTriggerRef.current?.click();
+                }}
+                sx={{ fontSize: '0.875rem', borderRadius: 1, mx: 0.5, color: 'error.main' }}
+              >
+                <Flag size={16} style={{ marginRight: 8 }} />
+                Report
+              </MuiMenuItem>
             </Menu>
+            {/* Report dialog — trigger lives outside the Menu so closing the Menu does
+                not unmount the open dialog. It is activated via reportTriggerRef. */}
+            <ReportDialog
+              targetType="post"
+              targetId={post.id}
+              trigger={
+                <Box
+                  component="button"
+                  type="button"
+                  ref={reportTriggerRef}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  sx={{
+                    position: 'absolute',
+                    width: 1,
+                    height: 1,
+                    p: 0,
+                    m: -1,
+                    overflow: 'hidden',
+                    border: 0,
+                    clip: 'rect(0 0 0 0)',
+                  }}
+                />
+              }
+            />
           </Box>
 
           {/* Caption */}

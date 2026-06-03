@@ -332,7 +332,7 @@ export async function deleteComment(req: Request, res: Response, next: NextFunct
     const comment = await prisma.comment.findUnique({
       where: { id: commentId },
       include: {
-        post: { select: { userId: true, commentCount: true } },
+        post: { select: { userId: true } },
         _count: { select: { replies: { where: { isDeleted: false } } } },
       },
     });
@@ -360,9 +360,14 @@ export async function deleteComment(req: Request, res: Response, next: NextFunct
     // filters the now-deleted parent). Decrement commentCount by the parent
     // plus its still-live replies, floored at 0 to avoid going negative if the
     // count has already drifted.
+    //
+    // The decrement is an atomic, floored UPDATE evaluated by the database
+    // (GREATEST(comment_count - removed, 0)) rather than a read-modify-write of
+    // an absolute value. Under READ COMMITTED a non-atomic write would lose
+    // concurrent updates to comment_count; computing the new value in-SQL keeps
+    // the operation correct under concurrency while still flooring at 0.
     const replyCount = comment._count.replies;
     const removed = 1 + replyCount;
-    const nextCommentCount = Math.max(0, comment.post.commentCount - removed);
 
     await prisma.$transaction([
       prisma.comment.update({
@@ -373,10 +378,7 @@ export async function deleteComment(req: Request, res: Response, next: NextFunct
         where: { parentId: commentId, isDeleted: false },
         data: { isDeleted: true },
       }),
-      prisma.post.update({
-        where: { id: comment.postId },
-        data: { commentCount: nextCommentCount },
-      }),
+      prisma.$executeRaw`UPDATE posts SET comment_count = GREATEST(comment_count - ${removed}, 0) WHERE id = ${comment.postId}::uuid`,
     ]);
 
     res.json({ success: true, data: { message: 'Comment deleted' } });

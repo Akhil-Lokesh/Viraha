@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
@@ -58,6 +58,10 @@ export default function ProfilePage() {
   const { user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState('posts');
   const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(null);
+  // The ReportDialog self-manages its open state via its trigger element. We keep
+  // that trigger OUTSIDE the Menu (so closing the Menu doesn't unmount the dialog)
+  // and click it programmatically from the in-menu "Report" row.
+  const reportTriggerRef = useRef<HTMLButtonElement>(null);
 
   const {
     data: user,
@@ -198,20 +202,42 @@ export default function ProfilePage() {
               transformOrigin={{ horizontal: 'right', vertical: 'top' }}
               slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 160 } } }}
             >
-              <ReportDialog
-                targetType="user"
-                targetId={user.id}
-                trigger={
-                  <MuiMenuItem
-                    onClick={() => setOverflowAnchor(null)}
-                    sx={{ fontSize: '0.875rem', borderRadius: 1, mx: 0.5, color: 'error.main' }}
-                  >
-                    <Flag size={16} style={{ marginRight: 8 }} />
-                    Report
-                  </MuiMenuItem>
-                }
-              />
+              <MuiMenuItem
+                onClick={() => {
+                  setOverflowAnchor(null);
+                  reportTriggerRef.current?.click();
+                }}
+                sx={{ fontSize: '0.875rem', borderRadius: 1, mx: 0.5, color: 'error.main' }}
+              >
+                <Flag size={16} style={{ marginRight: 8 }} />
+                Report
+              </MuiMenuItem>
             </Menu>
+            {/* Report dialog — trigger lives outside the Menu so closing the Menu does
+                not unmount the open dialog. It is activated via reportTriggerRef. */}
+            <ReportDialog
+              targetType="user"
+              targetId={user.id}
+              trigger={
+                <Box
+                  component="button"
+                  type="button"
+                  ref={reportTriggerRef}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  sx={{
+                    position: 'absolute',
+                    width: 1,
+                    height: 1,
+                    p: 0,
+                    m: -1,
+                    overflow: 'hidden',
+                    border: 0,
+                    clip: 'rect(0 0 0 0)',
+                  }}
+                />
+              }
+            />
           </>
         )}
       </Box>

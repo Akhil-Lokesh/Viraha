@@ -25,12 +25,25 @@ import { fadeInUp, fadeIn, staggerContainer, staggerItem } from '@/lib/animation
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError(error)) {
-    const serverMessage = error.response?.data?.error;
+    // Backend envelope: { success: false, error: { code, message } }
+    const serverMessage = error.response?.data?.error?.message;
     if (typeof serverMessage === 'string' && serverMessage.length > 0) {
       return serverMessage;
     }
   }
   return fallback;
+}
+
+// Link items are stored content rendered as anchor hrefs. Only http(s) URLs are
+// safe to use as an href; javascript:/data:/other schemes must never be linked
+// (stored XSS), so callers fall back to plain text when this returns false.
+function isSafeHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 const ITEM_TYPE_OPTIONS: { value: ScrapbookItemType; label: string }[] = [
@@ -640,7 +653,7 @@ function ScrapbookDetailDrawer({ scrapbookId, onClose }: ScrapbookDetailDrawerPr
                       >
                         {itemTypeLabel(item.itemType)}
                       </Typography>
-                      {item.itemType === 'link' && item.content ? (
+                      {item.itemType === 'link' && item.content && isSafeHttpUrl(item.content) ? (
                         <Typography
                           component="a"
                           href={item.content}

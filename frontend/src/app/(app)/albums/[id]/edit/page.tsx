@@ -18,7 +18,7 @@ import type { UpdateAlbumInput } from '@/lib/types';
 
 function getSubmitError(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const serverMessage = error.response?.data?.error;
+    const serverMessage = error.response?.data?.error?.message;
     if (typeof serverMessage === 'string' && serverMessage.length > 0) {
       return serverMessage;
     }

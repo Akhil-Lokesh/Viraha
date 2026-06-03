@@ -4,11 +4,35 @@ import { z } from 'zod/v4';
 // `/uploads/` paths (local-disk fallback when R2 env vars are unset, the
 // default per .env.example). Reject anything else — notably javascript:/data:
 // — to prevent stored-XSS via media fields.
+//
+// Relative paths must match a strict allowlist (no `..` traversal, no
+// whitespace, no `<>"'` markup characters) and end in a file extension.
+// Absolute URLs must actually parse and use the https protocol.
+const UPLOADS_PATH_PATTERN = /^\/uploads\/[A-Za-z0-9._/-]+\.[A-Za-z0-9]+$/;
+
+const isSafeUploadsPath = (value: string): boolean => {
+  if (!UPLOADS_PATH_PATTERN.test(value)) {
+    return false;
+  }
+  // Defense-in-depth: reject any `..` traversal segment the regex might admit
+  // (e.g. `/uploads/..foo` is fine, but `/uploads/../x` must never pass).
+  return !value.split('/').includes('..');
+};
+
+const isSafeHttpsUrl = (value: string): boolean => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 const mediaUrl = z
   .string()
   .max(2048, { message: 'Please provide a valid media URL' })
-  .refine((u) => u.startsWith('https://') || u.startsWith('/uploads/'), {
-    message: 'Media URLs must use https or be an /uploads/ path',
+  .refine((u) => isSafeHttpsUrl(u) || isSafeUploadsPath(u), {
+    message: 'Media URLs must be a valid https URL or a safe /uploads/ path',
   });
 
 export const createPostSchema = z.object({

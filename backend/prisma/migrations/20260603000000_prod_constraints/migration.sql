@@ -1,6 +1,17 @@
 -- Production schema constraints (C16, C20, C21)
 
--- VirahaMoment: dedup key so createMany({ skipDuplicates: true }) actually dedupes (C16)
+-- VirahaMoment: dedup key so createMany({ skipDuplicates: true }) actually dedupes (C16).
+-- Remove pre-existing duplicate (user_id, type, reference_id, moment_date) rows that
+-- accumulated under the old no-op skipDuplicates, keeping one per key (tie-break on id),
+-- so the unique index can be created on previously-dirty data.
+DELETE FROM "viraha_moments" a
+USING "viraha_moments" b
+WHERE a."user_id" = b."user_id"
+  AND a."type" = b."type"
+  AND a."reference_id" = b."reference_id"
+  AND a."moment_date" = b."moment_date"
+  AND a."id" > b."id";
+
 CREATE UNIQUE INDEX "viraha_moments_user_id_type_reference_id_moment_date_key" ON "viraha_moments"("user_id", "type", "reference_id", "moment_date");
 
 -- User.createdAt: index for searchUsers ORDER BY created_at DESC (C20)

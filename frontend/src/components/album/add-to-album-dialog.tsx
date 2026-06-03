@@ -22,7 +22,7 @@ function getAlbumActionError(error: unknown, wasInAlbum: boolean): string {
     if (status === 409) {
       return 'This post is already in that album.';
     }
-    const serverMessage = error.response?.data?.error;
+    const serverMessage = error.response?.data?.error?.message;
     if (typeof serverMessage === 'string' && serverMessage.length > 0) {
       return serverMessage;
     }
