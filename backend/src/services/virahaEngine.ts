@@ -1,4 +1,7 @@
 import { prisma } from '../lib/prisma';
+import { logger } from '../lib/logger';
+
+type PrecomputedMoment = Awaited<ReturnType<typeof prisma.virahaMoment.findMany>>[number];
 
 interface OnThisDayItem {
   id: string;
@@ -20,6 +23,8 @@ interface VirahaMomentItem {
   description: string | null;
   referenceType: string;
   referenceId: string;
+  /** Parent journal id when referenceType is 'journal_entry' — lets the client link to /journals/[journalId]. */
+  journalId: string | null;
   thumbnail: string | null;
   locationName: string | null;
   yearsAgo: number | null;
@@ -125,16 +130,14 @@ export async function getOnThisDay(userId: string): Promise<OnThisDayItem[]> {
 }
 
 /**
- * Get computed Viraha Moments for a user (pre-computed + live).
- * Falls back to live computation if no pre-computed moments exist.
+ * Read today's non-dismissed pre-computed moments for a user.
  */
-export async function getMoments(userId: string): Promise<VirahaMomentItem[]> {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86400000);
-
-  // Check for pre-computed moments first
-  const precomputed = await prisma.virahaMoment.findMany({
+async function fetchPrecomputedMoments(
+  userId: string,
+  todayStart: Date,
+  todayEnd: Date
+): Promise<PrecomputedMoment[]> {
+  return prisma.virahaMoment.findMany({
     where: {
       userId,
       dismissed: false,
@@ -143,20 +146,84 @@ export async function getMoments(userId: string): Promise<VirahaMomentItem[]> {
     orderBy: { deliveredAt: 'desc' },
     take: 10,
   });
+}
+
+/**
+ * Map pre-computed moment rows to the API shape, resolving the parent journal
+ * id for journal_entry references so the client can link to /journals/[journalId].
+ */
+async function mapPrecomputedMoments(
+  precomputed: ReadonlyArray<PrecomputedMoment>
+): Promise<VirahaMomentItem[]> {
+  // Precomputed journal_entry moments store the entry id in referenceId; resolve
+  // each entry's parent journal id in a single batched query.
+  const entryRefIds = precomputed
+    .filter((m) => m.referenceType === 'journal_entry')
+    .map((m) => m.referenceId);
+
+  const journalIdByEntryId = new Map<string, string>();
+  if (entryRefIds.length > 0) {
+    const entries = await prisma.journalEntry.findMany({
+      where: { id: { in: entryRefIds } },
+      select: { id: true, journalId: true },
+    });
+    for (const e of entries) {
+      journalIdByEntryId.set(e.id, e.journalId);
+    }
+  }
+
+  return precomputed.map((m) => ({
+    id: m.id,
+    type: m.type,
+    title: m.title,
+    description: m.description,
+    referenceType: m.referenceType,
+    referenceId: m.referenceId,
+    journalId:
+      m.referenceType === 'journal_entry'
+        ? journalIdByEntryId.get(m.referenceId) ?? null
+        : null,
+    thumbnail: m.thumbnail,
+    locationName: m.locationName,
+    yearsAgo: m.yearsAgo,
+    momentDate: m.momentDate.toISOString(),
+  }));
+}
+
+/**
+ * Get computed Viraha Moments for a user (pre-computed + live).
+ * Falls back to live computation if no pre-computed moments exist.
+ */
+export async function getMoments(userId: string): Promise<VirahaMomentItem[]> {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart.getTime() + 86400000);
+
+  // Check for pre-computed moments first.
+  let precomputed = await fetchPrecomputedMoments(userId, todayStart, todayEnd);
+
+  // Lazily populate today's moments on first request so place_anniversary /
+  // seasonal_echo types surface even without a scheduled job. The compute is
+  // idempotent via the @@unique([userId, type, referenceId, momentDate]) key,
+  // so re-running it never duplicates rows.
+  if (precomputed.length === 0) {
+    try {
+      const created = await computeMomentsForUser(userId);
+      if (created > 0) {
+        precomputed = await fetchPrecomputedMoments(userId, todayStart, todayEnd);
+      }
+    } catch (err: unknown) {
+      // Degrade to live computation rather than failing the request, but surface
+      // the failure to the logger so the broken populate path is observable.
+      logger.error(
+        { err, userId },
+        'computeMomentsForUser failed during lazy moment population'
+      );
+    }
+  }
 
   if (precomputed.length > 0) {
-    return precomputed.map((m) => ({
-      id: m.id,
-      type: m.type,
-      title: m.title,
-      description: m.description,
-      referenceType: m.referenceType,
-      referenceId: m.referenceId,
-      thumbnail: m.thumbnail,
-      locationName: m.locationName,
-      yearsAgo: m.yearsAgo,
-      momentDate: m.momentDate.toISOString(),
-    }));
+    return mapPrecomputedMoments(precomputed);
   }
 
   // Live computation: generate on-this-day moments
@@ -169,6 +236,7 @@ export async function getMoments(userId: string): Promise<VirahaMomentItem[]> {
       description: `${item.yearsAgo} ${item.yearsAgo === 1 ? 'year' : 'years'} ago`,
       referenceType: item.type,
       referenceId: item.id,
+      journalId: item.type === 'journal_entry' ? item.journalId ?? null : null,
       thumbnail: item.thumbnail,
       locationName: item.locationName,
       yearsAgo: item.yearsAgo,
@@ -211,6 +279,7 @@ async function getRecentHighlights(userId: string): Promise<VirahaMomentItem[]> 
       description: location,
       referenceType: 'post',
       referenceId: p.id,
+      journalId: null,
       thumbnail: p.mediaThumbnails[0] || p.mediaUrls[0] || null,
       locationName: p.locationName,
       yearsAgo: null,

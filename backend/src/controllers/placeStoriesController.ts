@@ -105,21 +105,23 @@ export async function handleGetKindredTravelers(req: Request, res: Response, nex
         WHERE user_id = ${userId}::uuid AND is_deleted = false AND location_city IS NOT NULL
       ),
       other_users AS (
-        SELECT p.user_id, COUNT(DISTINCT p.location_city) AS overlap_count
+        SELECT p.user_id, u.username, u.display_name, u.avatar,
+               COUNT(DISTINCT p.location_city) AS overlap_count
         FROM posts p
         JOIN my_cities mc ON p.location_city = mc.location_city AND p.location_country = mc.location_country
+        JOIN users u ON u.id = p.user_id
         WHERE p.user_id != ${userId}::uuid
           AND p.is_deleted = false
           AND p.privacy = 'public'
-        GROUP BY p.user_id
+          AND u.is_active = true
+          AND u.is_private = false
+        GROUP BY p.user_id, u.username, u.display_name, u.avatar
         HAVING COUNT(DISTINCT p.location_city) >= 2
         ORDER BY overlap_count DESC
         LIMIT 20
       )
-      SELECT ou.user_id, u.username, u.display_name, u.avatar, ou.overlap_count
+      SELECT ou.user_id, ou.username, ou.display_name, ou.avatar, ou.overlap_count
       FROM other_users ou
-      JOIN users u ON u.id = ou.user_id
-      WHERE u.is_active = true AND u.is_private = false
     `;
 
     res.json({

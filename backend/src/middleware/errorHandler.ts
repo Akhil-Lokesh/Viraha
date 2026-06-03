@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod/v4';
 import { Prisma } from '@prisma/client';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
+import multer from 'multer';
 import { captureException } from '../lib/sentry';
 import { logger } from '../lib/logger';
 
@@ -54,6 +55,37 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
       });
       return;
     }
+  }
+
+  // Multer upload errors (file count / size / unexpected field). Without this
+  // branch they fall through to a generic 500 + spurious Sentry report instead
+  // of a clear 4xx telling the client what to fix.
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({
+        success: false,
+        error: {
+          code: 'PAYLOAD_TOO_LARGE',
+          message: 'One or more files exceed the maximum allowed size',
+        },
+      });
+      return;
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'BAD_REQUEST',
+          message: 'Too many files uploaded (maximum is 10)',
+        },
+      });
+      return;
+    }
+    res.status(400).json({
+      success: false,
+      error: { code: 'BAD_REQUEST', message: 'File upload failed' },
+    });
+    return;
   }
 
   // http-errors-style client errors (e.g. csrf-csrf throws a ForbiddenError with

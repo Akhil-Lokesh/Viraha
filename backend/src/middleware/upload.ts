@@ -11,7 +11,13 @@ const fileFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer
   if (ALLOWED_MIMES.includes(file.mimetype) && ALLOWED_EXTENSIONS.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
+    // Tag the rejection with an HTTP status so errorHandler maps it to 415
+    // (Unsupported Media Type) instead of masking it as a generic 500.
+    const err: Error & { statusCode?: number } = new Error(
+      'Only JPEG, PNG, and WebP images are allowed'
+    );
+    err.statusCode = 415;
+    cb(err);
   }
 };
 
@@ -20,7 +26,7 @@ export const upload = multer({
   fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
-    files: 4,
+    files: 10,
   },
 });
 

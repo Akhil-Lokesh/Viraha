@@ -98,17 +98,70 @@ export async function handleDeleteAccount(req: Request, res: Response, next: Nex
 
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
     if (!user || user.username !== confirmUsername) {
-      res.status(400).json({ success: false, error: 'Username confirmation does not match' });
+      res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'Username confirmation does not match' },
+      });
       return;
     }
 
-    // Cascading delete handles most relations
-    await prisma.user.delete({ where: { id: userId } });
+    // Cascade delete removes the user's Save/Comment rows but does NOT adjust the
+    // denormalized saveCount/commentCount on other users' posts, so those counters
+    // drift permanently. Decrement them (grouped by postId, floored at 0) inside the
+    // same transaction as the user delete so counts and rows stay consistent.
+    await prisma.$transaction(async (tx) => {
+      const [savesByPost, commentsByPost] = await Promise.all([
+        tx.save.groupBy({
+          by: ['postId'],
+          where: { userId },
+          _count: { postId: true },
+        }),
+        tx.comment.groupBy({
+          by: ['postId'],
+          where: { userId, isDeleted: false },
+          _count: { postId: true },
+        }),
+      ]);
+
+      const postIds = Array.from(
+        new Set([
+          ...savesByPost.map((g) => g.postId),
+          ...commentsByPost.map((g) => g.postId),
+        ]),
+      );
+
+      if (postIds.length > 0) {
+        const saveDeltaByPost = new Map(savesByPost.map((g) => [g.postId, g._count.postId]));
+        const commentDeltaByPost = new Map(commentsByPost.map((g) => [g.postId, g._count.postId]));
+
+        const posts = await tx.post.findMany({
+          where: { id: { in: postIds } },
+          select: { id: true, saveCount: true, commentCount: true },
+        });
+
+        // set() with a floored value (rather than decrement()) guarantees counters
+        // never go negative even if they were already out of sync.
+        await Promise.all(
+          posts.map((post) =>
+            tx.post.update({
+              where: { id: post.id },
+              data: {
+                saveCount: Math.max(0, post.saveCount - (saveDeltaByPost.get(post.id) ?? 0)),
+                commentCount: Math.max(0, post.commentCount - (commentDeltaByPost.get(post.id) ?? 0)),
+              },
+            }),
+          ),
+        );
+      }
+
+      // Cascading delete handles the remaining relations.
+      await tx.user.delete({ where: { id: userId } });
+    });
 
     // Clear auth cookies
     clearAuthCookies(res);
 
-    res.json({ success: true, message: 'Account deleted' });
+    res.json({ success: true, data: { message: 'Account deleted' } });
   } catch (err) {
     next(err);
   }

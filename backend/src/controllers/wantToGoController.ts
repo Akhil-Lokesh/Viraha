@@ -1,6 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 
+type WantToGoRow = { locationLat: unknown; locationLng: unknown };
+
+// Prisma Decimal columns serialize to JSON strings; the frontend types these as
+// number and feeds them to MapLibre, so coerce coordinates on every response.
+// Mirrors the Number() coercion in mapController.
+function serializeWantToGo<T extends WantToGoRow>(item: T): T & { locationLat: number; locationLng: number } {
+  return {
+    ...item,
+    locationLat: Number(item.locationLat),
+    locationLng: Number(item.locationLng),
+  };
+}
+
 export async function handleGetWantToGo(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = req.user!.userId;
@@ -14,7 +27,7 @@ export async function handleGetWantToGo(req: Request, res: Response, next: NextF
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ success: true, data: items });
+    res.json({ success: true, data: items.map(serializeWantToGo) });
   } catch (err) {
     next(err);
   }
@@ -38,7 +51,7 @@ export async function handleCreateWantToGo(req: Request, res: Response, next: Ne
       },
     });
 
-    res.status(201).json({ success: true, data: item });
+    res.status(201).json({ success: true, data: serializeWantToGo(item) });
   } catch (err) {
     next(err);
   }
@@ -65,7 +78,7 @@ export async function handleUpdateWantToGo(req: Request, res: Response, next: Ne
       },
     });
 
-    res.json({ success: true, data: updated });
+    res.json({ success: true, data: serializeWantToGo(updated) });
   } catch (err) {
     next(err);
   }

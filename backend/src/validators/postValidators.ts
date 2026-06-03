@@ -1,12 +1,14 @@
 import { z } from 'zod/v4';
 
-// Media URLs must be absolute https URLs (uploaded assets). Reject anything
-// non-http(s) such as javascript:/data: to prevent stored-XSS via media fields.
+// Media URLs are either absolute https URLs (R2-backed deploys) or relative
+// `/uploads/` paths (local-disk fallback when R2 env vars are unset, the
+// default per .env.example). Reject anything else — notably javascript:/data:
+// — to prevent stored-XSS via media fields.
 const mediaUrl = z
   .string()
-  .url({ message: 'Please provide a valid media URL' })
-  .refine((u) => u.startsWith('https://'), {
-    message: 'Media URLs must use https',
+  .max(2048, { message: 'Please provide a valid media URL' })
+  .refine((u) => u.startsWith('https://') || u.startsWith('/uploads/'), {
+    message: 'Media URLs must use https or be an /uploads/ path',
   });
 
 export const createPostSchema = z.object({

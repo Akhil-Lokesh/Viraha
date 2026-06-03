@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { createActivity } from '../utils/activity';
-import { isBlockedBetween } from '../lib/blocks';
+import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
 
 const userSelect = {
   id: true,
@@ -106,8 +106,14 @@ export async function getFollowers(req: Request, res: Response, next: NextFuncti
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = req.query.cursor as string | undefined;
 
+    const hiddenIds = req.user ? await getHiddenUserIds(req.user.userId) : [];
+
     const follows = await prisma.follow.findMany({
-      where: { followingId: userId, status: 'accepted' },
+      where: {
+        followingId: userId,
+        status: 'accepted',
+        ...(hiddenIds.length > 0 && { followerId: { notIn: hiddenIds } }),
+      },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       orderBy: { createdAt: 'desc' },
@@ -136,8 +142,14 @@ export async function getFollowing(req: Request, res: Response, next: NextFuncti
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = req.query.cursor as string | undefined;
 
+    const hiddenIds = req.user ? await getHiddenUserIds(req.user.userId) : [];
+
     const follows = await prisma.follow.findMany({
-      where: { followerId: userId, status: 'accepted' },
+      where: {
+        followerId: userId,
+        status: 'accepted',
+        ...(hiddenIds.length > 0 && { followingId: { notIn: hiddenIds } }),
+      },
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       orderBy: { createdAt: 'desc' },

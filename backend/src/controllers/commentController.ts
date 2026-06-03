@@ -331,7 +331,10 @@ export async function deleteComment(req: Request, res: Response, next: NextFunct
 
     const comment = await prisma.comment.findUnique({
       where: { id: commentId },
-      include: { post: { select: { userId: true } } },
+      include: {
+        post: { select: { userId: true, commentCount: true } },
+        _count: { select: { replies: { where: { isDeleted: false } } } },
+      },
     });
 
     if (!comment || comment.isDeleted) {
@@ -351,14 +354,28 @@ export async function deleteComment(req: Request, res: Response, next: NextFunct
       return;
     }
 
+    // Soft-deleting a parent must also soft-delete its non-deleted replies in
+    // the same transaction; otherwise the replies stay counted in commentCount
+    // yet are unreachable (getComments filters parentId: null and getReplies
+    // filters the now-deleted parent). Decrement commentCount by the parent
+    // plus its still-live replies, floored at 0 to avoid going negative if the
+    // count has already drifted.
+    const replyCount = comment._count.replies;
+    const removed = 1 + replyCount;
+    const nextCommentCount = Math.max(0, comment.post.commentCount - removed);
+
     await prisma.$transaction([
       prisma.comment.update({
         where: { id: commentId },
         data: { isDeleted: true },
       }),
+      prisma.comment.updateMany({
+        where: { parentId: commentId, isDeleted: false },
+        data: { isDeleted: true },
+      }),
       prisma.post.update({
         where: { id: comment.postId },
-        data: { commentCount: { decrement: 1 } },
+        data: { commentCount: nextCommentCount },
       }),
     ]);
 

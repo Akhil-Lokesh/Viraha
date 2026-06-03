@@ -40,7 +40,7 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
     const markers: MapMarker[] = [];
 
     // Fetch post markers
-    if (!type || type === 'all' || type === 'posts') {
+    if (!type || type === 'all' || type === 'posts' || type === 'post') {
       const postWhere: Prisma.PostWhereInput = {
         isDeleted: false,
         privacy: 'public',
@@ -90,7 +90,7 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
     }
 
     // Fetch journal entry markers
-    if (!type || type === 'all' || type === 'journals') {
+    if (!type || type === 'all' || type === 'journals' || type === 'journal') {
       const journalFilter: Prisma.JournalWhereInput = {
         isDeleted: false,
         privacy: 'public',

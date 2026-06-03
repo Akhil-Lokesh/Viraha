@@ -98,7 +98,12 @@ export async function getAlbums(req: Request, res: Response, next: NextFunction)
         skip: 1,
       }),
       orderBy: { createdAt: 'desc' },
-      include: { user: { select: userSelect } },
+      include: {
+        user: { select: userSelect },
+        // Lightweight membership signal so clients (e.g. the add-to-album
+        // dialog) can detect whether a given post already belongs to an album.
+        albumPosts: { select: { postId: true } },
+      },
     });
 
     const hasMore = albums.length > limit;

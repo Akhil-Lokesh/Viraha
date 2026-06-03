@@ -11,20 +11,31 @@ const userSelect = {
   avatar: true,
 };
 
-async function recalculateWordCount(journalId: string): Promise<number> {
-  const entries = await prisma.journalEntry.findMany({
-    where: { journalId, isDeleted: false },
-    select: { content: true },
-  });
-  const totalWords = entries.reduce((sum, entry) => {
-    const words = entry.content ? entry.content.trim().split(/\s+/).filter(Boolean).length : 0;
-    return sum + words;
-  }, 0);
-  await prisma.journal.update({
+// Max entries embedded in a journal-detail response. When the journal has more
+// non-deleted entries than this, the response sets entriesHasMore so the client
+// knows to paginate the rest via getEntries rather than silently dropping them.
+const ENTRIES_PAGE_SIZE = 50;
+
+function countWords(content: string | null | undefined): number {
+  if (!content) return 0;
+  return content.trim().split(/\s+/).filter(Boolean).length;
+}
+
+// Build a Prisma update op that applies a running delta to the journal's cached
+// wordCount, flooring the result at 0 so a stale count can never go negative.
+// Returned (not awaited) so the caller can compose it into the same transaction
+// as the entry mutation that produced the delta, keeping the count atomic.
+function wordCountUpdateOp(
+  journalId: string,
+  currentWordCount: number,
+  delta: number,
+): Prisma.PrismaPromise<Prisma.BatchPayload> | null {
+  if (delta === 0) return null;
+  const next = Math.max(0, currentWordCount + delta);
+  return prisma.journal.updateMany({
     where: { id: journalId },
-    data: { wordCount: totalWords },
+    data: { wordCount: next },
   });
-  return totalWords;
 }
 
 function generateSlug(title: string): string {
@@ -134,8 +145,9 @@ export async function getJournalById(req: Request, res: Response, next: NextFunc
         entries: {
           where: { isDeleted: false },
           orderBy: { sortOrder: 'asc' },
-          take: 50,
+          take: ENTRIES_PAGE_SIZE,
         },
+        _count: { select: { entries: { where: { isDeleted: false } } } },
       },
     });
 
@@ -182,7 +194,8 @@ export async function getJournalById(req: Request, res: Response, next: NextFunc
       }
     }
 
-    res.json({ success: true, data: { journal } });
+    const entriesHasMore = journal._count.entries > ENTRIES_PAGE_SIZE;
+    res.json({ success: true, data: { journal, entriesHasMore } });
   } catch (err) {
     next(err);
   }
@@ -199,8 +212,9 @@ export async function getJournalBySlug(req: Request, res: Response, next: NextFu
         entries: {
           where: { isDeleted: false },
           orderBy: { sortOrder: 'asc' },
-          take: 50,
+          take: ENTRIES_PAGE_SIZE,
         },
+        _count: { select: { entries: { where: { isDeleted: false } } } },
       },
     });
 
@@ -236,7 +250,8 @@ export async function getJournalBySlug(req: Request, res: Response, next: NextFu
       }
     }
 
-    res.json({ success: true, data: { journal } });
+    const entriesHasMore = journal._count.entries > ENTRIES_PAGE_SIZE;
+    res.json({ success: true, data: { journal, entriesHasMore } });
   } catch (err) {
     next(err);
   }
@@ -401,7 +416,12 @@ export async function createEntry(req: Request, res: Response, next: NextFunctio
     });
     const sortOrder = lastEntry ? lastEntry.sortOrder + 1 : 0;
 
-    const updateData: any = { entryCount: { increment: 1 } };
+    // Running-delta word count: only count the new entry, never re-scan all.
+    const addedWords = countWords(data.content);
+    const updateData: Prisma.JournalUpdateInput = {
+      entryCount: { increment: 1 },
+      wordCount: { increment: addedWords },
+    };
     if (!journal.coverImage && data.mediaUrls && data.mediaUrls.length > 0) {
       updateData.coverImage = data.mediaUrls[0];
     }
@@ -428,8 +448,6 @@ export async function createEntry(req: Request, res: Response, next: NextFunctio
         data: updateData,
       }),
     ]);
-
-    await recalculateWordCount(journalId);
 
     res.status(201).json({ success: true, data: { entry } });
   } catch (err) {
@@ -518,7 +536,14 @@ export async function updateEntry(req: Request, res: Response, next: NextFunctio
 
     const data = req.body as UpdateJournalEntryInput;
 
-    const updated = await prisma.journalEntry.update({
+    // Running-delta word count: only the changed entry's old vs new content
+    // affects the cached total. Skip the journal write entirely when content
+    // is untouched or the word count is unchanged.
+    const wordDelta =
+      data.content !== undefined ? countWords(data.content) - countWords(entry.content) : 0;
+    const wordCountOp = wordCountUpdateOp(journalId, journal.wordCount, wordDelta);
+
+    const updateEntryOp = prisma.journalEntry.update({
       where: { id: entryId },
       data: {
         ...(data.date !== undefined && { date: data.date ? new Date(data.date) : null }),
@@ -534,9 +559,9 @@ export async function updateEntry(req: Request, res: Response, next: NextFunctio
       },
     });
 
-    if (data.content !== undefined) {
-      await recalculateWordCount(journalId);
-    }
+    const updated = wordCountOp
+      ? (await prisma.$transaction([updateEntryOp, wordCountOp]))[0]
+      : await updateEntryOp;
 
     res.json({ success: true, data: { entry: updated } });
   } catch (err) {
@@ -570,6 +595,11 @@ export async function deleteEntry(req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    // Running-delta word count: subtract only the deleted entry's words,
+    // flooring the resulting total at 0 (never re-scan all entries).
+    const removedWords = countWords(entry.content);
+    const nextWordCount = Math.max(0, journal.wordCount - removedWords);
+
     await prisma.$transaction([
       prisma.journalEntry.update({
         where: { id: entryId },
@@ -579,11 +609,10 @@ export async function deleteEntry(req: Request, res: Response, next: NextFunctio
         where: { id: journalId },
         data: {
           entryCount: { decrement: journal.entryCount > 0 ? 1 : 0 },
+          wordCount: nextWordCount,
         },
       }),
     ]);
-
-    await recalculateWordCount(journalId);
 
     res.json({ success: true, data: { message: 'Entry deleted' } });
   } catch (err) {

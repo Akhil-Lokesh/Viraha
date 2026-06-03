@@ -63,13 +63,26 @@ export async function toggleSave(req: Request, res: Response, next: NextFunction
       });
     } else {
       // Save
-      await prisma.$transaction([
-        prisma.save.create({ data: { userId, postId } }),
-        prisma.post.update({
-          where: { id: postId },
-          data: { saveCount: { increment: 1 } },
-        }),
-      ]);
+      try {
+        await prisma.$transaction([
+          prisma.save.create({ data: { userId, postId } }),
+          prisma.post.update({
+            where: { id: postId },
+            data: { saveCount: { increment: 1 } },
+          }),
+        ]);
+      } catch (txErr) {
+        // Concurrent save already created the row (P2002 unique violation):
+        // treat as success. Skip the count increment so it isn't double-counted.
+        if (
+          txErr instanceof Prisma.PrismaClientKnownRequestError &&
+          txErr.code === 'P2002'
+        ) {
+          res.json({ success: true, data: { saved: true } });
+          return;
+        }
+        throw txErr;
+      }
 
       const updatedPost = await prisma.post.findUnique({
         where: { id: postId },
@@ -119,7 +132,7 @@ export async function getSavedPosts(req: Request, res: Response, next: NextFunct
       where: { userId, post: { isDeleted: false } },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
         post: {
           include: { user: { select: userSelect } },
@@ -134,7 +147,7 @@ export async function getSavedPosts(req: Request, res: Response, next: NextFunct
     res.json({
       success: true,
       data: {
-        items: items.map((s) => ({ ...s.post, savedAt: s.createdAt })),
+        items: items.map((s) => ({ ...s.post, isSaved: true, savedAt: s.createdAt })),
         nextCursor,
       },
     });

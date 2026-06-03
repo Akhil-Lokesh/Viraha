@@ -123,13 +123,40 @@ export async function updateTravelMode(req: Request, res: Response, next: NextFu
   }
 }
 
+// Keyset cursor encoding: postedAt + id form a stable, unique sort key so
+// pagination never skips or duplicates rows (a plain id cursor against a
+// postedAt order does both). Encoded as "<postedAt ISO>|<id>".
+const CURSOR_SEPARATOR = '|';
+
+interface NearbyCursor {
+  postedAt: Date;
+  id: string;
+}
+
+function encodeNearbyCursor(row: { postedAt: Date; id: string }): string {
+  return `${row.postedAt.toISOString()}${CURSOR_SEPARATOR}${row.id}`;
+}
+
+function decodeNearbyCursor(raw: string): NearbyCursor | null {
+  const sepIndex = raw.indexOf(CURSOR_SEPARATOR);
+  if (sepIndex <= 0 || sepIndex === raw.length - 1) return null;
+
+  const postedAtRaw = raw.slice(0, sepIndex);
+  const id = raw.slice(sepIndex + 1);
+  const postedAt = new Date(postedAtRaw);
+
+  if (isNaN(postedAt.getTime()) || !id) return null;
+
+  return { postedAt, id };
+}
+
 export async function getNearbyFeed(req: Request, res: Response, next: NextFunction) {
   try {
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
     const radius = Math.min(Number(req.query.radius) || 50, 200);
     const limit = Math.min(Number(req.query.limit) || 20, 50);
-    const cursor = req.query.cursor as string | undefined;
+    const rawCursor = req.query.cursor as string | undefined;
 
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       res.status(400).json({
@@ -139,50 +166,118 @@ export async function getNearbyFeed(req: Request, res: Response, next: NextFunct
       return;
     }
 
+    let cursor: NearbyCursor | null = null;
+    if (rawCursor) {
+      cursor = decodeNearbyCursor(rawCursor);
+      if (!cursor) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_PARAMS', message: 'Invalid cursor' },
+        });
+        return;
+      }
+    }
+
     const { minLat, maxLat, minLng, maxLng } = getBoundingBox(lat, lng, radius);
 
     // Exclude content authored by users in a block relationship with the viewer
     const hiddenIds = await getHiddenUserIds(req.user!.userId);
 
-    // Fetch posts within bounding box (coarse filter)
-    const posts = await prisma.post.findMany({
-      where: {
-        isDeleted: false,
-        privacy: 'public',
-        locationLat: { gte: minLat, lte: maxLat },
-        locationLng: { gte: minLng, lte: maxLng },
-        ...(hiddenIds.length > 0 && { userId: { notIn: hiddenIds } }),
-      },
-      ...(cursor && {
-        cursor: { id: cursor },
-        skip: 1,
-      }),
-      // Fetch more than needed to account for Haversine filtering
-      take: limit * 3,
-      orderBy: { postedAt: 'desc' },
-      include: { user: { select: userSelect } },
-    });
+    const baseWhere = {
+      isDeleted: false,
+      privacy: 'public' as const,
+      locationLat: { gte: minLat, lte: maxLat },
+      locationLng: { gte: minLng, lte: maxLng },
+      ...(hiddenIds.length > 0 && { userId: { notIn: hiddenIds } }),
+    };
 
-    // Apply precise Haversine distance filter
-    const filtered = posts.filter((post) => {
-      const postLat = Number(post.locationLat);
-      const postLng = Number(post.locationLng);
-      return haversineDistance(lat, lng, postLat, postLng) <= radius;
-    });
+    // Keyset predicate matching `orderBy [{ postedAt: desc }, { id: desc }]`:
+    // (postedAt < cursor.postedAt) OR (postedAt = cursor.postedAt AND id < cursor.id)
+    const keysetWhere = cursor
+      ? {
+          OR: [
+            { postedAt: { lt: cursor.postedAt } },
+            { postedAt: cursor.postedAt, id: { lt: cursor.id } },
+          ],
+        }
+      : {};
 
-    // Apply cursor pagination limit
-    const hasMore = filtered.length > limit;
-    const items = hasMore ? filtered.slice(0, limit) : filtered;
-    const nextCursor = hasMore ? items[items.length - 1].id : null;
+    const orderBy = [{ postedAt: 'desc' as const }, { id: 'desc' as const }];
+
+    // Iterate fetching batches until we collect `limit` Haversine-passing
+    // items or the data source is exhausted. The bounding box is a coarse
+    // pre-filter; the precise radius check rejects the box corners, so a
+    // single capped fetch can prematurely end the feed.
+    const batchSize = limit * 3;
+    type NearbyPost = Awaited<ReturnType<typeof prisma.post.findMany>>[number];
+    const passing: NearbyPost[] = [];
+    let lastExamined: { postedAt: Date; id: string } | null = cursor;
+    let exhausted = false;
+    let hasMore = false;
+
+    while (passing.length <= limit && !exhausted) {
+      const batchKeyset = lastExamined
+        ? {
+            OR: [
+              { postedAt: { lt: lastExamined.postedAt } },
+              { postedAt: lastExamined.postedAt, id: { lt: lastExamined.id } },
+            ],
+          }
+        : keysetWhere;
+
+      const batch = await prisma.post.findMany({
+        where: { ...baseWhere, ...batchKeyset },
+        take: batchSize,
+        orderBy,
+        include: { user: { select: userSelect } },
+      });
+
+      if (batch.length === 0) {
+        exhausted = true;
+        break;
+      }
+
+      if (batch.length < batchSize) {
+        exhausted = true;
+      }
+
+      // Advance the keyset to the last DB row examined in this batch so the
+      // next batch (or nextCursor) continues from exactly where we stopped.
+      const lastRow = batch[batch.length - 1];
+      lastExamined = { postedAt: lastRow.postedAt, id: lastRow.id };
+
+      for (const post of batch) {
+        const postLat = Number(post.locationLat);
+        const postLng = Number(post.locationLng);
+        if (haversineDistance(lat, lng, postLat, postLng) <= radius) {
+          passing.push(post);
+          // One extra passing item proves there is another page.
+          if (passing.length > limit) {
+            hasMore = true;
+            break;
+          }
+        }
+      }
+
+      if (hasMore) break;
+    }
+
+    const page = hasMore ? passing.slice(0, limit) : passing;
+
+    // nextCursor is keyed off the last passing item we are returning, so the
+    // next request resumes immediately after it (keyset, no skip/duplicate).
+    const nextCursor =
+      hasMore && page.length > 0 ? encodeNearbyCursor(page[page.length - 1]) : null;
 
     res.json({
       success: true,
       data: {
-        items,
+        items: page,
         nextCursor,
         meta: {
-          center: { lat, lng },
-          radiusKm: radius,
+          lat,
+          lng,
+          radius,
         },
       },
     });

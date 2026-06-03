@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
+import { upsertPlaceNoteSchema } from '../validators/virahaValidators';
 import {
   handleGetOnThisDay,
   handleGetMoments,
@@ -23,6 +25,6 @@ router.get('/places/resonance', authenticate, handleGetPlaceResonance);
 
 // Place notes (private)
 router.get('/places/note', authenticate, handleGetPlaceNote);
-router.put('/places/note', authenticate, handleUpsertPlaceNote);
+router.put('/places/note', authenticate, validateBody(upsertPlaceNoteSchema), handleUpsertPlaceNote);
 
 export default router;

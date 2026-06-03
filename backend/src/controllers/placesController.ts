@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { env } from '../config/env';
 import { cacheGet, cacheSet } from '../lib/cache';
+import { logger } from '../lib/logger';
+
+// Google Places API statuses that represent a complete, cacheable response.
+// Any other status (REQUEST_DENIED, OVER_QUERY_LIMIT, INVALID_REQUEST, etc.)
+// is a transient/quota/config failure and must NOT be cached — caching an
+// empty result would poison the cache and silently break search for the TTL.
+const CACHEABLE_AUTOCOMPLETE_STATUSES = new Set(['OK', 'ZERO_RESULTS']);
 
 const PLACES_API_BASE = 'https://maps.googleapis.com/maps/api/place';
 
@@ -39,6 +46,18 @@ export async function autocomplete(req: Request, res: Response, next: NextFuncti
 
     const response = await fetch(`${PLACES_API_BASE}/autocomplete/json?${params}`);
     const data: any = await response.json();
+
+    // Only OK/ZERO_RESULTS are authoritative. On any other status the API call
+    // failed (denied key, exhausted quota, invalid request) and data.predictions
+    // is undefined — return empty WITHOUT caching so the failure is not persisted.
+    if (!CACHEABLE_AUTOCOMPLETE_STATUSES.has(data.status)) {
+      logger.warn(
+        { status: data.status, errorMessage: data.error_message },
+        'Google Places autocomplete returned a non-cacheable status — skipping cache',
+      );
+      res.json({ success: true, data: { predictions: [] } });
+      return;
+    }
 
     const result = {
       predictions: (data.predictions || []).map((p: any) => ({

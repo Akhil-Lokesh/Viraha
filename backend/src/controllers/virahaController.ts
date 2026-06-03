@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import {
   getOnThisDay,
   getMoments,
@@ -101,37 +102,75 @@ export async function handleGetPlaceNote(req: Request, res: Response, next: Next
 export async function handleUpsertPlaceNote(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = req.user!.userId;
-    const { locationLat, locationLng, locationName, locationCity, locationCountry, placeId, note } = req.body;
+    // Body is validated by upsertPlaceNoteSchema in the route middleware.
+    const { locationLat, locationLng, locationName, locationCity, locationCountry, placeId, note } =
+      req.body as {
+        locationLat: number;
+        locationLng: number;
+        locationName?: string | null;
+        locationCity?: string | null;
+        locationCountry?: string | null;
+        placeId?: string | null;
+        note: string;
+      };
 
-    const existing = placeId
-      ? await prisma.placeNote.findUnique({ where: { userId_placeId: { userId, placeId } } })
-      : await prisma.placeNote.findFirst({
-          where: {
-            userId,
-            locationLat: { gte: locationLat - 0.001, lte: locationLat + 0.001 },
-            locationLng: { gte: locationLng - 0.001, lte: locationLng + 0.001 },
-          },
-        });
+    // Find an existing note for this place. With a stable placeId, the
+    // @@unique([userId, placeId]) key dedupes reliably; without one, Postgres
+    // treats NULL placeIds as distinct, so the constraint is ineffective and we
+    // fall back to coordinate-proximity matching plus a transaction to close the
+    // check-then-create race that would otherwise create duplicate null-placeId rows.
+    const findExisting = (tx: Prisma.TransactionClient) =>
+      placeId
+        ? tx.placeNote.findUnique({ where: { userId_placeId: { userId, placeId } } })
+        : tx.placeNote.findFirst({
+            where: {
+              userId,
+              placeId: null,
+              locationLat: { gte: locationLat - 0.001, lte: locationLat + 0.001 },
+              locationLng: { gte: locationLng - 0.001, lte: locationLng + 0.001 },
+            },
+          });
 
-    let result;
-    if (existing) {
-      result = await prisma.placeNote.update({
-        where: { id: existing.id },
-        data: { note },
-      });
-    } else {
-      result = await prisma.placeNote.create({
-        data: {
-          userId,
-          locationLat,
-          locationLng,
-          locationName,
-          locationCity,
-          locationCountry,
-          placeId,
-          note,
+    const upsert = async (): Promise<Prisma.PlaceNoteGetPayload<object>> =>
+      prisma.$transaction(
+        async (tx) => {
+          const existing = await findExisting(tx);
+          if (existing) {
+            return tx.placeNote.update({
+              where: { id: existing.id },
+              data: { note },
+            });
+          }
+          return tx.placeNote.create({
+            data: {
+              userId,
+              locationLat,
+              locationLng,
+              locationName: locationName ?? null,
+              locationCity: locationCity ?? null,
+              locationCountry: locationCountry ?? null,
+              placeId: placeId ?? null,
+              note,
+            },
+          });
         },
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
+
+    let result: Prisma.PlaceNoteGetPayload<object>;
+    try {
+      result = await upsert();
+    } catch (txErr: unknown) {
+      // Concurrent request created the row first (P2002 on the stable-placeId
+      // unique key). Re-run: the existing row will now be found and updated.
+      if (
+        txErr instanceof Prisma.PrismaClientKnownRequestError &&
+        txErr.code === 'P2002'
+      ) {
+        result = await upsert();
+      } else {
+        throw txErr;
+      }
     }
 
     res.json({ success: true, data: result });

@@ -57,6 +57,7 @@ model User {
   blockedBy          Block[]             @relation("blocked")
   reports            Report[]            @relation("reports")
 
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -341,6 +342,7 @@ model Report {
 
   reporter User? @relation("reports", fields: [reporterId], references: [id], onDelete: SetNull)
 
+  @@unique([reporterId, targetType, targetId])
   @@index([targetType, targetId])
   @@index([reporterId])
   @@map("reports")
@@ -366,6 +368,7 @@ model VirahaMoment {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, type, referenceId, momentDate])
   @@index([userId, deliveredAt])
   @@index([userId, type])
   @@map("viraha_moments")

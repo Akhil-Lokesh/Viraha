@@ -3,11 +3,11 @@ import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import { prisma } from '../lib/prisma';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { env } from '../config/env';
 import { RegisterInput, LoginInput, ChangePasswordInput, ForgotPasswordInput, ResetPasswordInput, VerifyEmailInput, GoogleSignInInput } from '../validators/authValidators';
 import { sendPasswordResetEmail, sendWelcomeEmail, sendVerificationEmail } from '../lib/email';
-import { setAccessTokenCookie, setRefreshTokenCookie, clearAuthCookies } from '../utils/cookies';
+import { setAccessTokenCookie, setRefreshTokenCookie, setSessionIdCookie, clearAuthCookies } from '../utils/cookies';
 
 let googleClient: OAuth2Client | null = null;
 function getGoogleClient(): OAuth2Client | null {
@@ -90,6 +90,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
 
     setAccessTokenCookie(res, accessToken);
     setRefreshTokenCookie(res, refreshToken);
+    setSessionIdCookie(res, randomUUID());
 
     res.status(201).json({
       success: true,
@@ -150,6 +151,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     setAccessTokenCookie(res, accessToken);
     setRefreshTokenCookie(res, refreshToken);
+    setSessionIdCookie(res, randomUUID());
 
     res.json({
       success: true,
@@ -600,6 +602,7 @@ export async function googleSignIn(req: Request, res: Response, next: NextFuncti
 
     setAccessTokenCookie(res, accessToken);
     setRefreshTokenCookie(res, refreshToken);
+    setSessionIdCookie(res, randomUUID());
 
     res.json({
       success: true,

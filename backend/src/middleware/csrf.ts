@@ -7,8 +7,15 @@ const isProduction = env.NODE_ENV === 'production';
 
 const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
   getSecret: () => env.CSRF_SECRET || env.JWT_SECRET,
+  // Prefer the non-path-scoped session cookie so the same identifier is used at
+  // token-mint time and at validation time on every route — including
+  // /auth/refresh, where the path-scoped refresh cookie would otherwise differ.
   getSessionIdentifier: (req: Request) =>
-    req.cookies?.viraha_refresh || req.ip || req.socket?.remoteAddress || randomUUID(),
+    req.cookies?.viraha_session_id ||
+    req.cookies?.viraha_refresh ||
+    req.ip ||
+    req.socket?.remoteAddress ||
+    randomUUID(),
   cookieName: 'viraha_csrf',
   cookieOptions: {
     httpOnly: true,

@@ -51,7 +51,7 @@ describe('Data Export & Account Deletion API', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.message).toBe('Account deleted');
+      expect(res.body.data.message).toBe('Account deleted');
 
       // The user row is actually gone.
       const deleted = await prisma.user.findUnique({ where: { id: user.id } });

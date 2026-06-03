@@ -21,8 +21,8 @@ export async function getUserByUsername(req: Request, res: Response, next: NextF
         _count: {
           select: {
             posts: { where: { isDeleted: false, privacy: 'public' } },
-            followers: true,
-            following: true,
+            followers: { where: { status: 'accepted' } },
+            following: { where: { status: 'accepted' } },
           },
         },
       },
@@ -48,6 +48,7 @@ export async function getUserByUsername(req: Request, res: Response, next: NextF
     }
 
     let isFollowing = false;
+    let isPending = false;
     if (req.user) {
       const follow = await prisma.follow.findUnique({
         where: {
@@ -57,7 +58,8 @@ export async function getUserByUsername(req: Request, res: Response, next: NextF
           },
         },
       });
-      isFollowing = !!follow;
+      isFollowing = !!follow && follow.status === 'accepted';
+      isPending = !!follow && follow.status === 'pending';
     }
 
     const { _count, ...rest } = user;
@@ -70,6 +72,7 @@ export async function getUserByUsername(req: Request, res: Response, next: NextF
           followerCount: _count.followers,
           followingCount: _count.following,
           isFollowing,
+          isPending,
         },
       },
     });
@@ -112,7 +115,7 @@ export async function searchUsers(req: Request, res: Response, next: NextFunctio
         _count: {
           select: {
             posts: { where: { isDeleted: false, privacy: 'public' } },
-            followers: true,
+            followers: { where: { status: 'accepted' } },
           },
         },
       },
