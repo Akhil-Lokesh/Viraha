@@ -343,13 +343,10 @@ function ActivityContent() {
   const markAllAsRead = useMarkAllAsRead();
 
   // Pending follow requests are surfaced by the actionable FollowRequestsSection
-  // above. Suppress the passive 'follow_request' rows here so a pending request
-  // shows exactly once (in the actionable section), not duplicated in this feed.
+  // above and are excluded server-side from this generic stream, so a pending
+  // request shows exactly once (in the actionable section), not here.
   const activities = useMemo(
-    () =>
-      data?.pages
-        .flatMap((page) => page.items)
-        .filter((activity) => activity.type !== 'follow_request') ?? [],
+    () => data?.pages.flatMap((page) => page.items) ?? [],
     [data]
   );
 

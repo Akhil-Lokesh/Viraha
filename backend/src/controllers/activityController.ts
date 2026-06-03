@@ -15,7 +15,10 @@ export async function getActivities(req: Request, res: Response, next: NextFunct
     const cursor = req.query.cursor as string | undefined;
 
     const activities = await prisma.activity.findMany({
-      where: { userId },
+      // follow_request activities are surfaced by the dedicated follow-requests
+      // section (Accept/Decline), not this generic stream, so exclude them here
+      // to keep the feed, pagination, and unread count consistent.
+      where: { userId, type: { not: 'follow_request' } },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { createdAt: 'desc' },
@@ -90,7 +93,7 @@ export async function markAllAsRead(req: Request, res: Response, next: NextFunct
     const userId = req.user!.userId;
 
     await prisma.activity.updateMany({
-      where: { userId, read: false },
+      where: { userId, read: false, type: { not: 'follow_request' } },
       data: { read: true },
     });
 
@@ -105,7 +108,7 @@ export async function getUnreadCount(req: Request, res: Response, next: NextFunc
     const userId = req.user!.userId;
 
     const count = await prisma.activity.count({
-      where: { userId, read: false },
+      where: { userId, read: false, type: { not: 'follow_request' } },
     });
 
     res.json({ success: true, data: { count } });

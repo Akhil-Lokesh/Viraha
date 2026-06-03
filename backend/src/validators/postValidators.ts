@@ -20,6 +20,11 @@ const isSafeUploadsPath = (value: string): boolean => {
 };
 
 const isSafeHttpsUrl = (value: string): boolean => {
+  // WHATWG URL parsing silently trims surrounding whitespace/control chars and
+  // lowercases the scheme, so reject anything not already clean before parsing.
+  if (value !== value.trim() || /\s/.test(value)) {
+    return false;
+  }
   try {
     const parsed = new URL(value);
     return parsed.protocol === 'https:';

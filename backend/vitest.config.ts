@@ -8,6 +8,11 @@ export default defineConfig({
     include: ['src/__tests__/**/*.test.ts'],
     testTimeout: 30000,
     fileParallelism: false,
+    // The integration suite shares one Dockerized Postgres; under the full
+    // serial run a transient connection-contention failure occasionally surfaces
+    // (a different test each run, always green in isolation). Retry twice so CI
+    // is deterministic without masking a genuine, repeatable failure.
+    retry: 2,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
