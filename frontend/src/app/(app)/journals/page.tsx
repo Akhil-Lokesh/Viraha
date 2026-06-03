@@ -12,7 +12,7 @@ import { JournalNotesList } from '@/components/journal/journal-notes-list';
 import { fadeInUp, fadeIn } from '@/lib/animations';
 
 export default function JournalsPage() {
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+  const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useJournals();
 
   const [search, setSearch] = useState('');
@@ -159,6 +159,27 @@ export default function JournalsPage() {
               }}
             />
           ))}
+        </Box>
+      ) : isError ? (
+        <Box
+          component={motion.div}
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, textAlign: 'center', gap: 1.5 }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Couldn&apos;t load your journals</Typography>
+          <Typography sx={{ color: 'text.secondary', maxWidth: 384 }}>
+            Something went wrong while loading your journals. Please try again.
+          </Typography>
+          <Button
+            variant="outlined"
+            disableElevation
+            onClick={() => refetch()}
+            sx={{ borderRadius: '9999px', px: 4, mt: 1 }}
+          >
+            Try Again
+          </Button>
         </Box>
       ) : (
         <Box component={motion.div} variants={fadeIn} initial="hidden" animate="visible">

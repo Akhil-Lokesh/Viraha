@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Box, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -14,11 +15,16 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useActivities, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '@/lib/hooks/use-activities';
-import { AuthGuard } from '@/components/auth/auth-guard';
+import {
+  usePendingFollowRequests,
+  useAcceptFollowRequest,
+  useRejectFollowRequest,
+} from '@/lib/hooks/use-follows';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import type { Activity } from '@/lib/types';
+import type { FollowRequest } from '@/lib/api/follows';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
@@ -192,6 +198,137 @@ function ActivityItem({
   );
 }
 
+function FollowRequestRow({ request }: { request: FollowRequest }) {
+  const accept = useAcceptFollowRequest();
+  const reject = useRejectFollowRequest();
+  const pending = accept.isPending || reject.isPending;
+
+  return (
+    <Box
+      component={motion.div}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.5,
+        px: 2,
+        py: 1.5,
+        borderRadius: { xs: 0, md: '12px' },
+        borderBottom: { xs: 1, md: 0 },
+        borderColor: 'divider',
+      }}
+    >
+      <Box sx={{ flexShrink: 0 }}>
+        <UserAvatar
+          src={request.avatar}
+          username={request.username}
+          displayName={request.displayName}
+          size="sm"
+          link
+        />
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography variant="body2">
+          <Link href={`/profile/${request.username}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Box component="span" sx={{ fontWeight: 600, color: 'text.primary', '&:hover': { textDecoration: 'underline' } }}>
+              {request.displayName || request.username}
+            </Box>
+          </Link>{' '}
+          <Box component="span" sx={{ color: 'text.secondary' }}>requested to follow you</Box>
+        </Typography>
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+        <Button
+          variant="contained"
+          color="secondary"
+          size="small"
+          disableElevation
+          sx={{ borderRadius: '9999px', px: 2, fontSize: '0.75rem', fontWeight: 600 }}
+          onClick={() => {
+            accept.mutate(request.followId, {
+              onSuccess: () => toast.success(`Accepted @${request.username}`),
+              onError: () => toast.error('Could not accept request'),
+            });
+          }}
+          disabled={pending}
+        >
+          {accept.isPending ? (
+            <Loader2 style={{ height: 12, width: 12, animation: 'spin 1s linear infinite' }} />
+          ) : (
+            'Accept'
+          )}
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          disableElevation
+          sx={{ borderRadius: '9999px', px: 2, fontSize: '0.75rem', fontWeight: 600 }}
+          onClick={() => {
+            reject.mutate(request.followId, {
+              onSuccess: () => toast.success('Request declined'),
+              onError: () => toast.error('Could not decline request'),
+            });
+          }}
+          disabled={pending}
+        >
+          {reject.isPending ? (
+            <Loader2 style={{ height: 12, width: 12, animation: 'spin 1s linear infinite' }} />
+          ) : (
+            'Decline'
+          )}
+        </Button>
+      </Box>
+    </Box>
+  );
+}
+
+function FollowRequestsSection() {
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    usePendingFollowRequests();
+
+  const requests = useMemo(
+    () => data?.pages.flatMap((page) => page.items) ?? [],
+    [data]
+  );
+
+  // Hide the section entirely while loading, on error, or when empty — it is a
+  // supplementary panel above the main feed and should not show its own error UI.
+  if (isLoading || isError || requests.length === 0) return null;
+
+  return (
+    <Box sx={{ mb: 3 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary', px: { xs: 2, md: 0 }, mb: 1 }}>
+        Follow requests
+        <Box component="span" sx={{ ml: 1, fontWeight: 400, color: 'text.secondary' }}>
+          ({requests.length})
+        </Box>
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mx: { xs: -2, md: 0 } }}>
+        {requests.map((request) => (
+          <FollowRequestRow key={request.followId} request={request} />
+        ))}
+        {hasNextPage && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
+            <Button
+              variant="text"
+              disableElevation
+              size="small"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <Loader2 style={{ height: 16, width: 16, animation: 'spin 1s linear infinite', marginRight: 8 }} />
+              ) : null}
+              Load more requests
+            </Button>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 function ActivityContent() {
   const {
     data,
@@ -265,6 +402,9 @@ function ActivityContent() {
         )}
       </Box>
 
+      {/* Pending follow requests (private accounts) */}
+      <FollowRequestsSection />
+
       {/* Activity list */}
       {isLoading ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -332,9 +472,7 @@ function ActivityContent() {
 }
 
 export default function ActivityPage() {
-  return (
-    <AuthGuard>
-      <ActivityContent />
-    </AuthGuard>
-  );
+  // The (app) layout already enforces auth, so an inner AuthGuard here would
+  // double-mount the loading gate and flash a blank screen on every load.
+  return <ActivityContent />;
 }

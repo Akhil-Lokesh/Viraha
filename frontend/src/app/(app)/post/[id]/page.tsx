@@ -3,7 +3,6 @@
 import { use } from 'react';
 import { Box, Typography } from '@mui/material';
 import { usePost } from '@/lib/hooks/use-posts';
-import { getMockPost } from '@/lib/mock-data';
 import { PostDetail } from '@/components/post/post-detail';
 import Skeleton from '@mui/material/Skeleton';
 
@@ -89,19 +88,13 @@ export default function PostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: post, isLoading, error } = usePost(id);
+  const { data: post, isLoading } = usePost(id);
 
   if (isLoading) {
     return <PostPageSkeleton />;
   }
 
-  // Only fall back to mock data outside production AND when there is no API error.
-  // This prevents demo mock data from silently masking real API failures.
-  const resolvedPost =
-    post ??
-    (!error && process.env.NODE_ENV !== 'production' ? getMockPost(id) : undefined);
-
-  if (error && !resolvedPost) {
+  if (!post) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
         <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -114,18 +107,5 @@ export default function PostPage({
     );
   }
 
-  if (!resolvedPost) {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-        <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>Post not found</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            The post you are looking for does not exist or has been removed.
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
-
-  return <PostDetail post={resolvedPost} />;
+  return <PostDetail post={post} />;
 }

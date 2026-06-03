@@ -1,3 +1,50 @@
+import type { Album } from '@/lib/types';
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
+  'http://localhost:4000';
+
+/** Resolve a (possibly relative) album cover path to an absolute URL, or null when absent. */
+export function resolveAlbumCover(coverImage: string | null | undefined): string | null {
+  if (!coverImage) return null;
+  if (coverImage.startsWith('http')) return coverImage;
+  return `${API_BASE}${coverImage}`;
+}
+
+/**
+ * Pick the album a dashboard album-widget should feature.
+ * Honours an explicit `albumId` selection when present, otherwise falls back to the
+ * most recent album. Returns null when the user has no albums (caller renders empty state).
+ */
+export function pickDisplayAlbum(albums: Album[], albumId?: string): Album | null {
+  if (albums.length === 0) return null;
+  if (albumId) {
+    const match = albums.find((a) => a.id === albumId);
+    if (match) return match;
+  }
+  return albums[0];
+}
+
+/**
+ * Build the ordered set of cover URLs for mosaic/carousel layouts from real albums,
+ * starting with the selected album. Albums without a cover are skipped.
+ */
+export function getAlbumCovers(albums: Album[], albumId?: string): Array<{ id: string; url: string; title: string }> {
+  const selected = pickDisplayAlbum(albums, albumId);
+  const ordered = selected ? [selected, ...albums.filter((a) => a.id !== selected.id)] : albums;
+  return ordered
+    .map((a) => {
+      const url = resolveAlbumCover(a.coverImage);
+      return url ? { id: a.id, url, title: a.title } : null;
+    })
+    .filter((x): x is { id: string; url: string; title: string } => x !== null);
+}
+
+// ── Legacy mock data ─────────────────────────────────────
+// Retained only for the widget-catalog-drawer's album-picker preview thumbnails.
+// The live dashboard album widgets now render real `useAlbums()` data (see C10).
+// TODO(owner: dashboard-catalog lane): replace this picker preview with real albums.
+
 export interface MockAlbum {
   id: string;
   title: string;
@@ -18,7 +65,3 @@ export const MOCK_ALBUMS: MockAlbum[] = [
 ];
 
 export const ALBUM_WIDGET_TYPES = new Set(['album_preview', 'album_carousel', 'photo_mosaic']);
-
-export function getAlbumById(id?: string): MockAlbum {
-  return MOCK_ALBUMS.find((a) => a.id === id) ?? MOCK_ALBUMS[0];
-}

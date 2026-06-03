@@ -21,7 +21,7 @@ function resolveImageUrl(url: string): string {
 
 export default function JourneyTimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: journey, isLoading } = useJourney(id);
+  const { data: journey, isLoading, isError, refetch } = useJourney(id);
   const confirm = useConfirmJourney();
 
   const handleConfirm = () => {
@@ -35,6 +35,25 @@ export default function JourneyTimelinePage({ params }: { params: Promise<{ id: 
       <Box sx={{ maxWidth: 700, mx: 'auto', px: 3, py: 4 }}>
         <Skeleton variant="text" width={200} height={40} />
         <Skeleton variant="rectangular" height={300} sx={{ mt: 2, borderRadius: '16px' }} />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Box sx={{ maxWidth: 700, mx: 'auto', px: 3, py: 8, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>Couldn&apos;t load this journey</Typography>
+        <Typography sx={{ color: 'text.secondary', maxWidth: 384 }}>
+          Something went wrong while loading the timeline. Please try again.
+        </Typography>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => refetch()}
+          sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, mt: 1 }}
+        >
+          Try Again
+        </Button>
       </Box>
     );
   }

@@ -22,6 +22,9 @@ import { JournalGrid } from '@/components/journal/journal-grid';
 import { EmptyState } from '@/components/shared/empty-state';
 import { LocationBadge } from '@/components/shared/location-badge';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import { ReportDialog } from '@/components/shared/report-dialog';
+import Menu from '@mui/material/Menu';
+import MuiMenuItem from '@mui/material/MenuItem';
 import {
   Map as MapComponent,
   MapMarker,
@@ -29,7 +32,7 @@ import {
   MarkerPopup,
   MapControls,
 } from '@/components/ui/map';
-import { Map, Bookmark, Grid3X3, FolderOpen, BookOpen, Lock } from 'lucide-react';
+import { Map, Bookmark, Grid3X3, FolderOpen, BookOpen, Lock, MoreVertical, Flag } from 'lucide-react';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -54,6 +57,7 @@ export default function ProfilePage() {
   const username = params.username as string;
   const { user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState('posts');
+  const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(null);
 
   const {
     data: user,
@@ -154,7 +158,63 @@ export default function ProfilePage() {
 
   return (
     <Box sx={{ maxWidth: 896, mx: 'auto', pb: 6 }}>
-      <UserProfileHeader user={user} isOwnProfile={isOwnProfile} />
+      <Box sx={{ position: 'relative' }}>
+        <UserProfileHeader user={user} isOwnProfile={isOwnProfile} />
+
+        {!isOwnProfile && (
+          <>
+            <Box
+              component="button"
+              type="button"
+              aria-label="More options"
+              onClick={(e) => setOverflowAnchor(e.currentTarget)}
+              sx={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                zIndex: 20,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 36,
+                height: 36,
+                border: 'none',
+                borderRadius: '9999px',
+                cursor: 'pointer',
+                color: '#fff',
+                bgcolor: 'rgba(0,0,0,0.4)',
+                backdropFilter: 'blur(4px)',
+                transition: 'background-color 0.2s',
+                '&:hover': { bgcolor: 'rgba(0,0,0,0.6)' },
+              }}
+            >
+              <MoreVertical style={{ height: 18, width: 18 }} />
+            </Box>
+            <Menu
+              anchorEl={overflowAnchor}
+              open={Boolean(overflowAnchor)}
+              onClose={() => setOverflowAnchor(null)}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 160 } } }}
+            >
+              <ReportDialog
+                targetType="user"
+                targetId={user.id}
+                trigger={
+                  <MuiMenuItem
+                    onClick={() => setOverflowAnchor(null)}
+                    sx={{ fontSize: '0.875rem', borderRadius: 1, mx: 0.5, color: 'error.main' }}
+                  >
+                    <Flag size={16} style={{ marginRight: 8 }} />
+                    Report
+                  </MuiMenuItem>
+                }
+              />
+            </Menu>
+          </>
+        )}
+      </Box>
 
       {/* Tabs */}
       <Box sx={{ mt: 4, px: { xs: 2, md: 4 } }}>

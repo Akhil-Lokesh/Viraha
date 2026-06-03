@@ -75,3 +75,37 @@ export async function getBlockedUsers(): Promise<BlockedUserEntry[]> {
   const res = await apiClient.get<BlockedUsersResponse>('/users/me/blocks');
   return res.data.data.items;
 }
+
+/**
+ * Requests a full export of the authenticated user's data and triggers a
+ * browser download. The backend streams a JSON attachment; we read it as a
+ * blob so the filename/Content-Disposition is preserved on save.
+ */
+export async function exportData(): Promise<void> {
+  const res = await apiClient.post('/users/me/export', null, { responseType: 'blob' });
+  const blob = res.data instanceof Blob ? res.data : new Blob([JSON.stringify(res.data)], { type: 'application/json' });
+
+  const disposition = res.headers?.['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] ?? 'viraha-export.json';
+
+  const url = URL.createObjectURL(blob);
+  try {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * Permanently deletes the authenticated user's account. The backend requires
+ * the username to be re-typed as a confirmation guard before cascading the delete.
+ */
+export async function deleteAccount(confirmUsername: string): Promise<void> {
+  await apiClient.delete('/users/me', { data: { confirmUsername } });
+}

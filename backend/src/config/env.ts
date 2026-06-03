@@ -51,6 +51,36 @@ const envSchema = z.object({
     return true;
   },
   { message: 'JWT_SECRET, JWT_REFRESH_SECRET, and CSRF_SECRET must be set to non-placeholder values in production' },
+).refine(
+  (data) => {
+    if (data.NODE_ENV !== 'production') return true;
+    // In production, object storage (R2) must be fully configured.
+    // Local-disk fallback is not served in production (see app.ts) and is
+    // lost on container restart, so missing R2 config silently drops media.
+    return Boolean(
+      data.R2_ACCOUNT_ID &&
+        data.R2_ACCESS_KEY_ID &&
+        data.R2_SECRET_ACCESS_KEY &&
+        data.R2_BUCKET &&
+        data.R2_PUBLIC_URL,
+    );
+  },
+  {
+    message:
+      'R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, and R2_PUBLIC_URL must all be set in production (local-disk storage is not served in production and is lost on restart)',
+  },
+).refine(
+  (data) => {
+    if (data.NODE_ENV !== 'production') return true;
+    // CORS_ORIGIN must be an explicit production origin, never the localhost default.
+    const origins = data.CORS_ORIGIN.split(',').map((o) => o.trim());
+    if (origins.length === 0 || origins.some((o) => o.length === 0)) return false;
+    return origins.every((o) => !o.toLowerCase().includes('localhost'));
+  },
+  {
+    message:
+      'CORS_ORIGIN must be set to your production frontend origin(s) and must not contain "localhost" in production',
+  },
 );
 
 const parsed = envSchema.safeParse(process.env);

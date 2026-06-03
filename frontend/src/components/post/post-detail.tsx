@@ -1,20 +1,23 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useRef, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Share2, MessageCircle, MessageCircleOff, Send, Loader2, FolderPlus } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Share2, MessageCircle, MessageCircleOff, Send, Loader2, FolderPlus, MoreVertical, Flag, Pencil, Trash2, MessageSquare } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Box, Typography, Divider } from '@mui/material';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { LocationBadge } from '@/components/shared/location-badge';
-import { useComments, useCreateComment } from '@/lib/hooks/use-comments';
+import { ReportDialog } from '@/components/shared/report-dialog';
+import { useComments, useCreateComment, useReplies, useUpdateComment, useDeleteComment } from '@/lib/hooks/use-comments';
 import { useUpdatePost } from '@/lib/hooks/use-posts';
 import { useToggleSave } from '@/lib/hooks/use-saves';
 import { useFollowStatus, useFollowUser, useUnfollowUser } from '@/lib/hooks/use-follows';
@@ -32,6 +35,334 @@ function getImageUrl(url: string): string {
   return `${API_BASE}${url}`;
 }
 
+function CommentBody({
+  comment,
+  isOwner,
+  onEdit,
+  onDelete,
+  isDeleting,
+  compact = false,
+}: {
+  comment: Comment;
+  isOwner: boolean;
+  onEdit: (text: string) => void;
+  onDelete: () => void;
+  isDeleting: boolean;
+  compact?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.text);
+
+  function handleSaveEdit() {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === comment.text) {
+      setEditing(false);
+      return;
+    }
+    onEdit(trimmed);
+    setEditing(false);
+  }
+
+  return (
+    <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+        <Link href={`/profile/${comment.user?.username ?? 'unknown'}`} style={{ textDecoration: 'none' }}>
+          <Typography
+            sx={{
+              fontSize: compact ? '0.8125rem' : '0.875rem',
+              fontWeight: 500,
+              color: 'text.primary',
+              '&:hover': { textDecoration: 'underline' },
+              textUnderlineOffset: 2,
+            }}
+          >
+            {comment.user?.displayName ?? comment.user?.username ?? 'Unknown'}
+          </Typography>
+        </Link>
+        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+          {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+        </Typography>
+        {isOwner && !editing && (
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <IconButton
+              size="small"
+              aria-label="Edit comment"
+              onClick={() => { setDraft(comment.text); setEditing(true); }}
+              sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+            >
+              <Pencil style={{ height: 13, width: 13 }} />
+            </IconButton>
+            <IconButton
+              size="small"
+              aria-label="Delete comment"
+              onClick={onDelete}
+              disabled={isDeleting}
+              sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+            >
+              {isDeleting ? (
+                <Loader2 style={{ height: 13, width: 13, animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Trash2 style={{ height: 13, width: 13 }} />
+              )}
+            </IconButton>
+          </Box>
+        )}
+      </Box>
+
+      {editing ? (
+        <Box sx={{ mt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <TextField
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            multiline
+            minRows={1}
+            variant="outlined"
+            size="small"
+            fullWidth
+            autoFocus
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.875rem' } }}
+          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button size="small" variant="contained" disableElevation onClick={handleSaveEdit} sx={{ fontSize: '0.75rem' }}>
+              Save
+            </Button>
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => { setEditing(false); setDraft(comment.text); }}
+              sx={{ fontSize: '0.75rem', color: 'text.secondary' }}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      ) : (
+        <Typography
+          sx={{
+            fontSize: compact ? '0.8125rem' : '0.875rem',
+            color: 'text.primary',
+            opacity: 0.8,
+            mt: 0.25,
+            lineHeight: 1.625,
+          }}
+        >
+          {comment.text}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function CommentItem({
+  comment,
+  postId,
+  authUserId,
+  allowComments,
+}: {
+  comment: Comment;
+  postId: string;
+  authUserId: string | undefined;
+  allowComments: boolean;
+}) {
+  const [showReplies, setShowReplies] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyValue, setReplyValue] = useState('');
+
+  const updateComment = useUpdateComment();
+  const deleteComment = useDeleteComment();
+  const createReply = useCreateComment(postId);
+
+  const repliesQuery = useReplies(comment.id);
+  const replies: Comment[] = repliesQuery.data?.pages.flatMap((page) => page.items) ?? [];
+
+  const isOwner = !!authUserId && authUserId === comment.userId;
+  const replyCount = comment.replyCount ?? 0;
+
+  function handleEdit(text: string) {
+    updateComment.mutate(
+      { commentId: comment.id, data: { text } },
+      { onError: () => toast.error('Failed to update comment') },
+    );
+  }
+
+  function handleDelete() {
+    deleteComment.mutate(comment.id, {
+      onError: () => toast.error('Failed to delete comment'),
+    });
+  }
+
+  function handleReplySubmit(e?: FormEvent) {
+    e?.preventDefault();
+    const trimmed = replyValue.trim();
+    if (!trimmed) return;
+    createReply.mutate(
+      { text: trimmed, parentId: comment.id },
+      {
+        onSuccess: () => {
+          setReplyValue('');
+          setReplyOpen(false);
+          setShowReplies(true);
+          repliesQuery.refetch();
+        },
+        onError: () => toast.error('Failed to post reply'),
+      },
+    );
+  }
+
+  return (
+    <Box sx={{ display: 'flex', gap: 1.5 }}>
+      <UserAvatar
+        src={comment.user?.avatar ?? null}
+        username={comment.user?.username ?? 'unknown'}
+        displayName={comment.user?.displayName ?? null}
+        size="sm"
+      />
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <CommentBody
+          comment={comment}
+          isOwner={isOwner}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          isDeleting={deleteComment.isPending}
+        />
+
+        {/* Reply / view-replies controls */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+          {allowComments && authUserId && (
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => setReplyOpen((v) => !v)}
+              startIcon={<MessageSquare size={12} />}
+              sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary', minWidth: 0, p: 0 }}
+            >
+              Reply
+            </Button>
+          )}
+          {replyCount > 0 && (
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => setShowReplies((v) => !v)}
+              sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary', minWidth: 0, p: 0 }}
+            >
+              {showReplies ? 'Hide replies' : `View ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
+            </Button>
+          )}
+        </Box>
+
+        {/* Reply composer */}
+        {replyOpen && (
+          <Box
+            component="form"
+            onSubmit={handleReplySubmit}
+            sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}
+          >
+            <TextField
+              value={replyValue}
+              onChange={(e) => setReplyValue(e.target.value)}
+              placeholder="Write a reply..."
+              variant="outlined"
+              size="small"
+              fullWidth
+              autoFocus
+              disabled={createReply.isPending}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '9999px', height: 36, fontSize: '0.8125rem' } }}
+            />
+            <IconButton
+              type="submit"
+              size="small"
+              aria-label="Post reply"
+              disabled={createReply.isPending || !replyValue.trim()}
+              sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+            >
+              {createReply.isPending ? (
+                <Loader2 style={{ height: 14, width: 14, animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Send style={{ height: 14, width: 14 }} />
+              )}
+            </IconButton>
+          </Box>
+        )}
+
+        {/* Replies list */}
+        {showReplies && (
+          <Box sx={{ mt: 1.5, pl: 1.5, borderLeft: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {repliesQuery.isLoading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
+                <Loader2 style={{ height: 16, width: 16, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }} />
+              </Box>
+            ) : repliesQuery.isError ? (
+              <Typography sx={{ fontSize: '0.8125rem', color: 'error.main', py: 0.5 }}>
+                Failed to load replies.
+              </Typography>
+            ) : replies.length === 0 ? (
+              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', py: 0.5 }}>
+                No replies yet.
+              </Typography>
+            ) : (
+              replies.map((reply) => {
+                const replyIsOwner = !!authUserId && authUserId === reply.userId;
+                return (
+                  <ReplyRow
+                    key={reply.id}
+                    reply={reply}
+                    isOwner={replyIsOwner}
+                  />
+                );
+              })
+            )}
+            {repliesQuery.hasNextPage && (
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => repliesQuery.fetchNextPage()}
+                disabled={repliesQuery.isFetchingNextPage}
+                sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary', alignSelf: 'flex-start', minWidth: 0, p: 0 }}
+              >
+                {repliesQuery.isFetchingNextPage ? 'Loading...' : 'Load more replies'}
+              </Button>
+            )}
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+function ReplyRow({ reply, isOwner }: { reply: Comment; isOwner: boolean }) {
+  const updateComment = useUpdateComment();
+  const deleteComment = useDeleteComment();
+
+  return (
+    <Box sx={{ display: 'flex', gap: 1.25 }}>
+      <UserAvatar
+        src={reply.user?.avatar ?? null}
+        username={reply.user?.username ?? 'unknown'}
+        displayName={reply.user?.displayName ?? null}
+        size="sm"
+      />
+      <CommentBody
+        comment={reply}
+        isOwner={isOwner}
+        onEdit={(text) =>
+          updateComment.mutate(
+            { commentId: reply.id, data: { text } },
+            { onError: () => toast.error('Failed to update reply') },
+          )
+        }
+        onDelete={() =>
+          deleteComment.mutate(reply.id, {
+            onError: () => toast.error('Failed to delete reply'),
+          })
+        }
+        isDeleting={deleteComment.isPending}
+        compact
+      />
+    </Box>
+  );
+}
+
 export function PostDetail({ post }: { post: Post }) {
   const router = useRouter();
   const [currentPhoto, setCurrentPhoto] = useState(0);
@@ -39,6 +370,11 @@ export function PostDetail({ post }: { post: Post }) {
   const [isSaved, setIsSaved] = useState(post.isSaved ?? false);
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  // The ReportDialog self-manages its open state via its trigger element. We keep
+  // that trigger OUTSIDE the Menu (so closing the Menu doesn't unmount the dialog)
+  // and click it programmatically from the in-menu "Report" row.
+  const reportTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Auth
   const { user: authUser, isAuthenticated } = useAuth();
@@ -418,6 +754,44 @@ export function PostDetail({ post }: { post: Post }) {
           >
             <Share2 style={{ height: 18, width: 18 }} />
           </IconButton>
+          {isAuthenticated && !isOwnPost && (
+            <>
+              <IconButton
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#fff',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.25)', color: '#fff' },
+                }}
+                aria-label="More options"
+                onClick={(e) => setMenuAnchor(e.currentTarget)}
+              >
+                <MoreVertical style={{ height: 18, width: 18 }} />
+              </IconButton>
+              <Menu
+                anchorEl={menuAnchor}
+                open={Boolean(menuAnchor)}
+                onClose={() => setMenuAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              >
+                <MenuItem
+                  onClick={() => {
+                    setMenuAnchor(null);
+                    reportTriggerRef.current?.click();
+                  }}
+                  sx={{ fontSize: '0.875rem', color: 'error.main', gap: 1 }}
+                >
+                  <Flag size={16} />
+                  Report post
+                </MenuItem>
+              </Menu>
+            </>
+          )}
         </motion.div>
       </Box>
 
@@ -607,54 +981,17 @@ export function PostDetail({ post }: { post: Post }) {
                 {comments.map((comment, index) => (
                   <motion.div
                     key={comment.id}
-                    style={{ display: 'flex', gap: 12 }}
                     variants={fadeIn}
                     initial="hidden"
                     animate="visible"
                     transition={{ delay: 0.1 * index }}
                   >
-                    <UserAvatar
-                      src={comment.user?.avatar ?? null}
-                      username={comment.user?.username ?? 'unknown'}
-                      displayName={comment.user?.displayName ?? null}
-                      size="sm"
+                    <CommentItem
+                      comment={comment}
+                      postId={post.id}
+                      authUserId={authUser?.id}
+                      allowComments={post.allowComments}
                     />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                        <Link
-                          href={`/profile/${comment.user?.username ?? 'unknown'}`}
-                          style={{ textDecoration: 'none' }}
-                        >
-                          <Typography
-                            sx={{
-                              fontSize: '0.875rem',
-                              fontWeight: 500,
-                              color: 'text.primary',
-                              '&:hover': { textDecoration: 'underline' },
-                              textUnderlineOffset: 2,
-                            }}
-                          >
-                            {comment.user?.displayName ?? comment.user?.username ?? 'Unknown'}
-                          </Typography>
-                        </Link>
-                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                          {formatDistanceToNow(new Date(comment.createdAt), {
-                            addSuffix: true,
-                          })}
-                        </Typography>
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.875rem',
-                          color: 'text.primary',
-                          opacity: 0.8,
-                          mt: 0.25,
-                          lineHeight: 1.625,
-                        }}
-                      >
-                        {comment.text}
-                      </Typography>
-                    </Box>
                   </motion.div>
                 ))}
 
@@ -717,6 +1054,7 @@ export function PostDetail({ post }: { post: Post }) {
                   />
                   <IconButton
                     type="submit"
+                    aria-label="Post comment"
                     sx={{
                       width: 24,
                       height: 24,
@@ -756,6 +1094,34 @@ export function PostDetail({ post }: { post: Post }) {
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />
+
+      {/* Report dialog — trigger lives outside the Menu so closing the Menu does
+          not unmount the open dialog. It is activated via reportTriggerRef. */}
+      {isAuthenticated && !isOwnPost && (
+        <ReportDialog
+          targetType="post"
+          targetId={post.id}
+          trigger={
+            <Box
+              component="button"
+              type="button"
+              ref={reportTriggerRef}
+              aria-hidden="true"
+              tabIndex={-1}
+              sx={{
+                position: 'absolute',
+                width: 1,
+                height: 1,
+                p: 0,
+                m: -1,
+                overflow: 'hidden',
+                border: 0,
+                clip: 'rect(0 0 0 0)',
+              }}
+            />
+          }
+        />
+      )}
     </Box>
   );
 }

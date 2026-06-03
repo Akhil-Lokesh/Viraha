@@ -21,6 +21,17 @@ export function DepartureRitualDialog({ open, onClose, locationName, locationLat
   const [step, setStep] = useState<'miss' | 'letter' | 'done'>('miss');
   const createCapsule = useCreateTimeCapsule();
 
+  const handleDone = useCallback(() => {
+    setStep('done');
+    toast.success('Memory sealed. Viraha will bring it back when the time is right.');
+    setTimeout(() => {
+      onClose();
+      setStep('miss');
+      setMissText('');
+      setLetterText('');
+    }, 2000);
+  }, [onClose]);
+
   const handleSubmitMiss = useCallback(() => {
     if (!missText.trim()) return;
 
@@ -38,6 +49,9 @@ export function DepartureRitualDialog({ open, onClose, locationName, locationLat
     }, {
       onSuccess: () => {
         setStep('letter');
+      },
+      onError: () => {
+        toast.error('Could not seal this memory. Please try again.');
       },
     });
   }, [missText, locationName, locationLat, locationLng, createCapsule]);
@@ -60,19 +74,11 @@ export function DepartureRitualDialog({ open, onClose, locationName, locationLat
       openAt: openAt.toISOString(),
     }, {
       onSuccess: () => handleDone(),
+      onError: () => {
+        toast.error('Could not seal your letter. Please try again.');
+      },
     });
-  }, [letterText, locationName, locationLat, locationLng, createCapsule]);
-
-  const handleDone = () => {
-    setStep('done');
-    toast.success('Memory sealed. Viraha will bring it back when the time is right.');
-    setTimeout(() => {
-      onClose();
-      setStep('miss');
-      setMissText('');
-      setLetterText('');
-    }, 2000);
-  };
+  }, [letterText, locationName, locationLat, locationLng, createCapsule, handleDone]);
 
   return (
     <Dialog

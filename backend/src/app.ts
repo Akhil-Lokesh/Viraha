@@ -86,7 +86,9 @@ if (env.NODE_ENV === 'production') {
 app.use(express.json());
 app.use(cookieParser());
 
-// Static files (uploaded images) — dev-only fallback. Production serves media from R2.
+// Static files (uploaded images) — dev-only fallback. In production, R2 is a
+// hard requirement (enforced in config/env.ts), so media is served from R2 and
+// the local-disk path is never mounted (it would be lost on container restart).
 if (env.NODE_ENV !== 'production') {
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 }

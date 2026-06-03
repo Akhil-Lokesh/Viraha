@@ -1,22 +1,21 @@
 'use client';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useRef, useEffect } from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
+import { useRef, useEffect, useMemo } from 'react';
+import { Box, Typography, useTheme, Skeleton } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+import { MapPin } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
+import { usePlaceResonance } from '@/lib/hooks/use-viraha';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
 const DEFAULT_COLOR = '#2563EB';
 
-const MOCK_CITIES = [
-  { name: 'Tokyo', lng: 139.6917, lat: 35.6895 },
-  { name: 'Paris', lng: 2.3522, lat: 48.8566 },
-  { name: 'Bali', lng: 115.1889, lat: -8.4095 },
-  { name: 'New York', lng: -74.006, lat: 40.7128 },
-  { name: 'Barcelona', lng: 2.1734, lat: 41.3851 },
-  { name: 'Sydney', lng: 151.2093, lat: -33.8688 },
-];
+interface MapCity {
+  name: string;
+  lng: number;
+  lat: number;
+}
 
 export function MiniMapWidget({ size, color }: { size: WidgetGridSize; color?: string }) {
   const theme = useTheme();
@@ -26,13 +25,30 @@ export function MiniMapWidget({ size, color }: { size: WidgetGridSize; color?: s
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<unknown>(null);
 
+  const { data: resonance, isLoading, isError } = usePlaceResonance();
+
+  // Real source of truth — the user's visited places (with coords) from place resonance.
+  const cities = useMemo<MapCity[]>(
+    () =>
+      (resonance ?? [])
+        .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
+        .map((r) => ({
+          name: r.locationCity || r.locationName || r.locationCountry || 'Visited place',
+          lng: Number(r.lng),
+          lat: Number(r.lat),
+        })),
+    [resonance],
+  );
+
   useEffect(() => {
     let map: import('maplibre-gl').Map | null = null;
+    let cancelled = false;
 
     async function init() {
-      if (!mapContainerRef.current || mapRef.current) return;
+      if (!mapContainerRef.current || mapRef.current || cities.length === 0) return;
 
       const maplibregl = (await import('maplibre-gl')).default;
+      if (cancelled || !mapContainerRef.current) return;
 
       const style = theme.palette.mode === 'dark'
         ? 'https://tiles.openfreemap.org/styles/dark'
@@ -41,8 +57,8 @@ export function MiniMapWidget({ size, color }: { size: WidgetGridSize; color?: s
       map = new maplibregl.Map({
         container: mapContainerRef.current,
         style,
-        center: [20, 20],
-        zoom: 1,
+        center: [cities[0].lng, cities[0].lat],
+        zoom: cities.length === 1 ? 3 : 1,
         interactive: isFull,
         attributionControl: false,
       });
@@ -50,7 +66,7 @@ export function MiniMapWidget({ size, color }: { size: WidgetGridSize; color?: s
       mapRef.current = map;
 
       map.on('load', () => {
-        MOCK_CITIES.forEach((city) => {
+        cities.forEach((city) => {
           const el = document.createElement('div');
           el.style.width = '10px';
           el.style.height = '10px';
@@ -80,13 +96,75 @@ export function MiniMapWidget({ size, color }: { size: WidgetGridSize; color?: s
     init();
 
     return () => {
+      cancelled = true;
       if (map) {
         map.remove();
         mapRef.current = null;
       }
     };
+  // Re-init when the visited cities change (e.g. after first load) or layout interactivity flips.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [cities, isFull]);
+
+  if (isLoading) {
+    return (
+      <Box sx={{ borderRadius: '16px', overflow: 'hidden', height: '100%', bgcolor: c.bgTint }}>
+        <Skeleton variant="rectangular" width="100%" height="100%" sx={{ borderRadius: '16px' }} />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Box
+        sx={{
+          borderRadius: '16px',
+          height: '100%',
+          bgcolor: c.bgTint,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 1,
+          p: 2,
+        }}
+      >
+        <MapPin style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
+        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
+          Couldn&apos;t load your map
+        </Typography>
+        <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
+          Please try again in a moment
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (cities.length === 0) {
+    return (
+      <Box
+        sx={{
+          borderRadius: '16px',
+          height: '100%',
+          bgcolor: c.bgTint,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 1,
+          p: 2,
+        }}
+      >
+        <MapPin style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
+        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
+          No places on your map yet
+        </Typography>
+        <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
+          Share a trip to start pinning your world
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box

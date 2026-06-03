@@ -3,19 +3,17 @@
 import { Box, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
-import { AuthGuard } from '@/components/auth/auth-guard';
 import { CreatePostForm } from '@/components/post/create-post-form';
 
 export default function CreatePostPage() {
   return (
-    <AuthGuard>
-      <Box
-        component={motion.div}
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
-        sx={{ maxWidth: 672, mx: 'auto' }}
-      >
+    <Box
+      component={motion.div}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
+      sx={{ maxWidth: 672, mx: 'auto' }}
+    >
         {/* Page heading */}
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
@@ -49,7 +47,6 @@ export default function CreatePostPage() {
 
         {/* Form */}
         <CreatePostForm />
-      </Box>
-    </AuthGuard>
+    </Box>
   );
 }

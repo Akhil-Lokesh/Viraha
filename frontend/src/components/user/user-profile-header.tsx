@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Settings, UserPlus, UserCheck, MessageCircle, Loader2, Ban } from 'lucide-react';
+import { MapPin, Settings, UserPlus, UserCheck, MessageCircle, Loader2, Ban, Clock } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import { toast } from 'sonner';
 import { fadeInUp } from '@/lib/animations';
-import { UserAvatar } from '@/components/shared/user-avatar';
+import { UserAvatar, resolveAvatarUrl } from '@/components/shared/user-avatar';
 import { LocationBadge } from '@/components/shared/location-badge';
 import Button from '@mui/material/Button';
 import { useFollowUser, useUnfollowUser } from '@/lib/hooks/use-follows';
@@ -21,8 +21,17 @@ interface UserProfileHeaderProps {
   isOwnProfile?: boolean;
 }
 
+// `isPending` is set by the backend when the viewer has an outstanding follow
+// request to a private account (follow.status === 'pending'). It is not yet part
+// of the shared UserProfile type, so read it through a narrowed accessor.
+function readPendingFlag(user: UserProfile): boolean {
+  const value = (user as { isPending?: unknown }).isPending;
+  return value === true;
+}
+
 export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHeaderProps) {
   const [isFollowing, setIsFollowing] = useState(user.isFollowing ?? false);
+  const [isPending, setIsPending] = useState(() => readPendingFlag(user));
   const [followerCount, setFollowerCount] = useState(user.followerCount ?? 0);
   const [followDialog, setFollowDialog] = useState<'followers' | 'following' | null>(null);
 
@@ -31,6 +40,11 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
   useEffect(() => {
     setIsFollowing(user.isFollowing ?? false);
   }, [user.isFollowing]);
+
+  const pendingFromProp = readPendingFlag(user);
+  useEffect(() => {
+    setIsPending(pendingFromProp);
+  }, [pendingFromProp]);
 
   useEffect(() => {
     setFollowerCount(user.followerCount ?? 0);
@@ -79,10 +93,20 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
   function handleFollowToggle() {
     if (isFollowLoading) return;
 
-    if (isFollowing) {
+    // A pending request to a private account is cancelled through the same
+    // unfollow endpoint; treat "following" and "requested" as the active state.
+    if (isFollowing || isPending) {
+      const wasPending = isPending;
       setIsFollowing(false);
+      setIsPending(false);
       unfollowMutation.mutate(user.id, {
-        onError: () => setIsFollowing(true),
+        onError: () => {
+          if (wasPending) {
+            setIsPending(true);
+          } else {
+            setIsFollowing(true);
+          }
+        },
       });
     } else {
       setIsFollowing(true);
@@ -114,7 +138,7 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
           <>
             <Box
               component="img"
-              src={user.avatar}
+              src={resolveAvatarUrl(user.avatar)}
               alt=""
               sx={{
                 position: 'absolute',
@@ -283,19 +307,21 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
               <>
                 <Button
                   sx={{ gap: 1 }}
-                  variant={isFollowing ? 'outlined' : 'contained'}
+                  variant={isFollowing || isPending ? 'outlined' : 'contained'}
                   disableElevation
                   onClick={handleFollowToggle}
                   disabled={isFollowLoading}
                 >
                   {isFollowLoading ? (
                     <Loader2 style={{ height: 16, width: 16, animation: 'spin 1s linear infinite' }} />
+                  ) : isPending ? (
+                    <Clock style={{ height: 16, width: 16 }} />
                   ) : isFollowing ? (
                     <UserCheck style={{ height: 16, width: 16 }} />
                   ) : (
                     <UserPlus style={{ height: 16, width: 16 }} />
                   )}
-                  {isFollowing ? 'Following' : 'Follow'}
+                  {isPending ? 'Requested' : isFollowing ? 'Following' : 'Follow'}
                 </Button>
                 <Button
                   variant="outlined"

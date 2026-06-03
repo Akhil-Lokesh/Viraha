@@ -1,7 +1,16 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { followUser, unfollowUser, getFollowers, getFollowing, checkFollowStatus } from '../api/follows';
+import {
+  followUser,
+  unfollowUser,
+  getFollowers,
+  getFollowing,
+  checkFollowStatus,
+  getPendingFollowRequests,
+  acceptFollowRequest,
+  rejectFollowRequest,
+} from '../api/follows';
 
 export function useFollowStatus(userId: string) {
   return useQuery({
@@ -52,5 +61,39 @@ export function useFollowing(userId: string) {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: !!userId,
+  });
+}
+
+export function usePendingFollowRequests(enabled = true) {
+  return useInfiniteQuery({
+    queryKey: ['follows', 'requests'],
+    queryFn: ({ pageParam }) => getPendingFollowRequests(pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled,
+  });
+}
+
+export function useAcceptFollowRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (followId: string) => acceptFollowRequest(followId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['follows'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    },
+  });
+}
+
+export function useRejectFollowRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (followId: string) => rejectFollowRequest(followId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['follows'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    },
   });
 }

@@ -29,10 +29,15 @@ import {
   Camera,
   MapPin,
   Eye,
+  Download,
+  Trash2,
+  UserX,
+  ChevronRight,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { updateProfile } from '@/lib/api/users';
-import { changePassword } from '@/lib/api/auth';
+import { updateProfile, exportData, deleteAccount } from '@/lib/api/users';
+import { changePassword, logoutApi } from '@/lib/api/auth';
 import { uploadAvatar } from '@/lib/api/media';
 import { toast } from 'sonner';
 
@@ -695,7 +700,13 @@ function PrivacyTab() {
 }
 
 function AccountTab() {
+  const router = useRouter();
+  const { user, logout } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const {
     register,
@@ -724,6 +735,52 @@ function AccountTab() {
       setLoading(false);
     }
   }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await exportData();
+      toast.success('Your data export has started downloading');
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data
+          ?.error?.message || 'Failed to export your data';
+      toast.error(message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return;
+    setDeleteOpen(false);
+    setDeleteConfirm('');
+  }
+
+  async function handleDeleteAccount() {
+    if (!user || deleteConfirm !== user.username) return;
+    setDeleting(true);
+    try {
+      await deleteAccount(deleteConfirm);
+      // Best-effort server logout; the account row is already gone either way.
+      try {
+        await logoutApi();
+      } catch {
+        // Account is deleted; ignore a failed logout call.
+      }
+      logout();
+      toast.success('Your account has been deleted');
+      router.replace('/');
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data
+          ?.error?.message || 'Failed to delete your account';
+      toast.error(message);
+      setDeleting(false);
+    }
+  }
+
+  const deleteEnabled = !!user && deleteConfirm === user.username && !deleting;
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -824,6 +881,187 @@ function AccountTab() {
           {loading ? 'Changing...' : 'Change Password'}
         </Button>
       </Box>
+
+      {/* Blocked accounts link */}
+      <Box
+        component={motion.div}
+        custom={2}
+        variants={sectionVariants}
+        initial="hidden"
+        animate="visible"
+        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 1 }}
+      >
+        <Box
+          component={Link}
+          href="/settings/blocked"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            p: 2,
+            borderRadius: '12px',
+            textDecoration: 'none',
+            color: 'inherit',
+            transition: 'background-color 0.2s',
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
+              borderRadius: '8px',
+              bgcolor: 'action.selected',
+            }}
+          >
+            <UserX style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+              Blocked accounts
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Manage the accounts you&apos;ve blocked.
+            </Typography>
+          </Box>
+          <ChevronRight style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
+        </Box>
+      </Box>
+
+      {/* Download your data */}
+      <Box
+        component={motion.div}
+        custom={3}
+        variants={sectionVariants}
+        initial="hidden"
+        animate="visible"
+        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Download style={{ height: 16, width: 16, color: 'var(--mui-palette-text-secondary)' }} />
+          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>Download your data</Typography>
+        </Box>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          Export a copy of your posts, journals, albums, saves, and account details as a JSON file.
+        </Typography>
+        <Button
+          type="button"
+          variant="outlined"
+          disableElevation
+          onClick={handleExport}
+          disabled={exporting}
+          startIcon={<Download style={{ height: 16, width: 16 }} />}
+          sx={{ alignSelf: 'flex-start', borderRadius: '12px' }}
+        >
+          {exporting ? 'Preparing...' : 'Download your data'}
+        </Button>
+      </Box>
+
+      {/* Danger Zone */}
+      <Box
+        component={motion.div}
+        custom={4}
+        variants={sectionVariants}
+        initial="hidden"
+        animate="visible"
+        sx={{ borderRadius: '16px', border: 1, borderColor: 'error.main', bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Trash2 style={{ height: 16, width: 16, color: 'var(--mui-palette-error-main)' }} />
+          <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>Danger Zone</Typography>
+        </Box>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          Permanently delete your account and all associated data. This action cannot be undone.
+        </Typography>
+        <Button
+          type="button"
+          variant="outlined"
+          color="error"
+          disableElevation
+          onClick={() => setDeleteOpen(true)}
+          startIcon={<Trash2 style={{ height: 16, width: 16 }} />}
+          sx={{ alignSelf: 'flex-start', borderRadius: '12px' }}
+        >
+          Delete account
+        </Button>
+      </Box>
+
+      {/* Delete confirmation dialog */}
+      <MuiDialog
+        open={deleteOpen}
+        onClose={closeDeleteDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <Box sx={{ px: 3, pt: 3, pb: 1 }}>
+          <Box
+            sx={{
+              mx: 'auto',
+              mb: 1.5,
+              display: 'flex',
+              height: 48,
+              width: 48,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              bgcolor: 'rgba(239,68,68,0.1)',
+            }}
+          >
+            <Trash2 style={{ height: 24, width: 24, color: 'var(--mui-palette-error-main)' }} />
+          </Box>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: 600, textAlign: 'center' }}>
+            Delete your account?
+          </Typography>
+        </Box>
+        <MuiDialogContent sx={{ pt: 2 }}>
+          <Typography sx={{ textAlign: 'center', fontSize: '0.875rem', color: 'text.secondary', mb: 2 }}>
+            This permanently deletes your account, posts, journals, and saved memories. This
+            cannot be undone.
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <FormLabel htmlFor="deleteConfirm" sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.secondary' }}>
+              Type <Box component="strong" sx={{ color: 'text.primary' }}>{user?.username}</Box> to confirm
+            </FormLabel>
+            <TextField
+              id="deleteConfirm"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder={user?.username || 'your username'}
+              variant="outlined"
+              size="small"
+              fullWidth
+              autoComplete="off"
+              disabled={deleting}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+            />
+          </Box>
+        </MuiDialogContent>
+        <MuiDialogActions sx={{ px: 3, pb: 3, flexDirection: 'column', gap: 1 }}>
+          <Button
+            variant="contained"
+            color="error"
+            disableElevation
+            onClick={handleDeleteAccount}
+            disabled={!deleteEnabled}
+            sx={{ width: '100%' }}
+          >
+            {deleting ? 'Deleting...' : 'Permanently delete account'}
+          </Button>
+          <Button
+            variant="text"
+            disableElevation
+            onClick={closeDeleteDialog}
+            disabled={deleting}
+            sx={{ width: '100%' }}
+          >
+            Cancel
+          </Button>
+        </MuiDialogActions>
+      </MuiDialog>
     </Box>
   );
 }

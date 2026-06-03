@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Typography, Avatar, useTheme } from '@mui/material';
+import { Box, Typography, Avatar, useTheme, Skeleton } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import Link from 'next/link';
 import { Users, MapPin, ChevronRight } from 'lucide-react';
@@ -45,8 +45,42 @@ export function KindredTravelersWidget({ size, color }: { size: WidgetGridSize; 
   const c = getWidgetColorStyles(hex, theme.palette.mode);
   const isWide = size.cols >= 4;
 
-  const { data: travelers } = useKindredTravelers();
+  const { data: travelers, isLoading, isError } = useKindredTravelers();
   const display = (travelers ?? []).slice(0, isWide ? 5 : 3);
+
+  if (isLoading) {
+    return (
+      <Box sx={{ borderRadius: '16px', overflow: 'hidden', height: '100%', bgcolor: c.bgTint }}>
+        <Skeleton variant="rectangular" width="100%" height="100%" sx={{ borderRadius: '16px' }} />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Box
+        sx={{
+          bgcolor: c.bgTint,
+          borderRadius: '16px',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 1,
+          p: 2,
+        }}
+      >
+        <Users style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
+        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
+          Couldn&apos;t load travelers
+        </Typography>
+        <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
+          Please try again in a moment
+        </Typography>
+      </Box>
+    );
+  }
 
   if (display.length === 0) {
     return (

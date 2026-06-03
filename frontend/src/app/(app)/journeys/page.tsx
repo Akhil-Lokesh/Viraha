@@ -5,8 +5,10 @@ import { Box, Typography, Button, Chip, Skeleton } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Route, MapPin, Calendar, Sparkles, ChevronRight, Wand2 } from 'lucide-react';
+import { Route, MapPin, Calendar, ChevronRight, Wand2, Heart } from 'lucide-react';
 import { useJourneys, useDetectJourneys } from '@/lib/hooks/use-journeys';
+import { useTravelStore } from '@/lib/stores/travel-store';
+import { DepartureRitualDialog } from '@/components/travel/departure-ritual-dialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -28,6 +30,9 @@ const STATUS_COLORS: Record<string, string> = {
 export default function JourneysPage() {
   const { data: journeys, isLoading } = useJourneys();
   const detect = useDetectJourneys();
+  const [ritualOpen, setRitualOpen] = useState(false);
+  const lastLat = useTravelStore((s) => s.currentLat);
+  const lastLng = useTravelStore((s) => s.currentLng);
 
   const handleDetect = () => {
     detect.mutate(undefined, {
@@ -59,16 +64,27 @@ export default function JourneysPage() {
             Your trips, automatically detected from your posts
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<Wand2 style={{ width: 14, height: 14 }} />}
-          onClick={handleDetect}
-          disabled={detect.isPending}
-          sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
-        >
-          {detect.isPending ? 'Detecting...' : 'Detect Journeys'}
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            variant="text"
+            size="small"
+            startIcon={<Heart style={{ width: 14, height: 14, color: '#EC4899' }} />}
+            onClick={() => setRitualOpen(true)}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
+          >
+            Seal a memory
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<Wand2 style={{ width: 14, height: 14 }} />}
+            onClick={handleDetect}
+            disabled={detect.isPending}
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            {detect.isPending ? 'Detecting...' : 'Detect Journeys'}
+          </Button>
+        </Box>
       </Box>
 
       {/* Journey List */}
@@ -109,7 +125,7 @@ export default function JourneysPage() {
               .slice(0, 4) as string[];
 
             return (
-              <Link key={journey.id} href={`/journeys/${journey.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Link key={journey.id} href={`/journeys/${journey.id}/timeline`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <Box
                   sx={{
                     display: 'flex',
@@ -189,6 +205,14 @@ export default function JourneysPage() {
           })}
         </Box>
       )}
+
+      <DepartureRitualDialog
+        open={ritualOpen}
+        onClose={() => setRitualOpen(false)}
+        locationName={null}
+        locationLat={lastLat ?? undefined}
+        locationLng={lastLng ?? undefined}
+      />
     </Box>
   );
 }

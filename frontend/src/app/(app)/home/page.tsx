@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Box } from '@mui/material';
+import { Box, Skeleton } from '@mui/material';
 import { Pencil } from 'lucide-react';
 import { useDashboardStore, useDashboardHydrated } from '@/lib/stores/dashboard-store';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
@@ -23,7 +23,34 @@ export default function HomePage() {
 
   const [catalogOpen, setCatalogOpen] = useState(false);
 
-  if (!hydrated) return null;
+  // While the persisted dashboard layout rehydrates, show a skeleton grid
+  // instead of a blank page so there is no visible white flash.
+  if (!hydrated) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: { md: 'calc(100vh - 48px)' } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Skeleton variant="text" animation="pulse" sx={{ width: 200, height: 40 }} />
+          <Skeleton variant="rounded" animation="pulse" sx={{ width: 120, height: 36, borderRadius: '10px' }} />
+        </Box>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+            gap: 2.5,
+          }}
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              variant="rounded"
+              animation="pulse"
+              sx={{ borderRadius: '16px', height: { xs: 180, md: 220 } }}
+            />
+          ))}
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: { md: 'calc(100vh - 48px)' } }}>

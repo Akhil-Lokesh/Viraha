@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { fadeInUp, fadeIn, staggerContainer, staggerItem } from '@/lib/animations';
 
 export default function AlbumsPage() {
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+  const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useAlbums();
 
   const albums = data?.pages.flatMap((page) => page.items) ?? [];
@@ -106,6 +106,29 @@ export default function AlbumsPage() {
               />
             </Box>
           ))}
+        </Box>
+      ) : isError ? (
+        <Box
+          component={motion.div}
+          variants={fadeIn}
+          initial="hidden"
+          animate="visible"
+          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 1.5, py: 10 }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
+            Couldn&apos;t load your albums
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
+            Something went wrong while fetching your albums. Please try again.
+          </Typography>
+          <Button
+            variant="outlined"
+            disableElevation
+            onClick={() => refetch()}
+            sx={{ borderRadius: '9999px', mt: 0.5 }}
+          >
+            Retry
+          </Button>
         </Box>
       ) : (
         <Box component={motion.div} variants={fadeIn} initial="hidden" animate="visible">

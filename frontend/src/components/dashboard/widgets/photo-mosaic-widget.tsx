@@ -1,46 +1,92 @@
 'use client';
 
-import { Box, useTheme } from '@mui/material';
+import { Box, Typography, useTheme, Skeleton } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import Image from 'next/image';
+import Link from 'next/link';
+import { Images } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
-import { getAlbumById, MOCK_ALBUMS } from '@/lib/dashboard/mock-albums';
+import { getAlbumCovers } from '@/lib/dashboard/mock-albums';
+import { useAlbums } from '@/lib/hooks/use-albums';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
 const DEFAULT_COLOR = '#475569';
 
-/** Build a set of photo URLs for the mosaic — start from the selected album, fill with others */
-function getPhotosForAlbum(albumId?: string): string[] {
-  const selected = getAlbumById(albumId);
-  const others = MOCK_ALBUMS.filter((a) => a.id !== selected.id);
-  return [selected.cover, ...others.map((a) => a.cover)].slice(0, 9);
+interface MosaicCover {
+  id: string;
+  url: string;
+  title: string;
 }
 
-function PhotoCell({ src, alt, accent }: { src: string; alt: string; accent: string }) {
+function PhotoCell({ cover, accent }: { cover: MosaicCover; accent: string }) {
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        '&:hover img': { transform: 'scale(1.08)' },
-        '&:hover': { boxShadow: `0 0 0 2px ${accent}` },
-        transition: 'box-shadow 0.2s',
-      }}
-    >
-      <Image src={src} alt={alt} fill style={{ objectFit: 'cover', transition: 'transform 0.4s' }} />
-    </Box>
+    <Link href={`/albums/${cover.id}`} style={{ display: 'block', width: '100%', height: '100%', textDecoration: 'none' }}>
+      <Box
+        sx={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          '&:hover img': { transform: 'scale(1.08)' },
+          '&:hover': { boxShadow: `0 0 0 2px ${accent}` },
+          transition: 'box-shadow 0.2s',
+        }}
+      >
+        <Image src={cover.url} alt={cover.title} fill style={{ objectFit: 'cover', transition: 'transform 0.4s' }} unoptimized />
+      </Box>
+    </Link>
   );
 }
 
 export function PhotoMosaicWidget({ size, color, albumId }: { size: WidgetGridSize; color?: string; albumId?: string }) {
   const theme = useTheme();
-  const c = getWidgetColorStyles(color ?? DEFAULT_COLOR, theme.palette.mode);
+  const hex = color ?? DEFAULT_COLOR;
+  const c = getWidgetColorStyles(hex, theme.palette.mode);
   const isMedium = size.cols >= 4 && size.rows < 4;
   const isFull = size.cols >= 4 && size.rows >= 4;
-  const photos = getPhotosForAlbum(albumId);
+
+  const { data, isLoading, isError } = useAlbums();
+  const albums = data?.pages.flatMap((p) => p.items) ?? [];
+  const covers = getAlbumCovers(albums, albumId).slice(0, 9);
+
+  if (isLoading) {
+    return (
+      <Box sx={{ borderRadius: '16px', overflow: 'hidden', height: '100%', bgcolor: c.bgTint }}>
+        <Skeleton variant="rectangular" width="100%" height="100%" sx={{ borderRadius: '16px' }} />
+      </Box>
+    );
+  }
+
+  if (isError || covers.length === 0) {
+    return (
+      <Box
+        sx={{
+          bgcolor: c.bgTint,
+          borderRadius: '16px',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 1,
+          p: 2,
+        }}
+      >
+        <Images style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
+        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
+          {isError ? "Couldn't load photos" : 'No photos yet'}
+        </Typography>
+        <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
+          {isError ? 'Please try again in a moment' : 'Add photos to an album to build your mosaic'}
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Fill remaining cells by repeating covers so the grid never has holes.
+  const cell = (index: number): MosaicCover => covers[index % covers.length];
 
   if (isFull) {
     return (
@@ -56,10 +102,10 @@ export function PhotoMosaicWidget({ size, color, albumId }: { size: WidgetGridSi
         }}
       >
         <Box sx={{ gridColumn: '1 / 3', gridRow: '1 / 3' }}>
-          <PhotoCell src={photos[0]} alt="Photo 1" accent={c.accent} />
+          <PhotoCell cover={cell(0)} accent={c.accent} />
         </Box>
-        {photos.slice(1, 6).map((src, i) => (
-          <PhotoCell key={i} src={src} alt={`Photo ${i + 2}`} accent={c.accent} />
+        {[1, 2, 3, 4, 5].map((i) => (
+          <PhotoCell key={i} cover={cell(i)} accent={c.accent} />
         ))}
       </Box>
     );
@@ -79,10 +125,10 @@ export function PhotoMosaicWidget({ size, color, albumId }: { size: WidgetGridSi
         }}
       >
         <Box sx={{ gridColumn: '1 / 3', gridRow: '1 / 3' }}>
-          <PhotoCell src={photos[0]} alt="Photo 1" accent={c.accent} />
+          <PhotoCell cover={cell(0)} accent={c.accent} />
         </Box>
-        <PhotoCell src={photos[1]} alt="Photo 2" accent={c.accent} />
-        <PhotoCell src={photos[2]} alt="Photo 3" accent={c.accent} />
+        <PhotoCell cover={cell(1)} accent={c.accent} />
+        <PhotoCell cover={cell(2)} accent={c.accent} />
       </Box>
     );
   }
@@ -97,10 +143,11 @@ export function PhotoMosaicWidget({ size, color, albumId }: { size: WidgetGridSi
         gridTemplateColumns: '1fr 1fr',
         gridTemplateRows: '1fr 1fr',
         gap: '4px',
+        bgcolor: alpha(hex, 0.04),
       }}
     >
-      {photos.slice(0, 4).map((src, i) => (
-        <PhotoCell key={i} src={src} alt={`Photo ${i + 1}`} accent={c.accent} />
+      {[0, 1, 2, 3].map((i) => (
+        <PhotoCell key={i} cover={cell(i)} accent={c.accent} />
       ))}
     </Box>
   );

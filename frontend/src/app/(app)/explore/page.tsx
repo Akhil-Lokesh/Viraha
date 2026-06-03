@@ -1,5 +1,10 @@
 'use client';
 
+// MapLibre CSS is imported statically here because the map (SidebarMap) is
+// defined inline in this module rather than in a separately code-split
+// component. A dynamic import() of a `.css` path does not type-check (no CSS
+// module declaration), and a CDN <link> would add an external/CSP dependency,
+// so per the C20 escape hatch ("otherwise leave") it stays a static import.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -488,7 +493,10 @@ export default function ExplorePage() {
   const following = usePersonalizedFeed();
   const discover = useDiscoverFeed();
 
-  const active = activeTab === 'following' ? following : discover;
+  // Guests never have a Following tab, so always read from the discover feed.
+  // (The personalized query still fires for guests but its 401 is contained
+  //  in this unused branch — see use-feed.ts for full enabled-gating.)
+  const active = activeTab === 'following' && isAuthenticated ? following : discover;
   const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = active;
 
   const posts = data?.pages.flatMap((page) => page.items || []).filter(Boolean) || [];
@@ -654,7 +662,9 @@ export default function ExplorePage() {
                 flexShrink: 0,
               }}
             >
-              {(['following', 'forYou'] as const).map((tab) => (
+              {(['following', 'forYou'] as const)
+                .filter((tab) => tab !== 'following' || isAuthenticated)
+                .map((tab) => (
                 <Box
                   key={tab}
                   component="button"

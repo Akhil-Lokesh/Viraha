@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { X, MapPin, BookOpen, Camera, Calendar, Heart, Edit3, Check } from 'lucide-react';
 import { usePlaceHistory, useUpsertPlaceNote } from '@/lib/hooks/use-viraha';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
@@ -38,15 +39,22 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
     setEditingNote(true);
   }, [history?.placeNote?.note]);
 
-  const handleSaveNote = useCallback(() => {
+  const handleSaveNote = useCallback(async () => {
     if (!lat || !lng) return;
-    upsertNote.mutate({
-      locationLat: lat,
-      locationLng: lng,
-      locationName: locationName || undefined,
-      note: noteText,
-    });
-    setEditingNote(false);
+    try {
+      await upsertNote.mutateAsync({
+        locationLat: lat,
+        locationLng: lng,
+        locationName: locationName || undefined,
+        note: noteText,
+      });
+      setEditingNote(false);
+      toast.success('Note saved');
+    } catch (err: unknown) {
+      // Keep the editor open so the user does not lose their text on failure.
+      const message = err instanceof Error ? err.message : 'Could not save note';
+      toast.error(message);
+    }
   }, [lat, lng, locationName, noteText, upsertNote]);
 
   return (
@@ -128,7 +136,7 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
                   placeholder="What does this place mean to you?"
                   sx={{ '& .MuiInputBase-root': { fontSize: '13px' } }}
                 />
-                <IconButton size="small" onClick={handleSaveNote} color="primary" sx={{ alignSelf: 'flex-end' }}>
+                <IconButton size="small" onClick={handleSaveNote} disabled={upsertNote.isPending} color="primary" sx={{ alignSelf: 'flex-end' }} aria-label="Save note">
                   <Check style={{ width: 16, height: 16 }} />
                 </IconButton>
               </Box>

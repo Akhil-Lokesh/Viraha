@@ -222,6 +222,9 @@ export function findFirstAvailable(
 }
 
 // ── Default scrapbook layout ────────────────────────────
+// Every widget here is backed by real user data (atlas, albums, journals,
+// place-resonance, on-this-day, kindred travelers, streak). A brand-new account
+// renders genuine empty/zero states — never the seeded Thailand/Japan/France mocks.
 
 export const DEFAULT_WIDGETS: WidgetInstance[] = [
   { id: 'default-album_preview',      type: 'album_preview',      position: { col: 1, row: 1 }, color: '#7B68EE' },
@@ -229,10 +232,13 @@ export const DEFAULT_WIDGETS: WidgetInstance[] = [
   { id: 'default-stats_countries',    type: 'stats_countries',    position: { col: 1, row: 3 }, color: '#059669' },
   { id: 'default-stats_cities',       type: 'stats_cities',       position: { col: 2, row: 3 }, color: '#EA580C' },
   { id: 'default-continent_progress', type: 'continent_progress', position: { col: 3, row: 3 }, color: '#D4A843' },
-  { id: 'default-timeline',           type: 'timeline',           position: { col: 1, row: 4 }, color: '#E11D48' },
-  { id: 'default-journal_highlight',  type: 'journal_highlight',  position: { col: 1, row: 6 }, color: '#0D9488' },
-  { id: 'default-photo_mosaic',       type: 'photo_mosaic',       position: { col: 3, row: 6 }, color: '#475569' },
-  { id: 'default-quote',              type: 'quote',              position: { col: 1, row: 8 }, color: '#7B68EE' },
-  { id: 'default-mini_map',           type: 'mini_map',           position: { col: 3, row: 8 }, color: '#2563EB' },
-  { id: 'default-album_carousel',     type: 'album_carousel',     position: { col: 1, row: 10 }, color: '#059669' },
+  { id: 'default-streak',             type: 'streak',             position: { col: 1, row: 4 }, color: '#EA580C' },
+  { id: 'default-kindred_travelers',  type: 'kindred_travelers',  position: { col: 1, row: 5 }, color: '#0EA5E9' },
+  { id: 'default-viraha_moment',      type: 'viraha_moment',      position: { col: 3, row: 5 }, color: '#8B5CF6' },
+  { id: 'default-timeline',           type: 'timeline',           position: { col: 1, row: 7 }, color: '#E11D48' },
+  { id: 'default-journal_highlight',  type: 'journal_highlight',  position: { col: 1, row: 9 }, color: '#0D9488' },
+  { id: 'default-photo_mosaic',       type: 'photo_mosaic',       position: { col: 3, row: 9 }, color: '#475569' },
+  { id: 'default-quote',              type: 'quote',              position: { col: 1, row: 11 }, color: '#7B68EE' },
+  { id: 'default-mini_map',           type: 'mini_map',           position: { col: 3, row: 11 }, color: '#2563EB' },
+  { id: 'default-album_carousel',     type: 'album_carousel',     position: { col: 1, row: 13 }, color: '#059669' },
 ];

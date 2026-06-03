@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
@@ -10,10 +11,15 @@ import {
   Bookmark,
   Share2,
   Plane,
+  MoreHorizontal,
+  Flag,
 } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
+import Menu from '@mui/material/Menu';
+import MuiMenuItem from '@mui/material/MenuItem';
 import type { Post } from '@/lib/types';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import { ReportDialog } from '@/components/shared/report-dialog';
 import { useToggleSave } from '@/lib/hooks/use-saves';
 
 const API_BASE =
@@ -28,11 +34,19 @@ function resolveImageUrl(url: string): string {
 export function PostCard({ post }: { post: Post }) {
   const [saved, setSaved] = useState(post.isSaved ?? false);
   const [saveCount, setSaveCount] = useState(post.saveCount ?? 0);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const toggleSave = useToggleSave();
 
-  const imageUrl = post.mediaUrls[0]
-    ? resolveImageUrl(post.mediaUrls[0])
+  // Feed cards use the generated thumbnail to save bandwidth; the full-res
+  // mediaUrls image is reserved for the post detail lightbox.
+  const thumbnailSource = post.mediaThumbnails?.[0] || post.mediaUrls[0];
+  const imageUrl = thumbnailSource
+    ? resolveImageUrl(thumbnailSource)
     : null;
+  // Relative /uploads paths resolve to the API origin, which is not registered
+  // in next.config image remotePatterns; bypass the optimizer for those so the
+  // image still loads (R2/CDN absolute URLs stay optimized).
+  const imageUnoptimized = !!thumbnailSource && !thumbnailSource.startsWith('http');
 
   const locationLabel = [post.locationName, post.locationCity, post.locationCountry]
     .filter(Boolean)
@@ -186,22 +200,57 @@ export function PostCard({ post }: { post: Post }) {
                 </Box>
               )}
             </Box>
-            {/* TODO: dead button - "More options" menu not implemented yet. Hidden to avoid pretending to be live. */}
-            {/* <IconButton
-              size="small"
+            {/* More options menu (Report) */}
+            <Box
+              component="button"
+              type="button"
+              aria-label="More options"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuAnchor(e.currentTarget);
+              }}
               sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 p: 0.75,
+                border: 'none',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
+                borderRadius: '9999px',
                 color: 'text.secondary',
+                flexShrink: 0,
                 '&:hover': {
                   bgcolor: 'action.hover',
                   color: 'text.primary',
                 },
-                flexShrink: 0,
               }}
-              onClick={(e) => e.preventDefault()}
             >
               <MoreHorizontal style={{ height: 16, width: 16 }} />
-            </IconButton> */}
+            </Box>
+            <Menu
+              anchorEl={menuAnchor}
+              open={Boolean(menuAnchor)}
+              onClose={() => setMenuAnchor(null)}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 160 } } }}
+            >
+              <ReportDialog
+                targetType="post"
+                targetId={post.id}
+                trigger={
+                  <MuiMenuItem
+                    onClick={() => setMenuAnchor(null)}
+                    sx={{ fontSize: '0.875rem', borderRadius: 1, mx: 0.5, color: 'error.main' }}
+                  >
+                    <Flag size={16} style={{ marginRight: 8 }} />
+                    Report
+                  </MuiMenuItem>
+                }
+              />
+            </Menu>
           </Box>
 
           {/* Caption */}
@@ -226,22 +275,21 @@ export function PostCard({ post }: { post: Post }) {
               <Box
                 sx={{
                   position: 'relative',
+                  width: '100%',
+                  aspectRatio: '4 / 3',
+                  maxHeight: 600,
                   borderRadius: '16px',
                   overflow: 'hidden',
                   bgcolor: 'action.hover',
                 }}
               >
-                <Box
-                  component="img"
+                <Image
                   src={imageUrl}
                   alt={post.caption || 'Travel photo'}
-                  loading="lazy"
-                  sx={{
-                    width: '100%',
-                    objectFit: 'cover',
-                    maxHeight: 600,
-                    display: 'block',
-                  }}
+                  fill
+                  sizes="(max-width: 600px) 100vw, 600px"
+                  unoptimized={imageUnoptimized}
+                  style={{ objectFit: 'cover' }}
                 />
                 {post.mediaUrls.length > 1 && (
                   <Box

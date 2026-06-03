@@ -4,7 +4,7 @@ import { Box, Typography, useTheme, Skeleton } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Sparkles, MapPin, Clock, Calendar } from 'lucide-react';
+import { Sparkles, MapPin } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import { useMoments } from '@/lib/hooks/use-viraha';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
@@ -34,12 +34,39 @@ export function VirahaMomentWidget({ size, color }: { size: WidgetGridSize; colo
   const c = getWidgetColorStyles(hex, theme.palette.mode);
   const isWide = size.cols >= 4;
 
-  const { data: moments, isLoading } = useMoments();
+  const { data: moments, isLoading, isError } = useMoments();
 
   if (isLoading) {
     return (
       <Box sx={{ borderRadius: '16px', overflow: 'hidden', height: '100%', bgcolor: c.bgTint }}>
         <Skeleton variant="rectangular" width="100%" height="100%" sx={{ borderRadius: '16px' }} />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Box
+        sx={{
+          borderRadius: '16px',
+          overflow: 'hidden',
+          height: '100%',
+          bgcolor: c.bgTint,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 1,
+          p: 2,
+        }}
+      >
+        <Sparkles style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
+        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
+          Couldn&apos;t load your moments
+        </Typography>
+        <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
+          Please try again in a moment
+        </Typography>
       </Box>
     );
   }
@@ -94,8 +121,11 @@ export function VirahaMomentWidget({ size, color }: { size: WidgetGridSize; colo
 
       <Box sx={{ flex: 1, overflow: 'auto', px: 1.5, pb: 1.5, display: 'flex', flexDirection: isWide ? 'row' : 'column', gap: 1 }}>
         {items.slice(0, isWide ? 4 : 3).map((moment) => {
+          // Journal-entry moments must link to the JOURNAL id (moment.journalId), not the
+          // entry id (referenceId) — /journals/[id] expects a journal id. Mirror on-this-day-widget.
+          const journalId = (moment as { journalId?: string }).journalId;
           const href = moment.referenceType === 'journal_entry'
-            ? `/journals/${moment.referenceId}`
+            ? `/journals/${journalId ?? moment.referenceId}`
             : `/post/${moment.referenceId}`;
           const image = moment.thumbnail ? resolveImageUrl(moment.thumbnail) : null;
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import axios from 'axios';
 import { Loader2, Plus, Check, Images } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import { useAlbums, useAddPostToAlbum, useRemovePostFromAlbum } from '@/lib/hooks/use-albums';
@@ -15,12 +16,29 @@ interface AddToAlbumDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function getAlbumActionError(error: unknown, wasInAlbum: boolean): string {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    if (status === 409) {
+      return 'This post is already in that album.';
+    }
+    const serverMessage = error.response?.data?.error;
+    if (typeof serverMessage === 'string' && serverMessage.length > 0) {
+      return serverMessage;
+    }
+  }
+  return wasInAlbum
+    ? 'Could not remove post from album. Please try again.'
+    : 'Could not add post to album. Please try again.';
+}
+
 export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialogProps) {
   const { data, isLoading } = useAlbums();
   const addPost = useAddPostToAlbum();
   const removePost = useRemovePostFromAlbum();
 
   const [pendingAlbumId, setPendingAlbumId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const albums = data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -31,14 +49,18 @@ export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialo
 
   const handleToggle = async (album: Album) => {
     setPendingAlbumId(album.id);
+    setActionError(null);
+    const wasInAlbum = isPostInAlbum(album);
     try {
-      if (isPostInAlbum(album)) {
+      if (wasInAlbum) {
         await removePost.mutateAsync({ albumId: album.id, postId });
       } else {
         await addPost.mutateAsync({ albumId: album.id, postId });
       }
-    } catch {
-      // Error handled by React Query
+    } catch (error: unknown) {
+      // Surface the failure (including a backend 409) to the user instead of
+      // silently swallowing it.
+      setActionError(getAlbumActionError(error, wasInAlbum));
     } finally {
       setPendingAlbumId(null);
     }
@@ -53,6 +75,14 @@ export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialo
             Select an album to add this post to.
           </Typography>
         </Box>
+
+        {actionError && (
+          <Box sx={{ px: 3, pb: 1 }}>
+            <Typography role="alert" variant="body2" sx={{ color: 'error.main', fontSize: '0.8125rem' }}>
+              {actionError}
+            </Typography>
+          </Box>
+        )}
 
         <Box sx={{ mt: 1, maxHeight: 300, overflowY: 'auto' }}>
           {isLoading ? (

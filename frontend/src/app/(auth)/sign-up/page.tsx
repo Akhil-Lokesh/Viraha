@@ -123,6 +123,7 @@ export default function SignUpPage() {
   async function onSubmit(values: SignUpValues) {
     setLoading(true);
     try {
+      await fetchCsrfToken();
       const res = await registerUser(values);
       setUser(res.user);
       toast.success('Account created!');

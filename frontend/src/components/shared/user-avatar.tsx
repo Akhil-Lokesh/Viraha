@@ -2,6 +2,23 @@ import Link from 'next/link';
 import { Avatar } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 
+/**
+ * Resolve an avatar/media `src` to an absolute URL.
+ *
+ * Storage returns relative `/uploads/...` paths for non-R2 deploys; those must be
+ * prefixed with the API origin (NEXT_PUBLIC_API_URL minus its `/api/v1` suffix) so
+ * the browser fetches them from the backend instead of the Next.js host. Absolute
+ * URLs (R2/CDN) and falsy values are passed through unchanged.
+ *
+ * Mirrors the prefixing logic in settings/page.tsx and layout/user-menu.tsx.
+ */
+export function resolveAvatarUrl(src?: string | null): string | undefined {
+  if (!src) return undefined;
+  if (src.startsWith('http')) return src;
+  const apiOrigin = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? '';
+  return `${apiOrigin}${src}`;
+}
+
 interface UserAvatarProps {
   src?: string | null;
   username: string;
@@ -35,7 +52,7 @@ export function UserAvatar({
 
   const avatar = (
     <Avatar
-      src={src || undefined}
+      src={resolveAvatarUrl(src)}
       alt={username}
       sx={[
         {

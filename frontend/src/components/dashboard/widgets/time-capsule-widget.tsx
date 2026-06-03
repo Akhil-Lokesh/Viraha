@@ -1,12 +1,26 @@
 'use client';
 
-import { Box, Typography, useTheme } from '@mui/material';
+import { useState } from 'react';
+import {
+  Box,
+  Typography,
+  useTheme,
+  Skeleton,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Button,
+} from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Lock, Unlock, Clock, MapPin, Gift } from 'lucide-react';
+import { Lock, Unlock, Clock, MapPin, Gift, Plus, X } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
-import { useTimeCapsules } from '@/lib/hooks/use-time-capsules';
+import { toast } from 'sonner';
+import { useTimeCapsules, useOpenTimeCapsule } from '@/lib/hooks/use-time-capsules';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
+import { DepartureRitualDialog } from '@/components/travel/departure-ritual-dialog';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
+import type { TimeCapsule } from '@/lib/api/timeCapsules';
 
 const DEFAULT_COLOR = '#6366F1';
 
@@ -14,13 +28,115 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
   const theme = useTheme();
   const hex = color ?? DEFAULT_COLOR;
   const c = getWidgetColorStyles(hex, theme.palette.mode);
-  const isWide = size.cols >= 4;
   const isTall = size.rows >= 4;
 
-  const { data: capsules } = useTimeCapsules(true);
+  const { data: capsules, isLoading, isError } = useTimeCapsules(true);
+  const openMutation = useOpenTimeCapsule();
+
+  const [sealOpen, setSealOpen] = useState(false);
+  const [revealed, setRevealed] = useState<TimeCapsule | null>(null);
+
   const sealed = (capsules ?? []).filter((cap) => !cap.isOpened);
   const openable = (capsules ?? []).filter((cap) => cap.isOpenable);
   const opened = (capsules ?? []).filter((cap) => cap.isOpened && !cap.isOpenable);
+
+  const handleOpen = async (id: string) => {
+    try {
+      const result = await openMutation.mutateAsync(id);
+      setRevealed(result);
+    } catch {
+      toast.error("Couldn't open this capsule. Please try again.");
+    }
+  };
+
+  const sealButton = (
+    <IconButton
+      size="small"
+      aria-label="Seal a memory"
+      onClick={() => setSealOpen(true)}
+      sx={{ width: 24, height: 24, color: c.accent, '&:hover': { bgcolor: alpha(hex, 0.1) } }}
+    >
+      <Plus style={{ width: 14, height: 14 }} />
+    </IconButton>
+  );
+
+  const sealDialog = (
+    <DepartureRitualDialog
+      open={sealOpen}
+      onClose={() => setSealOpen(false)}
+      locationName={null}
+    />
+  );
+
+  const revealDialog = (
+    <Dialog
+      open={!!revealed}
+      onClose={() => setRevealed(null)}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: '16px' } }}
+    >
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 700 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Unlock style={{ width: 18, height: 18, color: hex }} />
+          Memory unsealed
+        </Box>
+        <IconButton size="small" aria-label="Close" onClick={() => setRevealed(null)}>
+          <X style={{ width: 16, height: 16 }} />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent>
+        {revealed?.locationName && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
+            <MapPin style={{ width: 13, height: 13, color: hex }} />
+            <Typography sx={{ fontSize: '13px', color: 'text.secondary' }}>{revealed.locationName}</Typography>
+          </Box>
+        )}
+        <Typography sx={{ fontSize: '15px', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+          {revealed?.content || 'This capsule has no message.'}
+        </Typography>
+        {revealed?.sealedAt && (
+          <Typography sx={{ fontSize: '11px', color: 'text.disabled', mt: 2 }}>
+            Sealed {format(new Date(revealed.sealedAt), 'MMM d, yyyy')}
+          </Typography>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (isLoading) {
+    return (
+      <Box sx={{ borderRadius: '16px', overflow: 'hidden', height: '100%', bgcolor: c.bgTint }}>
+        <Skeleton variant="rectangular" width="100%" height="100%" sx={{ borderRadius: '16px' }} />
+      </Box>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Box
+        sx={{
+          bgcolor: c.bgTint,
+          borderRadius: '16px',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 1,
+          p: 2,
+        }}
+      >
+        <Lock style={{ width: 24, height: 24, color: hex, opacity: 0.6 }} />
+        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary', textAlign: 'center' }}>
+          Couldn&apos;t load your capsules
+        </Typography>
+        <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
+          Please try again in a moment
+        </Typography>
+      </Box>
+    );
+  }
 
   if (!capsules || capsules.length === 0) {
     return (
@@ -42,8 +158,18 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
           No time capsules
         </Typography>
         <Typography sx={{ fontSize: '11px', color: 'text.disabled', textAlign: 'center' }}>
-          Seal a memory when you leave a place
+          Seal a memory to open it later
         </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<Plus style={{ width: 14, height: 14 }} />}
+          onClick={() => setSealOpen(true)}
+          sx={{ mt: 0.5, borderRadius: '10px', textTransform: 'none' }}
+        >
+          Seal a memory
+        </Button>
+        {sealDialog}
       </Box>
     );
   }
@@ -75,7 +201,7 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
             Time Capsules
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           {sealed.length > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
               <Lock style={{ width: 9, height: 9, color: hex, opacity: 0.6 }} />
@@ -88,15 +214,26 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
               <Typography sx={{ fontSize: '10px', color: '#10B981', fontWeight: 600 }}>{openable.length} ready</Typography>
             </Box>
           )}
+          {sealButton}
         </Box>
       </Box>
 
       {/* Capsule list */}
       <Box sx={{ flex: 1, overflow: 'auto', px: 1.5, pb: 1.5 }}>
-        {/* Openable capsules first (highlighted) */}
+        {/* Openable capsules first (highlighted, clickable) */}
         {openable.map((cap) => (
           <Box
             key={cap.id}
+            role="button"
+            tabIndex={0}
+            aria-label="Open ready time capsule"
+            onClick={() => handleOpen(cap.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleOpen(cap.id);
+              }
+            }}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -108,6 +245,10 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
               bgcolor: alpha('#10B981', 0.08),
               border: '1px solid',
               borderColor: alpha('#10B981', 0.2),
+              cursor: openMutation.isPending ? 'wait' : 'pointer',
+              opacity: openMutation.isPending ? 0.6 : 1,
+              transition: 'background 0.2s, opacity 0.2s',
+              '&:hover': { bgcolor: alpha('#10B981', 0.14) },
             }}
           >
             <Box
@@ -127,7 +268,7 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#10B981' }}>
-                Ready to open!
+                {openMutation.isPending ? 'Opening…' : 'Tap to open'}
               </Typography>
               {cap.locationName && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
@@ -190,10 +331,20 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
           );
         })}
 
-        {/* Recent opened capsules */}
+        {/* Recent opened capsules — content is available post-open */}
         {isTall && opened.slice(0, 3).map((cap) => (
           <Box
             key={cap.id}
+            role="button"
+            tabIndex={0}
+            aria-label="Re-read opened time capsule"
+            onClick={() => setRevealed(cap)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setRevealed(cap);
+              }
+            }}
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -202,6 +353,9 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
               px: 0.75,
               borderRadius: '8px',
               opacity: 0.7,
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
+              '&:hover': { opacity: 1, bgcolor: alpha(hex, 0.06) },
             }}
           >
             <Box
@@ -220,7 +374,7 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ fontSize: '11px', color: 'text.secondary', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
-                {cap.content.slice(0, 60)}...
+                {cap.content ? `${cap.content.slice(0, 60)}…` : 'Opened memory'}
               </Typography>
               <Typography sx={{ fontSize: '10px', color: 'text.disabled' }}>
                 Opened {cap.openedAt ? format(new Date(cap.openedAt), 'MMM d') : ''}
@@ -229,6 +383,9 @@ export function TimeCapsuleWidget({ size, color }: { size: WidgetGridSize; color
           </Box>
         ))}
       </Box>
+
+      {sealDialog}
+      {revealDialog}
     </Box>
   );
 }

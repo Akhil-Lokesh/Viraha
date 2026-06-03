@@ -18,6 +18,7 @@ import {
   Redo,
 } from 'lucide-react';
 import { uploadPhotos } from '@/lib/api/media';
+import { toast } from 'sonner';
 
 interface EditorToolbarProps {
   editor: Editor | null;
@@ -37,12 +38,15 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
       result.urls.forEach((url) => {
         editor.chain().focus().setImage({ src: url }).run();
       });
-    } catch {
-      // Upload failed silently — user can retry
+    } catch (err: unknown) {
+      // Surface the failure so the user knows the upload did not go through;
+      // the editor stays open so they can retry.
+      const message = err instanceof Error ? err.message : 'Could not upload image';
+      toast.error(message);
+    } finally {
+      // Reset so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-
-    // Reset so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const btnSx = (isActive: boolean) => ({

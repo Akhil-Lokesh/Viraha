@@ -15,6 +15,7 @@ import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 import { resetPassword } from '@/lib/api/auth';
+import { fetchCsrfToken } from '@/lib/api/client';
 import Button from '@mui/material/Button';
 import { toast } from 'sonner';
 
@@ -64,6 +65,7 @@ function ResetPasswordForm() {
     if (!token) return;
     setLoading(true);
     try {
+      await fetchCsrfToken();
       await resetPassword(token, values.newPassword);
       setSuccess(true);
       toast.success('Password reset successfully!');

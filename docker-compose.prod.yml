@@ -30,6 +30,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    ports:
+      # Browser-facing API must be reachable. Publish directly, or replace with
+      # `expose: ["4000"]` when fronting the backend with a reverse proxy.
+      - "4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,13 +65,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* values are inlined at build time and MUST be passed as build
+      # args. Setting them only as runtime `environment` has no effect on the
+      # already-built client bundle.
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_MAPBOX_TOKEN: ${NEXT_PUBLIC_MAPBOX_TOKEN}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
     restart: unless-stopped
     depends_on:
       - backend
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
 
 volumes:
   postgres_data:

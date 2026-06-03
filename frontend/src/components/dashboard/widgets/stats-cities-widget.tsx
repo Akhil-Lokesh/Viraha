@@ -1,9 +1,10 @@
 'use client';
 
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography, useTheme, Skeleton } from '@mui/material';
 import { Building2 } from 'lucide-react';
 import { AnimatedCounter } from '../animated-counter';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
+import { useAtlas } from '@/lib/hooks/use-atlas';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
 const DEFAULT_COLOR = '#2563EB';
@@ -12,6 +13,18 @@ export function StatsCitiesWidget({ size, color }: { size: WidgetGridSize; color
   const theme = useTheme();
   const c = getWidgetColorStyles(color ?? DEFAULT_COLOR, theme.palette.mode);
   const isWide = size.cols >= 2;
+
+  const { data: atlas, isLoading, isError } = useAtlas();
+  // Real source of truth — derive from the user's visited-cities atlas summary.
+  const count = atlas?.stats.totalCities ?? 0;
+
+  if (isLoading) {
+    return (
+      <Box sx={{ borderRadius: '16px', overflow: 'hidden', height: '100%', bgcolor: c.bgTint }}>
+        <Skeleton variant="rectangular" width="100%" height="100%" sx={{ borderRadius: '16px' }} />
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -44,12 +57,20 @@ export function StatsCitiesWidget({ size, color }: { size: WidgetGridSize; color
         <Building2 style={{ width: isWide ? 22 : 18, height: isWide ? 22 : 18, color: c.accent }} />
       </Box>
       <Box sx={{ textAlign: isWide ? 'left' : 'center' }}>
-        <AnimatedCounter
-          value={48}
-          sx={{ fontSize: isWide ? '3rem' : '2.5rem', fontWeight: 'bold', color: c.accent, lineHeight: 1 }}
-        />
+        {isError ? (
+          <Typography
+            sx={{ fontSize: isWide ? '3rem' : '2.5rem', fontWeight: 'bold', color: 'text.disabled', lineHeight: 1 }}
+          >
+            &mdash;
+          </Typography>
+        ) : (
+          <AnimatedCounter
+            value={count}
+            sx={{ fontSize: isWide ? '3rem' : '2.5rem', fontWeight: 'bold', color: c.accent, lineHeight: 1 }}
+          />
+        )}
         <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
-          Cities
+          {isError ? "Couldn't load" : 'Cities'}
         </Typography>
       </Box>
 

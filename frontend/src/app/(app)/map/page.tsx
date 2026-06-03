@@ -4,16 +4,18 @@ import { useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
-import { MapPin, Loader2, BookOpen } from 'lucide-react';
+import { MapPin, Loader2, BookOpen, Navigation, X } from 'lucide-react';
 import { useMapMarkers } from '@/lib/hooks/use-map';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { usePlaceResonance } from '@/lib/hooks/use-viraha';
 import { useWantToGo } from '@/lib/hooks/use-want-to-go';
+import { useNearbyFeed } from '@/lib/hooks/use-travel';
+import { useTravelStore } from '@/lib/stores/travel-store';
 import { LocationBadge } from '@/components/shared/location-badge';
 import { TimelineScrubber } from '@/components/map/timeline-scrubber';
 import { PlaceHistoryDrawer } from '@/components/map/place-history-drawer';
 import { ResonancePin } from '@/components/map/resonance-pin';
-import type { MapMarkerData } from '@/lib/types';
+import type { MapMarkerData, Post } from '@/lib/types';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -391,6 +393,300 @@ function MarkerPopupContent({
   );
 }
 
+// ─── Nearby feed panel ───────────────────────────────
+
+const NEARBY_RADIUS_KM = 50;
+
+function NearbyPostRow({ post }: { post: Post }) {
+  const thumbnail = post.mediaThumbnails[0] || post.mediaUrls[0] || null;
+  const resolved = thumbnail ? resolveImageUrl(thumbnail) : null;
+  const place =
+    post.locationName ||
+    [post.locationCity, post.locationCountry].filter(Boolean).join(', ') ||
+    'Unknown location';
+
+  return (
+    <Link href={`/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 1.5,
+          p: 1,
+          borderRadius: '10px',
+          transition: 'background-color 0.2s',
+          '&:hover': { bgcolor: 'action.hover' },
+        }}
+      >
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            flexShrink: 0,
+            borderRadius: '8px',
+            overflow: 'hidden',
+            bgcolor: 'action.hover',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {resolved ? (
+            <img
+              src={resolved}
+              alt={post.caption || place}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <MapPin style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
+          )}
+        </Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          {post.caption && (
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 500,
+                color: 'text.primary',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {post.caption}
+            </Typography>
+          )}
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
+            {place}
+          </Typography>
+        </Box>
+      </Box>
+    </Link>
+  );
+}
+
+function NearbyPanel({ onClose }: { onClose: () => void }) {
+  const currentLat = useTravelStore((s) => s.currentLat);
+  const currentLng = useTravelStore((s) => s.currentLng);
+
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useNearbyFeed(currentLat, currentLng, NEARBY_RADIUS_KM);
+
+  const hasCoords = currentLat != null && currentLng != null;
+  const posts = useMemo(
+    () => (data ? data.pages.flatMap((page) => page.items) : []),
+    [data]
+  );
+
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: { xs: '100%', sm: 360 },
+        zIndex: 30,
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'rgba(20,14,33,0.97)'
+            : 'rgba(255,255,255,0.97)',
+        backdropFilter: 'blur(16px)',
+        borderLeft: 1,
+        borderColor: 'divider',
+        boxShadow: 6,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 2,
+          py: 1.5,
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Navigation style={{ height: 16, width: 16, color: 'var(--mui-palette-primary-main)' }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            Nearby
+          </Typography>
+        </Box>
+        <Box
+          component="button"
+          type="button"
+          onClick={onClose}
+          aria-label="Close nearby panel"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            p: 0.5,
+            borderRadius: '8px',
+            color: 'text.secondary',
+            '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
+          }}
+        >
+          <X style={{ height: 16, width: 16 }} />
+        </Box>
+      </Box>
+
+      <Box sx={{ flex: 1, overflowY: 'auto', px: 1, py: 1 }}>
+        {!hasCoords ? (
+          <Box sx={{ textAlign: 'center', px: 2, py: 4 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+              Location unavailable
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Set your travel location to discover posts around you.
+            </Typography>
+          </Box>
+        ) : isLoading ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 4 }}>
+            <Loader2
+              style={{ height: 24, width: 24, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }}
+            />
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Finding posts nearby...
+            </Typography>
+          </Box>
+        ) : isError ? (
+          <Box sx={{ textAlign: 'center', px: 2, py: 4 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>
+              Couldn&apos;t load nearby posts.
+            </Typography>
+            <Box
+              component="button"
+              type="button"
+              onClick={() => refetch()}
+              sx={{
+                px: 2,
+                py: 0.75,
+                borderRadius: '8px',
+                border: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                color: 'text.primary',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                '&:hover': { bgcolor: 'action.hover' },
+              }}
+            >
+              Retry
+            </Box>
+          </Box>
+        ) : posts.length === 0 ? (
+          <Box sx={{ textAlign: 'center', px: 2, py: 4 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+              Nothing nearby yet.
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              No posts within {NEARBY_RADIUS_KM}km of your location.
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {posts.map((post) => (
+              <NearbyPostRow key={post.id} post={post} />
+            ))}
+            {hasNextPage && (
+              <Box
+                component="button"
+                type="button"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                sx={{
+                  mt: 1,
+                  mx: 1,
+                  px: 2,
+                  py: 1,
+                  borderRadius: '8px',
+                  border: 1,
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                  color: 'text.primary',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  cursor: isFetchingNextPage ? 'default' : 'pointer',
+                  opacity: isFetchingNextPage ? 0.6 : 1,
+                  '&:hover': { bgcolor: isFetchingNextPage ? 'background.paper' : 'action.hover' },
+                }}
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load more'}
+              </Box>
+            )}
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+// ─── Resonance matching ──────────────────────────────
+
+// The resonance endpoint groups posts by city and returns an AVG(lat/lng)
+// centroid per city, so a per-marker exact-coordinate key never matches the
+// centroid. Markers in the same city instead fall within a city-sized radius
+// of the centroid, so each marker is matched to the nearest resonance centroid
+// within this tolerance.
+const RESONANCE_MATCH_RADIUS_KM = 30;
+const EARTH_RADIUS_KM = 6371;
+
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+interface ResonanceCentroid {
+  lat: number;
+  lng: number;
+  city: string;
+  country: string;
+  resonance: number;
+}
+
+// Resolve a marker to its city's resonance score by nearest centroid within
+// the city radius. Returns undefined when no resonant city is close enough.
+function resolveResonance(
+  marker: MapMarkerData,
+  centroids: readonly ResonanceCentroid[]
+): number | undefined {
+  let best: { resonance: number; distanceKm: number } | undefined;
+  for (const centroid of centroids) {
+    const distanceKm = haversineKm(marker.lat, marker.lng, centroid.lat, centroid.lng);
+    if (distanceKm > RESONANCE_MATCH_RADIUS_KM) continue;
+    if (!best || distanceKm < best.distanceKm) {
+      best = { resonance: centroid.resonance, distanceKm };
+    }
+  }
+  return best?.resonance;
+}
+
 // ─── Page ────────────────────────────────────────────
 
 // Wide initial bounds to fetch all markers globally
@@ -415,6 +711,7 @@ export default function MapPage() {
     lng: number | null;
     locationName: string | null;
   }>({ open: false, lat: null, lng: null, locationName: null });
+  const [nearbyOpen, setNearbyOpen] = useState(false);
 
   const handleMarkerClick = useCallback((marker: MapMarkerData) => {
     setPlaceDrawer({
@@ -447,14 +744,19 @@ export default function MapPage() {
 
   const markerList = markers ?? [];
 
-  // Build a resonance lookup by city for "My Content" scope
-  const resonanceLookup = useMemo(() => {
-    const result: Record<string, number> = {};
-    if (!resonanceData) return result;
-    for (const place of resonanceData) {
-      result[`${place.lat.toFixed(2)},${place.lng.toFixed(2)}`] = place.resonance;
-    }
-    return result;
+  // Resonance is grouped by city on the backend (AVG(lat/lng) centroid keyed by
+  // city + country), so markers are matched to a city's resonance by proximity
+  // to that centroid rather than by exact coordinates. Only used in "My Content"
+  // scope, where every marker in a resonant city renders a ResonancePin.
+  const resonanceCentroids = useMemo<ResonanceCentroid[]>(() => {
+    if (!resonanceData) return [];
+    return resonanceData.map((place) => ({
+      lat: place.lat,
+      lng: place.lng,
+      city: place.locationCity,
+      country: place.locationCountry,
+      resonance: place.resonance,
+    }));
   }, [resonanceData]);
   const markerCount = markerList.length;
 
@@ -550,8 +852,10 @@ export default function MapPage() {
             className="map-container"
           >
             {markerList.map((marker) => {
-              const resonanceKey = `${marker.lat.toFixed(2)},${marker.lng.toFixed(2)}`;
-              const resonance = scopeFilter === 'mine' ? resonanceLookup[resonanceKey] : undefined;
+              const resonance =
+                scopeFilter === 'mine'
+                  ? resolveResonance(marker, resonanceCentroids)
+                  : undefined;
               return (
                 <MapMarker
                   key={`${marker.type}-${marker.id}`}
@@ -679,8 +983,50 @@ export default function MapPage() {
           </Box>
         )}
 
-        {/* Marker count badge */}
-        <Box sx={{ position: 'absolute', top: 16, right: { xs: 16, md: 24 }, zIndex: 20 }}>
+        {/* Marker count badge + Nearby toggle */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: { xs: 16, md: 24 },
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
+        >
+          <Box
+            component="button"
+            type="button"
+            onClick={() => setNearbyOpen((prev) => !prev)}
+            aria-pressed={nearbyOpen}
+            sx={{
+              bgcolor: (theme) =>
+                nearbyOpen
+                  ? 'primary.main'
+                  : theme.palette.mode === 'dark'
+                    ? 'rgba(31,21,48,0.9)'
+                    : 'rgba(255,255,255,0.9)',
+              color: nearbyOpen ? 'white' : 'text.primary',
+              backdropFilter: 'blur(16px)',
+              borderRadius: '8px',
+              border: 1,
+              borderColor: 'divider',
+              boxShadow: 1,
+              px: 1.5,
+              py: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.75,
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              transition: 'all 0.2s',
+            }}
+          >
+            <Navigation style={{ height: 14, width: 14 }} />
+            Nearby
+          </Box>
           <Box
             sx={{
               bgcolor: (theme) =>
@@ -713,6 +1059,9 @@ export default function MapPage() {
             </Typography>
           </Box>
         </Box>
+
+        {/* Nearby feed panel */}
+        {nearbyOpen && <NearbyPanel onClose={() => setNearbyOpen(false)} />}
       </Box>
 
       <PlaceHistoryDrawer

@@ -36,10 +36,13 @@ const createPostFormSchema = z
     locationCountry: z.string().max(100).optional(),
     locationLat: z.number().min(-90).max(90),
     locationLng: z.number().min(-180).max(180),
+    // Explicit flag instead of treating (0,0) as "no location" — a genuine
+    // post at lat 0 / lng 0 (Gulf of Guinea) is a valid location.
+    locationPicked: z.boolean(),
     tags: z.string().optional(),
     privacy: z.string().optional(),
   })
-  .refine((data) => data.locationLat !== 0 || data.locationLng !== 0, {
+  .refine((data) => data.locationPicked, {
     message: 'Please pick a location',
     path: ['locationLat'],
   });
@@ -78,6 +81,7 @@ export function CreatePostForm() {
     defaultValues: {
       locationLat: 0,
       locationLng: 0,
+      locationPicked: false,
       privacy: 'public',
     },
   });
@@ -92,8 +96,9 @@ export function CreatePostForm() {
   }
 
   function handlePlaceSelect(place: PlaceDetails) {
-    setValue('locationLat', place.lat, { shouldValidate: true });
-    setValue('locationLng', place.lng, { shouldValidate: true });
+    setValue('locationLat', place.lat);
+    setValue('locationLng', place.lng);
+    setValue('locationPicked', true, { shouldValidate: true });
     setValue('locationName', place.name);
     setValue('locationCity', place.city ?? '');
     setValue('locationCountry', place.country ?? '');
@@ -377,7 +382,10 @@ export function CreatePostForm() {
                     fullWidth
                     slotProps={{ htmlInput: { step: 'any' } }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
-                    {...register('locationLat', { valueAsNumber: true })}
+                    {...register('locationLat', {
+                      valueAsNumber: true,
+                      onChange: () => setValue('locationPicked', true, { shouldValidate: true }),
+                    })}
                   />
                   {errors.locationLat && (
                     <Typography sx={{ fontSize: '0.75rem', color: 'error.main' }}>
@@ -398,7 +406,10 @@ export function CreatePostForm() {
                     fullWidth
                     slotProps={{ htmlInput: { step: 'any' } }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
-                    {...register('locationLng', { valueAsNumber: true })}
+                    {...register('locationLng', {
+                      valueAsNumber: true,
+                      onChange: () => setValue('locationPicked', true, { shouldValidate: true }),
+                    })}
                   />
                   {errors.locationLng && (
                     <Typography sx={{ fontSize: '0.75rem', color: 'error.main' }}>

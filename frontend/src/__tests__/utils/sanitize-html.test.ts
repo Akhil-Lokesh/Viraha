@@ -22,11 +22,17 @@ describe('sanitizeHtml', () => {
     expect(clean).toContain('<em>italic</em>');
   });
 
-  it('should preserve img with allowed attributes', () => {
-    const input = '<img src="photo.jpg" alt="A photo">';
+  it('should preserve img whose src points to an allowed host', () => {
+    const input = '<img src="/uploads/photo.jpg" alt="A photo">';
     const clean = sanitizeHtml(input);
-    expect(clean).toContain('src="photo.jpg"');
+    expect(clean).toContain('src="/uploads/photo.jpg"');
     expect(clean).toContain('alt="A photo"');
+  });
+
+  it('should strip a third-party img src (tracking pixel)', () => {
+    const input = '<img src="https://evil.example.com/track.gif" alt="x">';
+    const clean = sanitizeHtml(input);
+    expect(clean).not.toContain('evil.example.com');
   });
 
   it('should return empty for empty input', () => {

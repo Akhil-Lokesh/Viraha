@@ -52,14 +52,12 @@ describe('API client redirect guard on refresh failure', () => {
   });
 
   /**
-   * Build an adapter that:
-   *   - Returns 401 for the first request to a protected endpoint, forcing
-   *     the response interceptor to attempt a refresh.
-   *   - Causes the refresh call (which goes through bare `axios.post`, not
-   *     the client instance) to fail. We achieve this by spying on
-   *     `axios.post` and rejecting it.
-   *
-   * The interceptor's catch branch then runs the redirect-guard logic.
+   * Build an adapter that returns 401 for every request. The first protected
+   * request 401s, forcing the response interceptor to attempt a refresh; the
+   * refresh now goes through `apiClient.post('/auth/refresh')` (so the CSRF
+   * header is attached) and is skipped by the retry guard (url includes
+   * '/auth/refresh'), so it rejects with the adapter's 401. The interceptor's
+   * catch branch then runs the redirect-guard logic.
    */
   function buildFailingAdapter(): AxiosAdapter {
     return (config) => {
@@ -84,16 +82,12 @@ describe('API client redirect guard on refresh failure', () => {
     installMockLocation('/sign-in');
     const { default: apiClient } = await import('../../lib/api/client');
 
-    // Mock the bare axios.post used for the refresh call so refresh fails.
-    const postSpy = vi
-      .spyOn(axios, 'post')
-      .mockRejectedValue(new Error('refresh failed'));
-
+    // The failing adapter 401s every request, including the apiClient refresh.
     apiClient.defaults.adapter = buildFailingAdapter();
 
     await apiClient.get('/protected').catch(() => {});
 
-    expect(postSpy).toHaveBeenCalled();
+    // On an auth page the guard must NOT reassign window.location.href.
     expect(hrefCalls).toEqual([]);
   });
 

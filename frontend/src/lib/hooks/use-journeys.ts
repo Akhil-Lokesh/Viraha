@@ -33,6 +33,7 @@ export function useUpdateJourney() {
       updateJourney(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['journeys'] });
+      qc.invalidateQueries({ queryKey: ['journey'] });
     },
   });
 }
@@ -43,6 +44,7 @@ export function useConfirmJourney() {
     mutationFn: confirmJourney,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['journeys'] });
+      qc.invalidateQueries({ queryKey: ['journey'] });
     },
   });
 }
@@ -53,6 +55,7 @@ export function useDeleteJourney() {
     mutationFn: deleteJourney,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['journeys'] });
+      qc.invalidateQueries({ queryKey: ['journey'] });
     },
   });
 }

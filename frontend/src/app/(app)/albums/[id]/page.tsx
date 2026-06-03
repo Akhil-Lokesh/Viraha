@@ -237,7 +237,7 @@ export default function AlbumDetailPage({
               disableElevation
               size="small"
               sx={{ borderRadius: '9999px' }}
-              onClick={() => router.push(`/albums/${album.id}`)}
+              onClick={() => router.push(`/albums/${album.id}/edit`)}
             >
               <Pencil style={{ width: 14, height: 14, marginRight: 6 }} />
               Edit

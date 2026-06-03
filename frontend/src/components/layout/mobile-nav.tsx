@@ -16,6 +16,7 @@ import {
   Compass,
   Bell,
   Menu,
+  ScrollText,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Box, Typography, Drawer } from '@mui/material';
@@ -39,6 +40,7 @@ const tabs: NavTab[] = [
 // Destinations surfaced through the "More" sheet so the bar stays clean.
 const moreItems: { href: string; icon: LucideIcon; label: string }[] = [
   { href: '/albums', icon: LayoutGrid, label: 'Albums' },
+  { href: '/scrapbooks', icon: ScrollText, label: 'Scrapbooks' },
   { href: '/journals', icon: BookMarked, label: 'Journals' },
   { href: '/journeys', icon: Route, label: 'Journeys' },
   { href: '/saved', icon: Bookmark, label: 'Saved' },

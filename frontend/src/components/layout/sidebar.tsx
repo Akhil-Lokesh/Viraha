@@ -15,6 +15,7 @@ import {
   Plane,
   Route,
   Compass,
+  ScrollText,
 } from 'lucide-react';
 import { Avatar, Box, ButtonBase, Tooltip } from '@mui/material';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/explore', icon: Globe, label: 'Explore' },
   { href: '/map', icon: MapPin, label: 'Map' },
   { href: '/albums', icon: LayoutGrid, label: 'Albums' },
+  { href: '/scrapbooks', icon: ScrollText, label: 'Scrapbooks' },
   { href: '/journals', icon: BookMarked, label: 'Journals' },
   { href: '/journeys', icon: Route, label: 'Journeys' },
   { href: '/saved', icon: Bookmark, label: 'Saved' },

@@ -68,11 +68,9 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await axios.post(
-          `${apiClient.defaults.baseURL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
+        // Use apiClient (not bare axios) so the request interceptor attaches
+        // the X-CSRF-Token header — the backend CSRF-protects this POST.
+        await apiClient.post('/auth/refresh', {});
 
         await fetchCsrfToken();
         processQueue(null);

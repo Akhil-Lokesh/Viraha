@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { useBlockedUsers, useUnblockUser } from '@/lib/hooks/use-user';
 import { UserAvatar } from '@/components/shared/user-avatar';
-import { AuthGuard } from '@/components/auth/auth-guard';
 
 function BlockedRow({ entry }: { entry: { id: string; user: { id: string; username: string; displayName: string | null; avatar: string | null } } }) {
   const unblock = useUnblockUser();
@@ -58,8 +57,7 @@ export default function BlockedUsersPage() {
   const { data: blocked, isLoading } = useBlockedUsers();
 
   return (
-    <AuthGuard>
-      <Box sx={{ maxWidth: 640, mx: 'auto', py: { xs: 2, md: 4 } }}>
+    <Box sx={{ maxWidth: 640, mx: 'auto', py: { xs: 2, md: 4 } }}>
         <Box component={Link} href="/settings" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: '0.875rem', color: 'text.secondary', textDecoration: 'none', mb: 2, '&:hover': { color: 'text.primary' } }}>
           <ArrowLeft size={16} />
           Back to settings
@@ -87,7 +85,6 @@ export default function BlockedUsersPage() {
             ))}
           </Box>
         )}
-      </Box>
-    </AuthGuard>
+    </Box>
   );
 }

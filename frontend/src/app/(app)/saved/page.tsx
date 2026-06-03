@@ -9,7 +9,7 @@ import Button from '@mui/material/Button';
 import { fadeInUp, fadeIn, staggerContainer, staggerItem } from '@/lib/animations';
 
 export default function SavedPage() {
-  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+  const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useSavedPosts();
 
   const posts = data?.pages.flatMap((page) => page.items) ?? [];
@@ -61,6 +61,41 @@ export default function SavedPage() {
               </Box>
             </Box>
           ))}
+        </Box>
+      ) : isError ? (
+        <Box
+          component={motion.div}
+          variants={fadeInUp}
+          initial="hidden"
+          animate="visible"
+          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, textAlign: 'center', gap: 1.5 }}
+        >
+          <Box
+            sx={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              bgcolor: 'action.selected',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mb: 1.5,
+            }}
+          >
+            <Bookmark style={{ width: 40, height: 40, color: 'var(--mui-palette-text-secondary)' }} />
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Couldn&apos;t load your saved memories</Typography>
+          <Typography sx={{ color: 'text.secondary', maxWidth: 384 }}>
+            Something went wrong while loading your saved posts. Please try again.
+          </Typography>
+          <Button
+            variant="outlined"
+            disableElevation
+            onClick={() => refetch()}
+            sx={{ borderRadius: '9999px', px: 4, mt: 1 }}
+          >
+            Try Again
+          </Button>
         </Box>
       ) : posts.length === 0 ? (
         <Box
