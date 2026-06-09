@@ -56,6 +56,8 @@ model User {
   blocking           Block[]             @relation("blocking")
   blockedBy          Block[]             @relation("blocked")
   reports            Report[]            @relation("reports")
+  muting             Mute[]              @relation("muting")
+  mutedBy            Mute[]              @relation("muted")
 
   @@index([createdAt])
   @@map("users")
@@ -106,11 +108,14 @@ model Post {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  token     String   @unique
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  token      String   @unique
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  userAgent  String?  @map("user_agent") @db.VarChar(512)
+  ip         String?  @db.VarChar(64)
+  lastUsedAt DateTime @default(now()) @map("last_used_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -147,6 +152,21 @@ model Block {
   @@index([blockerId])
   @@index([blockedId])
   @@map("blocks")
+}
+
+model Mute {
+  id        String   @id @default(uuid()) @db.Uuid
+  muterId   String   @map("muter_id") @db.Uuid
+  mutedId   String   @map("muted_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  muter User @relation("muting", fields: [muterId], references: [id], onDelete: Cascade)
+  muted User @relation("muted", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  @@unique([muterId, mutedId])
+  @@index([muterId])
+  @@index([mutedId])
+  @@map("mutes")
 }
 
 model EmailVerification {
