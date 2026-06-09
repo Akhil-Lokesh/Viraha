@@ -399,7 +399,6 @@ function ProfileTab() {
             height: 44,
             borderRadius: '10px',
             bgcolor: 'secondary.main',
-            color: 'white',
             fontWeight: 500,
             boxShadow: '2px 2px 0 rgba(34, 28, 24, 0.18)',
             '&:hover': { bgcolor: 'secondary.dark' },
@@ -786,6 +785,7 @@ function PrivacyTab() {
         </MuiDialogContent>
         <MuiDialogActions sx={{ px: 3, pb: 3, flexDirection: 'column', gap: 1 }}>
           <Button
+            type="button"
             variant="contained"
             disableElevation
             onClick={handleConfirmPrivate}
@@ -795,6 +795,7 @@ function PrivacyTab() {
             {saving ? 'Saving...' : 'Make account private'}
           </Button>
           <Button
+            type="button"
             variant="text"
             disableElevation
             onClick={handleCancelPrivate}
@@ -985,7 +986,6 @@ function AccountTab() {
             height: 44,
             borderRadius: '10px',
             bgcolor: 'secondary.main',
-            color: 'white',
             fontWeight: 500,
             boxShadow: '2px 2px 0 rgba(34, 28, 24, 0.18)',
             '&:hover': { bgcolor: 'secondary.dark' },
@@ -1126,6 +1126,7 @@ function AccountTab() {
         </MuiDialogContent>
         <MuiDialogActions sx={{ px: 3, pb: 3, flexDirection: 'column', gap: 1 }}>
           <Button
+            type="button"
             variant="contained"
             color="error"
             disableElevation
@@ -1136,6 +1137,7 @@ function AccountTab() {
             {deleting ? 'Deleting...' : 'Permanently delete account'}
           </Button>
           <Button
+            type="button"
             variant="text"
             disableElevation
             onClick={closeDeleteDialog}

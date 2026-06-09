@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { UserProfileHeader } from '@/components/user/user-profile-header';
 import { PostGrid } from '@/components/post/post-grid';
+import { hasMapCoordinates } from '@/components/post/keepsake';
 import { AlbumGrid } from '@/components/album/album-grid';
 import { JournalGrid } from '@/components/journal/journal-grid';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -153,8 +154,9 @@ export default function ProfilePage() {
 
   const userPosts = postsData?.items || [];
 
+  // Posts with redacted (nulled) coordinates can't be plotted on the map.
   const mapPosts = useMemo(
-    () => userPosts.filter((p) => p.locationLat && p.locationLng),
+    () => userPosts.filter(hasMapCoordinates),
     [userPosts]
   );
 
@@ -461,10 +463,7 @@ export default function ProfilePage() {
                 })}
               >
                 <MapComponent
-                  center={[
-                    Number(mapPosts[0]?.locationLng ?? 0),
-                    Number(mapPosts[0]?.locationLat ?? 0),
-                  ]}
+                  center={[mapPosts[0].locationLng, mapPosts[0].locationLat]}
                   zoom={mapPosts.length === 1 ? 8 : 2}
                   styles={mapboxStyleUrls}
                   className="map-container"

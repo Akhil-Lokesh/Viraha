@@ -15,6 +15,21 @@ const PLACEHOLDER_SECRETS = [
   'placeholder',
 ];
 
+const TRUTHY_FLAGS = ['1', 'true', 'yes', 'on', 'enabled'];
+const FALSY_FLAGS = ['0', 'false', 'no', 'off', 'disabled'];
+
+/**
+ * Parse a boolean-ish env flag. Returns undefined for unset or unrecognized
+ * values (unrecognized values are warned about after parsing, below).
+ */
+function parseEnvFlag(value: unknown): boolean | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (TRUTHY_FLAGS.includes(normalized)) return true;
+  if (FALSY_FLAGS.includes(normalized)) return false;
+  return undefined;
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
@@ -40,6 +55,9 @@ const envSchema = z.object({
   RESEND_FROM_EMAIL: z.string().optional().default('noreply@viraha.app'),
   // Google OAuth (optional — Sign-in-with-Google disabled if not set)
   GOOGLE_CLIENT_ID: z.string().optional(),
+  // Background jobs (optional — when unset, jobs run only in production).
+  // Accepted: 1/0, true/false, yes/no, on/off, enabled/disabled (case-insensitive).
+  ENABLE_JOBS: z.preprocess(parseEnvFlag, z.boolean().optional()),
 }).refine(
   (data) => {
     if (data.NODE_ENV !== 'production') return true;
@@ -96,6 +114,20 @@ if (!parsed.success) {
     }) + '\n'
   );
   process.exit(1);
+}
+
+// Warn once (module loads once) when ENABLE_JOBS is set to something we do
+// not recognize — the value is otherwise silently ignored and the
+// NODE_ENV-based default applies. Logger imports env transitively, so write
+// the structured warning straight to stderr like the fatal path above.
+if (process.env.ENABLE_JOBS !== undefined && parsed.data.ENABLE_JOBS === undefined) {
+  process.stderr.write(
+    JSON.stringify({
+      level: 'warn',
+      msg: 'Unrecognized ENABLE_JOBS value — ignoring it and falling back to the NODE_ENV default (enabled only in production)',
+      value: process.env.ENABLE_JOBS,
+    }) + '\n'
+  );
 }
 
 export const env = parsed.data;

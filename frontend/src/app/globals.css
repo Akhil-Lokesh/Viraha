@@ -144,6 +144,7 @@
   --viraha-ink-muted: #6F655C;         /* secondary text */
   --viraha-gold: #D4A843;              /* accent of record: stamps, highlights */
   --viraha-hairline: rgba(34, 28, 24, 0.15); /* 1px borders: ink @ 15% */
+  --viraha-paper-shadow: 2px 2px 0 rgba(34, 28, 24, 0.06); /* hard offset panel shadow */
 }
 
 [data-mui-color-scheme='dark'],
@@ -154,6 +155,7 @@
   --viraha-ink-muted: #A89F93;         /* secondary text */
   --viraha-gold: #E2BC5C;              /* gold, brightened for dark contrast */
   --viraha-hairline: rgba(243, 237, 227, 0.16); /* 1px borders: cream @ 16% */
+  --viraha-paper-shadow: 2px 2px 0 rgba(0, 0, 0, 0.38); /* hard offset, visible on dark */
 }
 
 /* ── Keepsake utility classes ── */
@@ -315,5 +317,25 @@ input, select, textarea {
   100% {
     transform: scale(2);
     opacity: 0;
+  }
+}
+
+/* ── Reduced motion (WCAG 2.1 SC 2.3.3) ──
+   Collapse keyframe/transition animations (flight-drift, spin, ping, stamp
+   tilts, postcard hovers) for users who request reduced motion. Framer Motion
+   transforms are inline styles, so the transition/animation overrides below
+   neutralize their easing as well. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
+import apiClient, { fetchCsrfToken } from '../api/client';
 import { useAuthStore } from '../stores/auth-store';
 
 /**
@@ -15,6 +16,7 @@ export const UNREAD_COUNT_QUERY_KEY = ['activities', 'unread'] as const;
 const STREAM_PATH = '/activities/stream';
 export const INITIAL_BACKOFF_MS = 1_000;
 export const MAX_BACKOFF_MS = 30_000;
+export const MAX_REFRESH_FAILURES = 3;
 
 export type ActivityStreamStatus = 'idle' | 'connecting' | 'open' | 'reconnecting';
 
@@ -41,6 +43,13 @@ export interface ActivityStreamManagerOptions {
   eventSourceFactory?: EventSourceFactory;
   initialBackoffMs?: number;
   maxBackoffMs?: number;
+  /**
+   * Refreshes the auth cookie before a reconnect attempt; resolves false when
+   * the session can't be refreshed. Injectable for tests.
+   */
+  refreshAuth?: () => Promise<boolean>;
+  /** Consecutive refresh failures tolerated before the stream gives up. */
+  maxRefreshFailures?: number;
 }
 
 export interface ActivityStreamManager {
@@ -59,10 +68,29 @@ function defaultEventSourceFactory(url: string): EventSourceLike {
 }
 
 /**
+ * EventSource bypasses the axios 401-refresh interceptor, so an expired access
+ * cookie would otherwise leave every reconnect attempt failing forever. Before
+ * each reconnect we refresh the cookie through the same endpoint the
+ * interceptor uses (apiClient attaches the CSRF header).
+ */
+async function defaultRefreshAuth(): Promise<boolean> {
+  try {
+    await apiClient.post('/auth/refresh', {});
+    await fetchCsrfToken();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Framework-agnostic SSE connection manager: connects, surfaces status,
  * parses `activity` events, and reconnects with exponential backoff
- * (1s doubling to a 30s cap). Backoff resets once the server confirms
- * the connection via its `connected` event.
+ * (1s doubling to a 30s cap). Each reconnect is preceded by an auth-cookie
+ * refresh (EventSource can't use the axios 401 interceptor); after
+ * `maxRefreshFailures` consecutive refresh failures the stream stops
+ * ('idle') instead of hammering the rate limit. Backoff resets once the
+ * server confirms the connection via its `connected` event.
  */
 export function createActivityStreamManager(
   options: ActivityStreamManagerOptions
@@ -74,11 +102,14 @@ export function createActivityStreamManager(
     eventSourceFactory = defaultEventSourceFactory,
     initialBackoffMs = INITIAL_BACKOFF_MS,
     maxBackoffMs = MAX_BACKOFF_MS,
+    refreshAuth = defaultRefreshAuth,
+    maxRefreshFailures = MAX_REFRESH_FAILURES,
   } = options;
 
   let source: EventSourceLike | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let backoffMs = initialBackoffMs;
+  let refreshFailures = 0;
   let stopped = false;
 
   function clearReconnectTimer(): void {
@@ -86,6 +117,25 @@ export function createActivityStreamManager(
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
+  }
+
+  async function refreshThenReconnect(): Promise<void> {
+    if (stopped) return;
+    const refreshed = await refreshAuth();
+    if (stopped) return;
+    if (refreshed) {
+      refreshFailures = 0;
+      connect();
+      return;
+    }
+    refreshFailures += 1;
+    if (refreshFailures >= maxRefreshFailures) {
+      // Session is gone — give up instead of retrying into the rate limit.
+      stopped = true;
+      onStatusChange('idle');
+      return;
+    }
+    connect();
   }
 
   function connect(): void {
@@ -97,6 +147,7 @@ export function createActivityStreamManager(
     current.addEventListener('connected', () => {
       if (stopped || source !== current) return;
       backoffMs = initialBackoffMs;
+      refreshFailures = 0;
       onStatusChange('open');
     });
 
@@ -118,7 +169,10 @@ export function createActivityStreamManager(
       const delay = backoffMs;
       backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
       clearReconnectTimer();
-      reconnectTimer = setTimeout(connect, delay);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        void refreshThenReconnect();
+      }, delay);
     });
   }
 
@@ -127,6 +181,7 @@ export function createActivityStreamManager(
       if (source !== null || reconnectTimer !== null) return;
       stopped = false;
       backoffMs = initialBackoffMs;
+      refreshFailures = 0;
       connect();
     },
     stop: () => {

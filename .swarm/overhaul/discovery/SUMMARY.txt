@@ -1,0 +1,31 @@
+VIRAHA SOCIAL LAYER & PRIVACY OVERHAUL - DISCOVERY SUMMARY
+Generated: June 9, 2026
+
+WHAT'S SOLID (3 strengths):
+1. Post privacy enforcement is consistent across all controllers (404-on-unauthorized pattern)—posts correctly respect public/followers/private levels.
+2. Block functionality is bidirectional and comprehensive (removes follows, hides profiles/posts, filters activity feeds).
+3. Comment system has solid structure with nested replies, soft-delete with concurrent-safe count management, and per-post comment toggles.
+
+TOP 8 GAPS RANKED BY USER IMPACT:
+
+#1 BLOCKING USER EXPERIENCE: No mute functionality exists. Users can't hide posts from specific people without unfollowing—core social feature missing entirely.
+
+#2 UNUSABLE FEATURE: Follow request UI is backend-only. Private accounts can receive requests, but no frontend for viewing/accepting/rejecting them.
+
+#3 BROKEN NOTIFICATIONS: Activity stream is polling-only (no SSE/WebSocket). No real-time delivery, no email digests—users won't see replies/follows immediately.
+
+#4 PRIVACY RISK: Exact GPS coordinates exposed in public posts with no fuzzing/rounding. Travelers sharing location-tagged photos risk revealing exact home coordinates.
+
+#5 DATA LEAKAGE: Email included in data export with no hiding option. No email visibility control on profile or in export settings.
+
+#6 PRIVACY SETTING BROKEN: Private accounts still appear in user search (searchUsers doesn't filter by isPrivate). Defeats the account privacy toggle.
+
+#7 MISSING CONTROL: Only three post privacy levels (public/followers/private). No per-post audience lists—can't share with specific people or hide from specific people.
+
+#8 PARTIAL PRIVACY ENFORCEMENT: Trending endpoints (locations, tags) and saved posts don't filter for per-user block visibility. Block caching incomplete on albums/journals.
+
+SOLID ARCHITECTURE: Prisma + PostGIS with optional Redis caching, rate limiting, and graceful degradation. JWT + refresh tokens. Express 5 + Next.js 14 frontend with TanStack React Query.
+
+RECOMMENDED PHASING: Phase 1 = Fix UX (follow requests UI, mutes, location fuzzing). Phase 2 = Privacy controls (discoverability toggle, per-post audiences, search filtering). Phase 3 = Real-time (SSE notifications, email digests, session management). Phase 4 = Moderation (report dashboard, auto-actions, mention controls).
+
+Full discovery report: /Users/akhil/Desktop/Viraha/.swarm/overhaul/discovery/social-privacy.md

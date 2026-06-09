@@ -10,7 +10,9 @@ export async function handleGetPlaceStories(req: Request, res: Response, next: N
     const userId = req.user?.userId;
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
-    const radius = Number(req.query.radius) || 0.01;
+    // `Number(undefined)` is NaN, which is falsy, so the fallback covers the
+    // missing/garbage cases; the cap stops a huge radius from scanning the globe.
+    const radius = Math.min(Number(req.query.radius) || 0.01, 1);
 
     if (isNaN(lat) || isNaN(lng)) {
       res.status(400).json({ success: false, error: 'lat and lng are required' });
@@ -49,6 +51,9 @@ export async function handleGetPlaceStories(req: Request, res: Response, next: N
             userId: { in: friendIds },
             isDeleted: false,
             privacy: { in: ['public', 'followers'] },
+            // Coordinates are not in the select, but matching a bbox query at
+            // all is a location oracle — keep showLocation=false posts out.
+            showLocation: true,
             ...locationFilter,
           },
           orderBy: { postedAt: 'desc' },
@@ -67,6 +72,9 @@ export async function handleGetPlaceStories(req: Request, res: Response, next: N
       where: {
         isDeleted: false,
         privacy: 'public',
+        // Same oracle concern as friend posts: a count delta at a precise bbox
+        // would confirm a location-private post exists there.
+        showLocation: true,
         ...(userId ? { userId: { not: userId } } : {}),
         ...locationFilter,
       },

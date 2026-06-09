@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 import { UserAvatar, resolveAvatarUrl } from '@/components/shared/user-avatar';
 import Button from '@mui/material/Button';
+import MuiDialog from '@mui/material/Dialog';
+import MuiDialogContent from '@mui/material/DialogContent';
+import MuiDialogActions from '@mui/material/DialogActions';
 import { useFollowUser, useUnfollowUser } from '@/lib/hooks/use-follows';
 import { useBlockUser } from '@/lib/hooks/use-user';
 import Link from 'next/link';
@@ -121,6 +124,7 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
   const [isPending, setIsPending] = useState(() => readPendingFlag(user));
   const [followerCount, setFollowerCount] = useState(user.followerCount ?? 0);
   const [followDialog, setFollowDialog] = useState<'followers' | 'following' | null>(null);
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
 
   // Re-sync local state when the profile prop changes (cross-screen follow updates,
   // cached profile refreshes, navigating between profiles).
@@ -143,21 +147,21 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
   const router = useRouter();
   const isFollowLoading = followMutation.isPending || unfollowMutation.isPending;
 
-  function handleBlock() {
+  function closeBlockDialog() {
     if (blockMutation.isPending) return;
-    const ok =
-      typeof window !== 'undefined'
-        ? window.confirm(
-            `Block @${user.username}? They will be removed from your followers and following, and you'll no longer see each other's content.`,
-          )
-        : true;
-    if (!ok) return;
+    setBlockConfirmOpen(false);
+  }
+
+  function handleConfirmBlock() {
+    if (blockMutation.isPending) return;
     blockMutation.mutate(user.id, {
       onSuccess: () => {
+        setBlockConfirmOpen(false);
         toast.success(`Blocked @${user.username}`);
         router.push('/feed');
       },
       onError: () => {
+        setBlockConfirmOpen(false);
         toast.error('Could not block user');
       },
     });
@@ -543,7 +547,7 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
                     color="error"
                     disableElevation
                     sx={{ gap: 1, borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}
-                    onClick={handleBlock}
+                    onClick={() => setBlockConfirmOpen(true)}
                     disabled={blockMutation.isPending}
                     aria-label={`Block ${user.username}`}
                   >
@@ -563,6 +567,65 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
         userId={user.id}
         type={followDialog ?? 'followers'}
       />
+
+      {/* Block confirmation dialog (window.confirm is unreliable in WebViews) */}
+      <MuiDialog
+        open={blockConfirmOpen}
+        onClose={closeBlockDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4 } }}
+      >
+        <Box sx={{ px: 3, pt: 3, pb: 1 }}>
+          <Box
+            sx={{
+              mx: 'auto',
+              mb: 1.5,
+              display: 'flex',
+              height: 48,
+              width: 48,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              bgcolor: 'rgba(239,68,68,0.1)',
+            }}
+          >
+            <Ban style={{ height: 24, width: 24, color: 'var(--mui-palette-error-main)' }} />
+          </Box>
+          <Typography variant="h6" component="h2" sx={{ fontWeight: 600, textAlign: 'center' }}>
+            Block @{user.username}?
+          </Typography>
+        </Box>
+        <MuiDialogContent sx={{ pt: 2 }}>
+          <Typography sx={{ textAlign: 'center', fontSize: '0.875rem', color: 'text.secondary' }}>
+            They will be removed from your followers and following, and you&apos;ll no
+            longer see each other&apos;s content.
+          </Typography>
+        </MuiDialogContent>
+        <MuiDialogActions sx={{ px: 3, pb: 3, flexDirection: 'column', gap: 1 }}>
+          <Button
+            type="button"
+            variant="contained"
+            color="error"
+            disableElevation
+            onClick={handleConfirmBlock}
+            disabled={blockMutation.isPending}
+            sx={{ width: '100%' }}
+          >
+            {blockMutation.isPending ? 'Blocking...' : `Block @${user.username}`}
+          </Button>
+          <Button
+            type="button"
+            variant="text"
+            disableElevation
+            onClick={closeBlockDialog}
+            disabled={blockMutation.isPending}
+            sx={{ width: '100%' }}
+          >
+            Cancel
+          </Button>
+        </MuiDialogActions>
+      </MuiDialog>
     </Box>
   );
 }

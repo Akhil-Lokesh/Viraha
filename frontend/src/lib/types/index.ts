@@ -24,8 +24,9 @@ export interface Post {
   caption: string | null;
   mediaUrls: string[];
   mediaThumbnails: string[];
-  locationLat: number;
-  locationLng: number;
+  /** Null when the author hides their location — the backend redacts lat/lng. */
+  locationLat: number | null;
+  locationLng: number | null;
   locationName: string | null;
   locationCity: string | null;
   locationCountry: string | null;

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { createActivity } from '../utils/activity';
+import { redactPostLocation } from '../utils/locationPrivacy';
 
 const userSelect = {
   id: true,
@@ -147,7 +148,13 @@ export async function getSavedPosts(req: Request, res: Response, next: NextFunct
     res.json({
       success: true,
       data: {
-        items: items.map((s) => ({ ...s.post, isSaved: true, savedAt: s.createdAt })),
+        // Saving someone's location-private post must not reveal its exact
+        // coordinates — redact unless the viewer owns the post.
+        items: items.map((s) => ({
+          ...redactPostLocation(s.post, userId),
+          isSaved: true,
+          savedAt: s.createdAt,
+        })),
         nextCursor,
       },
     });

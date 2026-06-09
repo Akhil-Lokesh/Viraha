@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
 import { MapPin } from 'lucide-react';
 import { LocationBadge } from '@/components/shared/location-badge';
+import { hasMapCoordinates } from '@/components/post/keepsake';
 import type { Post } from '@/lib/types';
 
 // ─── Dynamic map components ──────────────────────────
@@ -62,7 +63,12 @@ interface ProfileMapTabProps {
 }
 
 export default function ProfileMapTab({ posts }: ProfileMapTabProps) {
-  if (!posts || posts.length === 0) {
+  // The backend nulls lat/lng on redacted locations — those posts can't be
+  // plotted, and must never fall back to 0/0 (the Gulf of Guinea).
+  const locatedPosts = (posts ?? []).filter(hasMapCoordinates);
+  const firstLocated = locatedPosts[0];
+
+  if (!firstLocated) {
     return (
       <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Typography color="text.secondary">No locations to display</Typography>
@@ -73,15 +79,12 @@ export default function ProfileMapTab({ posts }: ProfileMapTabProps) {
   return (
     <Box sx={{ borderRadius: '12px', overflow: 'hidden', border: 1, borderColor: 'divider', height: 500 }}>
       <MapComponent
-        center={[
-          Number(posts[0]?.locationLng ?? 0),
-          Number(posts[0]?.locationLat ?? 0),
-        ]}
-        zoom={posts.length === 1 ? 8 : 2}
+        center={[firstLocated.locationLng, firstLocated.locationLat]}
+        zoom={locatedPosts.length === 1 ? 8 : 2}
         styles={mapboxStyleUrls}
         className="map-container"
       >
-        {posts.map((post) => {
+        {locatedPosts.map((post) => {
           const thumb = post.mediaThumbnails[0] || post.mediaUrls[0];
           const resolved = thumb ? resolveImageUrl(thumb) : null;
           const locationLabel = [post.locationCity, post.locationCountry]

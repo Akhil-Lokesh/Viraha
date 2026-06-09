@@ -668,6 +668,17 @@ export async function listSessions(req: Request, res: Response, next: NextFuncti
   try {
     const currentRefreshToken = req.cookies?.viraha_refresh as string | undefined;
 
+    // Resolve the current session's id first so raw refresh tokens are never
+    // loaded into memory alongside the session list.
+    const currentSession = currentRefreshToken
+      ? await prisma.refreshToken.findUnique({
+          where: { token: currentRefreshToken },
+          select: { id: true, userId: true },
+        })
+      : null;
+    const currentId =
+      currentSession && currentSession.userId === req.user!.userId ? currentSession.id : null;
+
     const tokens = await prisma.refreshToken.findMany({
       where: {
         userId: req.user!.userId,
@@ -676,7 +687,6 @@ export async function listSessions(req: Request, res: Response, next: NextFuncti
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
-        token: true,
         userAgent: true,
         ip: true,
         createdAt: true,
@@ -690,7 +700,7 @@ export async function listSessions(req: Request, res: Response, next: NextFuncti
       ip: t.ip,
       createdAt: t.createdAt,
       lastUsedAt: t.lastUsedAt,
-      current: currentRefreshToken !== undefined && t.token === currentRefreshToken,
+      current: currentId !== null && t.id === currentId,
     }));
 
     res.json({
@@ -743,10 +753,25 @@ export async function revokeOtherSessions(req: Request, res: Response, next: Nex
   try {
     const currentRefreshToken = req.cookies?.viraha_refresh as string | undefined;
 
+    // Without the refresh cookie there is no way to identify the current
+    // session — deleting everything would log the caller out too. Refuse
+    // rather than silently revoking the caller's own session.
+    if (!currentRefreshToken) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'REFRESH_COOKIE_REQUIRED',
+          message:
+            'The viraha_refresh cookie is required to identify the current session. Use DELETE /sessions/:id to revoke specific sessions.',
+        },
+      });
+      return;
+    }
+
     const result = await prisma.refreshToken.deleteMany({
       where: {
         userId: req.user!.userId,
-        ...(currentRefreshToken ? { token: { not: currentRefreshToken } } : {}),
+        token: { not: currentRefreshToken },
       },
     });
 

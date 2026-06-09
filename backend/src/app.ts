@@ -9,7 +9,7 @@ import { randomUUID } from 'crypto';
 import { env } from './config/env';
 import { setSessionIdCookie } from './utils/cookies';
 import { errorHandler } from './middleware/errorHandler';
-import { apiLimiter, authLimiter, uploadLimiter } from './middleware/rateLimiter';
+import { apiLimiter, authLimiter, sseLimiter, uploadLimiter } from './middleware/rateLimiter';
 import { doubleCsrfProtection } from './middleware/csrf';
 import { prisma } from './lib/prisma';
 import { redis } from './lib/redis';
@@ -142,8 +142,19 @@ app.get('/health', async (_req, res) => {
   res.json({ status: 'ok', db, redis: redisStatus });
 });
 
-// Rate limiting
-app.use('/api/v1', apiLimiter);
+// Rate limiting. The SSE activities stream is exempt from the general
+// apiLimiter (long-lived connections + reconnect loops would exhaust the
+// per-IP request budget and 429 the whole API) and gets its own
+// connection-rate limiter instead. All other routes are limited as before.
+const SSE_STREAM_PATH = '/activities/stream';
+app.use('/api/v1', (req, res, next) => {
+  if (req.path === SSE_STREAM_PATH) {
+    next();
+    return;
+  }
+  apiLimiter(req, res, next);
+});
+app.use(`/api/v1${SSE_STREAM_PATH}`, sseLimiter);
 app.use('/api/v1/auth', authLimiter);
 app.use('/api/v1/media', uploadLimiter);
 

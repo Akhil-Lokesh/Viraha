@@ -1,6 +1,9 @@
 import { prisma } from './prisma';
 import { cacheGet, cacheSet, cacheDel } from './cache';
 
+// Block/mute lists are cached for 60s: explicit mute/unmute/block/unblock calls
+// invalidate immediately, but any path that misses invalidation means a fresh
+// mute/block can take up to 60s to affect feeds, search, and explore.
 const TTL_SECONDS = 60;
 
 function blockedKey(userId: string): string {

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheSet } from '../lib/cache';
 import { getHiddenUserIds, getMutedUserIds } from '../lib/blocks';
@@ -8,6 +9,18 @@ import { redactPostLocation } from '../utils/locationPrivacy';
  * Users whose content the viewer must not see in explore surfaces:
  * blocked (both directions) plus muted (one-way). Empty for anonymous viewers.
  */
+interface TrendingLocation {
+  city: string;
+  country: string;
+  photo: string | null;
+  count: number;
+}
+
+interface TrendingTag {
+  tag: string;
+  count: number;
+}
+
 async function getExcludedUserIds(viewerId: string | undefined): Promise<string[]> {
   if (!viewerId) return [];
   const [hiddenIds, mutedIds] = await Promise.all([
@@ -26,7 +39,7 @@ export async function getTrendingLocations(req: Request, res: Response, next: Ne
 
     const cacheKey = 'explore:trending-locations';
     if (useSharedCache) {
-      const cached = await cacheGet<any>(cacheKey);
+      const cached = await cacheGet<{ locations: TrendingLocation[] }>(cacheKey);
       if (cached) {
         res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
         res.json({ success: true, data: cached });
@@ -119,7 +132,7 @@ export async function getTrendingTags(req: Request, res: Response, next: NextFun
 
     const cacheKey = 'explore:trending-tags';
     if (useSharedCache) {
-      const cached = await cacheGet<any>(cacheKey);
+      const cached = await cacheGet<{ tags: TrendingTag[] }>(cacheKey);
       if (cached) {
         res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
         res.json({ success: true, data: cached });
@@ -160,6 +173,25 @@ export async function getTrendingTags(req: Request, res: Response, next: NextFun
   }
 }
 
+// Shape of one cached featured-pool entry: a full post row (every scalar,
+// including showLocation, which the per-viewer redaction step depends on)
+// plus the author summary.
+type FeaturedPoolPost = Prisma.PostGetPayload<{
+  include: {
+    user: { select: { id: true; username: true; displayName: true; avatar: true } };
+  };
+}>;
+
+/**
+ * A cached pool entry is only usable when it carries the showLocation flag —
+ * redactPostLocation treats a missing flag as "visible", so deserializing a
+ * stale cache shape (written before the flag existed) must force a refetch
+ * rather than silently skip redaction.
+ */
+function isRedactablePoolEntry(p: FeaturedPoolPost): boolean {
+  return typeof p.showLocation === 'boolean';
+}
+
 export async function getFeaturedContent(req: Request, res: Response, next: NextFunction) {
   try {
     const limit = Math.min(Number(req.query.limit) || 12, 30);
@@ -168,9 +200,12 @@ export async function getFeaturedContent(req: Request, res: Response, next: Next
     // Larger pool ensures we can still return `limit` items after filtering.
     const poolSize = limit * 3;
     const cacheKey = `explore:featured:pool:${poolSize}`;
-    let pool = await cacheGet<any[]>(cacheKey);
+    const cached = await cacheGet<FeaturedPoolPost[]>(cacheKey);
+    let pool = cached && cached.every(isRedactablePoolEntry) ? cached : null;
 
     if (!pool) {
+      // No explicit `select`: Prisma returns every scalar column, which
+      // includes showLocation — required by the redaction step below.
       pool = await prisma.post.findMany({
         where: {
           isDeleted: false,
@@ -196,9 +231,9 @@ export async function getFeaturedContent(req: Request, res: Response, next: Next
     const excludeIds = await getExcludedUserIds(req.user?.userId);
     const hidden = new Set(excludeIds);
     const posts = pool
-      .filter((p: any) => !hidden.has(p.userId))
+      .filter((p) => !hidden.has(p.userId))
       .slice(0, limit)
-      .map((p: any) => redactPostLocation(p, viewerId));
+      .map((p) => redactPostLocation(p, viewerId));
 
     res.json({ success: true, data: { posts } });
   } catch (err) {

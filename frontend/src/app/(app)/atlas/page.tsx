@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { useAtlas } from '@/lib/hooks/use-atlas';
 import { EmptyState } from '@/components/shared/empty-state';
+import { grain } from '@/components/post/keepsake';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 
 const CONTINENTS = ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Oceania', 'Antarctica'];
@@ -25,10 +26,6 @@ const inkSx = (theme: { palette: { mode: string } }) =>
   theme.palette.mode === 'dark'
     ? 'var(--viraha-ink-dark, #F2EAD9)'
     : 'var(--viraha-ink, #221C18)';
-
-/** Subtle paper-grain texture, no asset files. */
-const grain =
-  'repeating-linear-gradient(0deg, rgba(34,28,24,0.02) 0px, rgba(34,28,24,0.02) 1px, transparent 1px, transparent 3px)';
 
 function AtlasSkeleton() {
   return (
@@ -182,7 +179,7 @@ export default function AtlasPage() {
             py: 2.5,
             textAlign: 'center',
             position: 'relative',
-            backgroundImage: grain,
+            backgroundImage: grain(theme.palette.mode === 'dark'),
             bgcolor:
               theme.palette.mode === 'dark'
                 ? 'rgba(212,168,67,0.06)'
@@ -321,7 +318,7 @@ export default function AtlasPage() {
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
                 color: 'text.primary',
-                backgroundImage: grain,
+                backgroundImage: grain(theme.palette.mode === 'dark'),
               })}
             >
               {c.country} · {c.cityCount} {c.cityCount === 1 ? 'city' : 'cities'}

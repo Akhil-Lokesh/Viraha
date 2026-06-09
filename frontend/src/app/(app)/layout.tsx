@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/header';
 import { BottomNav } from '@/components/layout/mobile-nav';
 import { UnverifiedEmailBanner } from '@/components/layout/unverified-email-banner';
 import { TravelAutoDetector } from '@/components/travel/travel-auto-detector';
+import { ActivityStreamMount } from '@/components/layout/activity-stream-mount';
 import { AuthGuard } from '@/components/auth/auth-guard';
 
 export default function AppLayout({
@@ -43,6 +44,9 @@ export default function AppLayout({
 
         {/* Travel mode auto-detection */}
         <TravelAutoDetector />
+
+        {/* App-wide activity SSE stream (live unread counts everywhere) */}
+        <ActivityStreamMount />
       </Box>
     </AuthGuard>
   );

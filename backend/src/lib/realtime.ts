@@ -6,14 +6,18 @@ import { logger } from './logger';
 const MAX_CONNECTIONS_PER_USER = 5;
 const HEARTBEAT_INTERVAL_MS = 25_000;
 const ACTIVITY_CHANNEL = 'viraha:activity';
+// How long a publish waits for the subscriber's SUBSCRIBE to confirm before
+// falling back to in-process delivery.
+const SUBSCRIBE_WAIT_MS = 500;
 
 // Per-user SSE connection registry
 const registry = new Map<string, Set<Response>>();
 const heartbeatTimers = new Map<Response, NodeJS.Timeout>();
 
 let subscriber: Redis | null = null;
-let subscriberInitialized = false;
-let subscriberReady = false;
+// Settled/in-flight outcome of the SUBSCRIBE command. `null` means there is
+// no active subscriber and the next publish/connection must (re-)subscribe.
+let subscribePromise: Promise<boolean> | null = null;
 
 /**
  * Register an SSE connection for a user. Caps connections per user;
@@ -90,66 +94,127 @@ function handleSubscriberMessage(message: string): void {
 }
 
 /**
- * Lazily initialize the Redis pub/sub subscriber on first SSE connection.
- * All failures degrade gracefully to in-process delivery.
+ * Tear down the current subscriber (if any) and clear subscription state so
+ * the next publish/connection re-subscribes from scratch.
  */
-function ensureSubscriber(): void {
-  if (subscriberInitialized || !redis) return;
-  subscriberInitialized = true;
+function resetSubscriber(): void {
+  const sub = subscriber;
+  subscriber = null;
+  subscribePromise = null;
+  if (sub) {
+    try {
+      sub.disconnect();
+    } catch (err) {
+      logger.debug({ err }, 'Failed to disconnect realtime subscriber');
+    }
+  }
+}
+
+/**
+ * Lazily initialize the Redis pub/sub subscriber and return a promise that
+ * resolves true once SUBSCRIBE is confirmed. Any failure (init error,
+ * SUBSCRIBE rejection, connection drop) resets state so the next call
+ * re-subscribes — all failures degrade gracefully to in-process delivery.
+ */
+function ensureSubscriber(): Promise<boolean> {
+  if (!redis) return Promise.resolve(false);
+  if (subscribePromise) return subscribePromise;
+
+  let sub: Redis;
   try {
-    subscriber = redis.duplicate();
-    subscriber.on('error', (err) => {
-      subscriberReady = false;
-      logger.debug({ err }, 'Realtime subscriber error');
-    });
-    subscriber.on('end', () => {
-      subscriberReady = false;
-    });
-    subscriber.on('message', (channel: string, message: string) => {
-      if (channel === ACTIVITY_CHANNEL) handleSubscriberMessage(message);
-    });
-    subscriber
-      .subscribe(ACTIVITY_CHANNEL)
-      .then(() => {
-        subscriberReady = true;
-      })
-      .catch((err: unknown) => {
-        subscriberReady = false;
-        logger.debug({ err }, 'Realtime subscriber failed to subscribe');
-      });
+    sub = redis.duplicate();
   } catch (err) {
-    subscriber = null;
     logger.debug({ err }, 'Failed to initialize realtime subscriber');
+    return Promise.resolve(false);
+  }
+
+  subscriber = sub;
+  sub.on('error', (err) => {
+    logger.debug({ err }, 'Realtime subscriber error');
+    if (subscriber === sub) resetSubscriber();
+  });
+  sub.on('end', () => {
+    // Connection is gone for good — allow a future publish/connection to
+    // create a fresh subscriber instead of staying dead forever.
+    if (subscriber === sub) resetSubscriber();
+  });
+  sub.on('message', (channel: string, message: string) => {
+    if (channel === ACTIVITY_CHANNEL) handleSubscriberMessage(message);
+  });
+
+  subscribePromise = sub.subscribe(ACTIVITY_CHANNEL).then(
+    () => subscriber === sub,
+    (err: unknown) => {
+      logger.debug({ err }, 'Realtime subscriber failed to subscribe');
+      if (subscriber === sub) resetSubscriber();
+      return false;
+    }
+  );
+  return subscribePromise;
+}
+
+/** Resolve `promise` but give up (resolve false) after `ms` milliseconds. */
+function waitWithTimeout(promise: Promise<boolean>, ms: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(false), ms);
+    timer.unref();
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(false);
+      }
+    );
+  });
+}
+
+function safeDeliverLocal(userId: string, payload: Record<string, unknown>): void {
+  try {
+    deliverLocal(userId, payload);
+  } catch (err) {
+    logger.debug({ err }, 'In-process activity delivery failed');
   }
 }
 
 /**
  * Publish an activity notification for a user. Uses Redis pub/sub when
- * available (multi-instance delivery); falls back to direct in-process
- * delivery when Redis is unavailable or the local subscriber is not ready.
- * Never throws.
+ * available (multi-instance delivery). Exactly one delivery path serves the
+ * local instance per event: the Redis subscriber when its subscription is
+ * confirmed, otherwise direct in-process delivery (Redis absent, publish
+ * failed, or subscription failed/not ready in time). Never throws.
  */
 export async function publishActivity(
   userId: string,
   payload: Record<string, unknown>
 ): Promise<void> {
-  let published = false;
-  if (redis) {
-    try {
-      await redis.publish(ACTIVITY_CHANNEL, JSON.stringify({ userId, payload }));
-      published = true;
-    } catch (err) {
-      logger.debug({ err }, 'Redis publish failed — falling back to in-process delivery');
-    }
+  if (!redis) {
+    safeDeliverLocal(userId, payload);
+    return;
   }
-  // If the message did not go through Redis, or this instance's subscriber
-  // is not listening, deliver directly to local connections.
-  if (!published || !subscriberReady) {
-    try {
-      deliverLocal(userId, payload);
-    } catch (err) {
-      logger.debug({ err }, 'In-process activity delivery failed');
-    }
+
+  // Await subscription readiness BEFORE publishing so the decision between
+  // "subscriber delivers" and "deliver locally" is made against a confirmed
+  // state — never both paths for one event.
+  const subscribed = await waitWithTimeout(ensureSubscriber(), SUBSCRIBE_WAIT_MS);
+  if (!subscribed) {
+    // Warm-up timed out or subscription failed: tear the subscriber down so a
+    // late-confirming subscription cannot also deliver this event.
+    resetSubscriber();
+  }
+
+  let published = false;
+  try {
+    await redis.publish(ACTIVITY_CHANNEL, JSON.stringify({ userId, payload }));
+    published = true;
+  } catch (err) {
+    logger.debug({ err }, 'Redis publish failed — falling back to in-process delivery');
+  }
+
+  if (!subscribed || !published) {
+    safeDeliverLocal(userId, payload);
   }
 }
 
@@ -167,7 +232,8 @@ export function sseHandler(req: Request, res: Response): void {
     return;
   }
 
-  ensureSubscriber();
+  // Kick off (re-)subscription eagerly; publishes await its outcome.
+  void ensureSubscriber();
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -200,6 +266,14 @@ export function shutdownRealtime(): void {
   for (const [userId, set] of [...registry.entries()]) {
     for (const res of [...set]) {
       closeConnection(userId, res);
+      // res.end() alone does not guarantee the TCP socket closes before
+      // server.close() drains — destroy the socket so shutdown is
+      // deterministic instead of waiting on client FIN acknowledgement.
+      try {
+        res.socket?.destroy();
+      } catch (err) {
+        logger.debug({ err }, 'Failed to destroy SSE socket during shutdown');
+      }
     }
   }
   registry.clear();
@@ -208,14 +282,5 @@ export function shutdownRealtime(): void {
   }
   heartbeatTimers.clear();
 
-  if (subscriber) {
-    try {
-      subscriber.disconnect();
-    } catch (err) {
-      logger.debug({ err }, 'Failed to disconnect realtime subscriber');
-    }
-    subscriber = null;
-  }
-  subscriberInitialized = false;
-  subscriberReady = false;
+  resetSubscriber();
 }

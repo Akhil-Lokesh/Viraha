@@ -131,6 +131,17 @@ describe('Auth session management', () => {
       expect(sessions).toHaveLength(1);
       expect(sessions[0].userAgent).toBe('A-Device/1.0');
     });
+
+    it('should not mark any session current when presenting another user refresh token', async () => {
+      const userA = await createTestUser();
+      const userB = await createTestUser();
+      await loginFromDevice(userA.email, 'A-Device/1.0');
+      const tokenB = await loginFromDevice(userB.email, 'B-Device/1.0');
+
+      const sessions = await listSessions(userA.id, tokenB);
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].current).toBe(false);
+    });
   });
 
   describe('DELETE /api/v1/auth/sessions/:id', () => {
@@ -256,12 +267,12 @@ describe('Auth session management', () => {
     it('should not touch another user sessions', async () => {
       const userA = await createTestUser();
       const userB = await createTestUser();
-      await loginFromDevice(userA.email, 'A-Device/1.0');
+      const tokenA = await loginFromDevice(userA.email, 'A-Device/1.0');
       const tokenB = await loginFromDevice(userB.email, 'B-Device/1.0');
 
       const res = await request(app)
         .delete('/api/v1/auth/sessions')
-        .set('Cookie', [getAuthCookie(userA.id)]);
+        .set('Cookie', [getAuthCookie(userA.id), `viraha_refresh=${tokenA}`]);
 
       expect(res.status).toBe(200);
 
@@ -271,6 +282,34 @@ describe('Auth session management', () => {
         .set('Cookie', [`viraha_refresh=${tokenB}`])
         .send({});
       expect(refreshB.status).toBe(200);
+    });
+
+    it('should refuse with 400 when the refresh cookie is absent (bearer-style caller) and revoke nothing', async () => {
+      const user = await createTestUser();
+      const tokenA = await loginFromDevice(user.email, 'Device-A/1.0');
+      const tokenB = await loginFromDevice(user.email, 'Device-B/2.0');
+
+      // Authenticated via access cookie only — no viraha_refresh cookie means
+      // the current session cannot be identified; deleting everything would
+      // log the caller out of their own session.
+      const res = await request(app)
+        .delete('/api/v1/auth/sessions')
+        .set('Cookie', [getAuthCookie(user.id)]);
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('REFRESH_COOKIE_REQUIRED');
+
+      // No sessions were revoked — both refresh tokens still work.
+      const count = await prisma.refreshToken.count({ where: { userId: user.id } });
+      expect(count).toBe(2);
+      for (const token of [tokenA, tokenB]) {
+        const refresh = await request(app)
+          .post('/api/v1/auth/refresh')
+          .set('Cookie', [`viraha_refresh=${token}`])
+          .send({});
+        expect(refresh.status).toBe(200);
+      }
     });
   });
 

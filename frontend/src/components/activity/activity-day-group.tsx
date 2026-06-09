@@ -98,7 +98,8 @@ export function ActivityDayGroup({ group, onMarkRead }: ActivityDayGroupProps) {
             flexShrink: 0,
           }}
         />
-        <Typography component="h2" sx={{ ...eyebrowSx, color: KEEPSAKE.gold }}>
+        {/* Day labels are locale/now-dependent — SSR and client can disagree. */}
+        <Typography component="h2" suppressHydrationWarning sx={{ ...eyebrowSx, color: KEEPSAKE.gold }}>
           {group.label}
         </Typography>
       </Box>

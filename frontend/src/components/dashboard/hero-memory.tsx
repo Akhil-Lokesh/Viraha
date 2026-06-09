@@ -18,7 +18,10 @@ function resolveImageUrl(url: string): string {
   return `${API_BASE}${url}`;
 }
 
-function formatCoordinates(lat: number, lng: number): string {
+/** Null when the backend redacted the post's location (hidden lat/lng). */
+function formatCoordinates(lat: number | null, lng: number | null): string | null {
+  if (typeof lat !== 'number' || !Number.isFinite(lat)) return null;
+  if (typeof lng !== 'number' || !Number.isFinite(lng)) return null;
   const ns = lat >= 0 ? 'N' : 'S';
   const ew = lng >= 0 ? 'E' : 'W';
   return `${Math.abs(lat).toFixed(4)}° ${ns}, ${Math.abs(lng).toFixed(4)}° ${ew}`;
@@ -65,6 +68,7 @@ export function HeroMemory() {
   const image = latest.mediaThumbnails[0] || latest.mediaUrls[0];
   const place = latest.locationName || latest.locationCity || latest.locationCountry || 'Somewhere on the map';
   const stampLabel = latest.locationCity || latest.locationCountry;
+  const coordsLabel = formatCoordinates(latest.locationLat, latest.locationLng);
   const postedDate = new Date(latest.postedAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -140,9 +144,11 @@ export function HeroMemory() {
 
           {/* Postcard caption block — thick bottom padding */}
           <Box sx={{ pt: 2, pb: { xs: 2, md: 2.5 }, px: 0.5 }}>
-            <Typography component="p" sx={{ ...eyebrowSx, color: t.gold, mb: 0.75 }}>
-              {formatCoordinates(latest.locationLat, latest.locationLng)}
-            </Typography>
+            {coordsLabel && (
+              <Typography component="p" sx={{ ...eyebrowSx, color: t.gold, mb: 0.75 }}>
+                {coordsLabel}
+              </Typography>
+            )}
             <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2 }}>
               <Typography
                 component="h2"
@@ -151,7 +157,11 @@ export function HeroMemory() {
               >
                 {place}
               </Typography>
-              <Typography component="span" sx={{ ...eyebrowSx, fontSize: '10px', color: t.inkSoft, flexShrink: 0 }}>
+              <Typography
+                component="span"
+                suppressHydrationWarning
+                sx={{ ...eyebrowSx, fontSize: '10px', color: t.inkSoft, flexShrink: 0 }}
+              >
                 {postedDate}
               </Typography>
             </Box>

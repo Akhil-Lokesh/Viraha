@@ -180,15 +180,22 @@ export async function getNearbyFeed(req: Request, res: Response, next: NextFunct
 
     const { minLat, maxLat, minLng, maxLng } = getBoundingBox(lat, lng, radius);
 
-    // Exclude content authored by users in a block relationship with the viewer
-    const hiddenIds = await getHiddenUserIds(req.user!.userId);
+    const viewerId = req.user!.userId;
 
+    // Exclude content authored by users in a block relationship with the viewer
+    const hiddenIds = await getHiddenUserIds(viewerId);
+
+    // Location-private posts (showLocation=false) are excluded for everyone
+    // but their owner — same semantics as the map markers endpoint. The
+    // showLocation OR lives inside AND so the keyset OR (spread at the top
+    // level below) can never clobber it.
     const baseWhere = {
       isDeleted: false,
       privacy: 'public' as const,
       locationLat: { gte: minLat, lte: maxLat },
       locationLng: { gte: minLng, lte: maxLng },
       ...(hiddenIds.length > 0 && { userId: { notIn: hiddenIds } }),
+      AND: [{ OR: [{ showLocation: true }, { userId: viewerId }] }],
     };
 
     // Keyset predicate matching `orderBy [{ postedAt: desc }, { id: desc }]`:

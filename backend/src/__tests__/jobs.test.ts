@@ -6,6 +6,8 @@ interface RedisMock {
 
 const mocks = vi.hoisted(() => ({
   redis: null as RedisMock | null,
+  enableJobs: true as boolean | undefined,
+  nodeEnv: 'test',
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   loggerWarn: vi.fn(),
@@ -15,6 +17,19 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../lib/redis', () => ({
   get redis() {
     return mocks.redis;
+  },
+}));
+
+// The scheduler reads the validated config; expose mutable values so tests
+// can flip ENABLE_JOBS / NODE_ENV without re-parsing the real environment.
+vi.mock('../config/env', () => ({
+  env: {
+    get ENABLE_JOBS() {
+      return mocks.enableJobs;
+    },
+    get NODE_ENV() {
+      return mocks.nodeEnv;
+    },
   },
 }));
 
@@ -44,54 +59,50 @@ function makeJob(overrides: Partial<BackgroundJob> = {}): BackgroundJob {
   };
 }
 
-const ORIGINAL_ENABLE_JOBS = process.env.ENABLE_JOBS;
-
 describe('jobs scheduler', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mocks.redis = null;
+    mocks.enableJobs = true;
+    mocks.nodeEnv = 'test';
     mocks.loggerError.mockClear();
     mocks.loggerInfo.mockClear();
     mocks.loggerWarn.mockClear();
     mocks.loggerDebug.mockClear();
-    process.env.ENABLE_JOBS = 'true';
   });
 
   afterEach(() => {
     stopJobs();
     vi.useRealTimers();
-    if (ORIGINAL_ENABLE_JOBS === undefined) {
-      delete process.env.ENABLE_JOBS;
-    } else {
-      process.env.ENABLE_JOBS = ORIGINAL_ENABLE_JOBS;
-    }
   });
 
   describe('jobsEnabled', () => {
     it('honors explicit ENABLE_JOBS=false', () => {
-      process.env.ENABLE_JOBS = 'false';
+      mocks.enableJobs = false;
       expect(jobsEnabled()).toBe(false);
     });
 
     it('honors explicit ENABLE_JOBS=true', () => {
-      process.env.ENABLE_JOBS = 'true';
+      mocks.enableJobs = true;
       expect(jobsEnabled()).toBe(true);
     });
 
     it('defaults to disabled outside production (NODE_ENV=test)', () => {
-      delete process.env.ENABLE_JOBS;
+      mocks.enableJobs = undefined;
+      mocks.nodeEnv = 'test';
       expect(jobsEnabled()).toBe(false);
     });
 
-    it('treats unrecognized values as unset (falls back to NODE_ENV default)', () => {
-      process.env.ENABLE_JOBS = 'maybe';
-      expect(jobsEnabled()).toBe(false);
+    it('defaults to enabled in production when ENABLE_JOBS is unset', () => {
+      mocks.enableJobs = undefined;
+      mocks.nodeEnv = 'production';
+      expect(jobsEnabled()).toBe(true);
     });
   });
 
   describe('startJobs / stopJobs', () => {
     it('does not schedule any timers when ENABLE_JOBS=false', () => {
-      process.env.ENABLE_JOBS = 'false';
+      mocks.enableJobs = false;
       const job = makeJob();
       startJobs([job]);
       expect(vi.getTimerCount()).toBe(0);
@@ -159,6 +170,60 @@ describe('jobs scheduler', () => {
       startJobs([job]);
       await vi.advanceTimersByTimeAsync(1_000);
       expect(job.run).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('in-process overlap guard', () => {
+    it('skips ticks while a previous run is still in progress, then resumes', async () => {
+      let resolveRun!: () => void;
+      const run = vi.fn().mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveRun = resolve;
+          })
+      );
+      const job = makeJob({ run, initialDelayMs: 1_000, intervalMs: 60_000 });
+      startJobs([job]);
+
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(run).toHaveBeenCalledTimes(1);
+
+      // Two interval ticks fire while the first run is still in flight —
+      // the run must not overlap itself on the same instance.
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(run).toHaveBeenCalledTimes(1);
+      expect(mocks.loggerDebug).toHaveBeenCalledWith(
+        { job: 'testJob' },
+        'Job skipped — previous run still in progress'
+      );
+
+      // Once the long run finishes, the next tick executes normally.
+      resolveRun();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(run).toHaveBeenCalledTimes(2);
+    });
+
+    it('clears the running flag when a run fails, so the next tick still runs', async () => {
+      let rejectRun!: (err: Error) => void;
+      const run = vi.fn().mockImplementation(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            rejectRun = reject;
+          })
+      );
+      const job = makeJob({ run, initialDelayMs: 1_000, intervalMs: 60_000 });
+      startJobs([job]);
+
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(run).toHaveBeenCalledTimes(1);
+
+      rejectRun(new Error('boom'));
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(run).toHaveBeenCalledTimes(2);
+      expect(mocks.loggerError).toHaveBeenCalledWith(
+        expect.objectContaining({ job: 'testJob', err: expect.any(Error) }),
+        'Job failed'
+      );
     });
   });
 

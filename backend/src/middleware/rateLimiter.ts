@@ -76,6 +76,26 @@ export const searchLimiter = rateLimit({
   },
 });
 
+// SSE stream connection limiter. The activities stream is a long-lived
+// connection: reconnect loops (network drops, expired-token retries) would
+// burn through the general apiLimiter budget and 429 the whole API for that
+// IP. It is exempted from apiLimiter in app.ts and rate-limited here on
+// connection attempts only.
+export const sseLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  limit: 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  store: createStore('rl:sse:'),
+  passOnStoreError: true,
+  // Disable throttling under the test runner so integration tests are deterministic.
+  skip: () => process.env.NODE_ENV === 'test',
+  message: {
+    success: false,
+    error: { code: 'RATE_LIMITED', message: 'Too many stream connections, please try again later.' },
+  },
+});
+
 // Upload limiter
 export const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour

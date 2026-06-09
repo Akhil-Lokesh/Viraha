@@ -6,6 +6,8 @@
  * postcards correct even before the variables are defined.
  */
 
+import type { Post } from '@/lib/types';
+
 export const GOLD = 'var(--viraha-gold, #D4A843)';
 export const PAPER_LIGHT = 'var(--viraha-paper, #FAF6EE)';
 export const INK_LIGHT = 'var(--viraha-ink, #221C18)';
@@ -51,10 +53,28 @@ export const EYEBROW_SX = {
 
 /**
  * The backend redacts hidden locations by nulling lat/lng while keeping
- * city/country. The Post type declares numbers, so guard at runtime.
+ * city/country, so coordinates must be guarded before display or map use.
  */
-export function hasCoordinates(lat: number, lng: number): boolean {
-  return Number.isFinite(lat) && Number.isFinite(lng);
+export function hasCoordinates(lat: number | null, lng: number | null): boolean {
+  return getCoordinates(lat, lng) !== null;
+}
+
+/** Narrows nullable post coordinates to a usable pair, or null when redacted. */
+export function getCoordinates(
+  lat: number | null,
+  lng: number | null
+): { lat: number; lng: number } | null {
+  if (typeof lat !== 'number' || !Number.isFinite(lat)) return null;
+  if (typeof lng !== 'number' || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+/** A post whose coordinates survived redaction — safe for map markers. */
+export type LocatedPost = Post & { locationLat: number; locationLng: number };
+
+/** Type-guard filter for posts that can be plotted on a map. */
+export function hasMapCoordinates(post: Post): post is LocatedPost {
+  return getCoordinates(post.locationLat, post.locationLng) !== null;
 }
 
 /** "47.6062° N, 122.3321° W" — coordinates eyebrow text. */

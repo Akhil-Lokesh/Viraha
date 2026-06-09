@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { deleteFile } from '../lib/storage';
-import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
+import { getHiddenUserIds, getMutedUserIds, isBlockedBetween } from '../lib/blocks';
 import { redactPostLocation, redactPostsLocation } from '../utils/locationPrivacy';
 import { CreatePostInput, UpdatePostInput } from '../validators/postValidators';
 
@@ -170,6 +170,8 @@ export async function createPost(req: Request, res: Response, next: NextFunction
         tags: data.tags || [],
         travelMode: data.travelMode,
         ...(data.allowComments !== undefined && { allowComments: data.allowComments }),
+        // Omitted → Prisma schema default (true): exact coordinates visible.
+        ...(data.showLocation !== undefined && { showLocation: data.showLocation }),
       },
       include: { user: { select: userSelect } },
     });
@@ -210,6 +212,7 @@ export async function updatePost(req: Request, res: Response, next: NextFunction
         ...(data.privacy !== undefined && { privacy: data.privacy }),
         ...(data.tags !== undefined && { tags: data.tags }),
         ...(data.allowComments !== undefined && { allowComments: data.allowComments }),
+        ...(data.showLocation !== undefined && { showLocation: data.showLocation }),
       },
       include: { user: { select: userSelect } },
     });
@@ -231,13 +234,18 @@ export async function searchPosts(req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    const hiddenIds = req.user ? await getHiddenUserIds(req.user.userId) : [];
+    // Blocks (both directions) AND mutes suppress authors in search results —
+    // same contract as the personalized feed and activity stream.
+    const [hiddenIds, mutedIds] = req.user
+      ? await Promise.all([getHiddenUserIds(req.user.userId), getMutedUserIds(req.user.userId)])
+      : [[], []];
+    const excludedIds = Array.from(new Set([...hiddenIds, ...mutedIds]));
 
     const posts = await prisma.post.findMany({
       where: {
         isDeleted: false,
         privacy: 'public',
-        ...(hiddenIds.length > 0 && { userId: { notIn: hiddenIds } }),
+        ...(excludedIds.length > 0 && { userId: { notIn: excludedIds } }),
         OR: [
           { caption: { contains: q, mode: 'insensitive' } },
           { locationName: { contains: q, mode: 'insensitive' } },

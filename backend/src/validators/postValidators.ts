@@ -55,6 +55,9 @@ export const createPostSchema = z.object({
   tags: z.array(z.string().max(50)).max(20).optional(),
   travelMode: z.enum(['local', 'traveling']).optional(),
   allowComments: z.boolean().optional(),
+  // Location privacy: false hides exact coordinates from everyone but the
+  // author. Omitted on create → DB default (true).
+  showLocation: z.boolean().optional(),
 });
 
 export const updatePostSchema = z.object({
@@ -62,6 +65,7 @@ export const updatePostSchema = z.object({
   privacy: z.enum(['private', 'followers', 'public']).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   allowComments: z.boolean().optional(),
+  showLocation: z.boolean().optional(),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;

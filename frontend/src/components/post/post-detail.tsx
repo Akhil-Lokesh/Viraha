@@ -33,7 +33,7 @@ import {
   hardShadow,
   grain,
   EYEBROW_SX,
-  hasCoordinates,
+  getCoordinates,
   formatCoordinates,
 } from './keepsake';
 import type { Post, Comment } from '@/lib/types';
@@ -475,7 +475,8 @@ export function PostDetail({ post }: { post: Post }) {
   // The backend redacts hidden locations: lat/lng arrive as null while
   // city/country remain. Such posts get an "Approximate location" stamp
   // instead of coordinates and no map affordances.
-  const hasCoords = hasCoordinates(post.locationLat, post.locationLng);
+  const coords = getCoordinates(post.locationLat, post.locationLng);
+  const hasCoords = coords !== null;
   const isApproximateLocation =
     !hasCoords && !!(post.locationCity || post.locationCountry);
 
@@ -925,7 +926,7 @@ export function PostDetail({ post }: { post: Post }) {
                       {post.user.displayName || post.user.username}
                     </Typography>
                   </Link>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                  <Typography suppressHydrationWarning sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                     @{post.user.username}
                     <Box component="span" sx={{ mx: 0.75, opacity: 0.4 }}>&middot;</Box>
                     {format(new Date(post.postedAt), 'MMM d, yyyy')}
@@ -962,9 +963,9 @@ export function PostDetail({ post }: { post: Post }) {
           {/* Coordinates eyebrow + passport-stamp location */}
           {(hasCoords || isApproximateLocation || location) && (
             <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 2.5 }}>
-              {hasCoords ? (
+              {coords ? (
                 <Typography component="span" sx={{ ...EYEBROW_SX, color: inkMuted(isDark) }}>
-                  {formatCoordinates(post.locationLat, post.locationLng)}
+                  {formatCoordinates(coords.lat, coords.lng)}
                 </Typography>
               ) : isApproximateLocation ? (
                 /* Redacted location: approximate stamp, no coordinates, no map affordances */

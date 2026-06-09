@@ -30,7 +30,7 @@ import {
   hardShadow,
   grain,
   EYEBROW_SX,
-  hasCoordinates,
+  getCoordinates,
   formatCoordinates,
 } from './keepsake';
 
@@ -73,9 +73,9 @@ export function PostCard({ post }: { post: Post }) {
   // The backend redacts hidden locations: lat/lng arrive as null while
   // city/country remain. Such posts get an "Approximate location" stamp
   // instead of coordinates and no map affordances.
-  const hasCoords = hasCoordinates(post.locationLat, post.locationLng);
+  const coords = getCoordinates(post.locationLat, post.locationLng);
   const isApproximateLocation =
-    !hasCoords && !!(post.locationCity || post.locationCountry);
+    !coords && !!(post.locationCity || post.locationCountry);
 
   const postedDate = post.postedAt ? new Date(post.postedAt) : null;
   const timeAgo = postedDate
@@ -202,6 +202,7 @@ export function PostCard({ post }: { post: Post }) {
                   <>
                     <Typography sx={{ color: inkMuted(isDark), opacity: 0.6 }}>&middot;</Typography>
                     <Typography
+                      suppressHydrationWarning
                       sx={{
                         color: inkMuted(isDark),
                         fontSize: '0.75rem',
@@ -374,9 +375,9 @@ export function PostCard({ post }: { post: Post }) {
               mb: post.caption || locationLabel ? 1.25 : 0,
             }}
           >
-            {hasCoords ? (
+            {coords ? (
               <Typography component="span" sx={{ ...EYEBROW_SX, color: inkMuted(isDark) }}>
-                {formatCoordinates(post.locationLat, post.locationLng)}
+                {formatCoordinates(coords.lat, coords.lng)}
               </Typography>
             ) : isApproximateLocation ? (
               /* Redacted location: approximate stamp, no coordinates, no map affordances */
