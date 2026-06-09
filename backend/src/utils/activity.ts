@@ -1,4 +1,6 @@
 import { prisma } from '../lib/prisma';
+import { publishActivity } from '../lib/realtime';
+import { logger } from '../lib/logger';
 
 interface CreateActivityParams {
   userId: string;
@@ -14,7 +16,7 @@ export async function createActivity(params: CreateActivityParams): Promise<void
   // Don't create notification for yourself
   if (userId === actorId) return;
 
-  await prisma.activity.create({
+  const activity = await prisma.activity.create({
     data: {
       userId,
       actorId,
@@ -23,4 +25,17 @@ export async function createActivity(params: CreateActivityParams): Promise<void
       commentId: commentId || null,
     },
   });
+
+  // Real-time delivery is best-effort — never fail the originating request.
+  try {
+    await publishActivity(userId, {
+      type,
+      actorId,
+      postId: postId ?? null,
+      commentId: commentId ?? null,
+      createdAt: activity.createdAt.toISOString(),
+    });
+  } catch (err) {
+    logger.debug({ err }, 'Failed to publish realtime activity');
+  }
 }

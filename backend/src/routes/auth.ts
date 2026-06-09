@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, me, refreshTokenHandler, logout, changePassword, forgotPassword, resetPassword, verifyEmail, resendVerification, googleSignIn } from '../controllers/authController';
+import { register, login, me, refreshTokenHandler, logout, changePassword, forgotPassword, resetPassword, verifyEmail, resendVerification, googleSignIn, listSessions, revokeSession, revokeOtherSessions } from '../controllers/authController';
 import { authenticate, optionalAuth } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { registerSchema, loginSchema, changePasswordSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailSchema, googleSignInSchema } from '../validators/authValidators';
@@ -24,5 +24,8 @@ router.post('/reset-password', validateBody(resetPasswordSchema), resetPassword)
 router.post('/verify-email', validateBody(verifyEmailSchema), verifyEmail);
 router.post('/resend-verification', authLimiter, authenticate, resendVerification);
 router.post('/google', authLimiter, validateBody(googleSignInSchema), googleSignIn);
+router.get('/sessions', authenticate, listSessions);
+router.delete('/sessions', authenticate, revokeOtherSessions);
+router.delete('/sessions/:id', authenticate, revokeSession);
 
 export default router;

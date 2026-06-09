@@ -35,6 +35,15 @@ function sanitizeUser<T extends { passwordHash?: string }>(user: T): Omit<T, 'pa
   return rest;
 }
 
+function sessionMetadata(req: Request): { userAgent: string | null; ip: string | null } {
+  return {
+    userAgent: req.get('user-agent')?.slice(0, 512) ?? null,
+    ip: req.ip ?? null,
+  };
+}
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const { username, email, password, displayName } = req.body as RegisterInput;
@@ -71,6 +80,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
         userId: user.id,
         token: refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ...sessionMetadata(req),
       },
     });
 
@@ -144,6 +154,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
         userId: user.id,
         token: refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ...sessionMetadata(req),
       },
     });
 
@@ -263,6 +274,8 @@ export async function refreshTokenHandler(req: Request, res: Response, next: Nex
         userId: storedToken.userId,
         token: newRefreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        lastUsedAt: new Date(),
+        ...sessionMetadata(req),
       },
     });
 
@@ -593,6 +606,7 @@ export async function googleSignIn(req: Request, res: Response, next: NextFuncti
         userId: user.id,
         token: refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ...sessionMetadata(req),
       },
     });
 
@@ -644,6 +658,101 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
     res.json({
       success: true,
       data: { message: 'Password has been reset successfully. Please log in with your new password.' },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listSessions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const currentRefreshToken = req.cookies?.viraha_refresh as string | undefined;
+
+    const tokens = await prisma.refreshToken.findMany({
+      where: {
+        userId: req.user!.userId,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        token: true,
+        userAgent: true,
+        ip: true,
+        createdAt: true,
+        lastUsedAt: true,
+      },
+    });
+
+    const sessions = tokens.map((t) => ({
+      id: t.id,
+      userAgent: t.userAgent,
+      ip: t.ip,
+      createdAt: t.createdAt,
+      lastUsedAt: t.lastUsedAt,
+      current: currentRefreshToken !== undefined && t.token === currentRefreshToken,
+    }));
+
+    res.json({
+      success: true,
+      data: { sessions },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function revokeSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    const rawId = req.params.id;
+    const id = typeof rawId === 'string' ? rawId : '';
+
+    // Non-UUID ids can never match a session row; short-circuit so Postgres
+    // does not error on invalid uuid input.
+    if (!id || !UUID_REGEX.test(id)) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Session not found' },
+      });
+      return;
+    }
+
+    // Scoping by userId guarantees a user can only revoke their own sessions.
+    const result = await prisma.refreshToken.deleteMany({
+      where: { id, userId: req.user!.userId },
+    });
+
+    if (result.count === 0) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Session not found' },
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: { message: 'Session revoked' },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function revokeOtherSessions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const currentRefreshToken = req.cookies?.viraha_refresh as string | undefined;
+
+    const result = await prisma.refreshToken.deleteMany({
+      where: {
+        userId: req.user!.userId,
+        ...(currentRefreshToken ? { token: { not: currentRefreshToken } } : {}),
+      },
+    });
+
+    res.json({
+      success: true,
+      data: { revoked: result.count },
     });
   } catch (err) {
     next(err);

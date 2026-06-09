@@ -78,3 +78,29 @@ export async function invalidateBlockCacheFor(...userIds: string[]): Promise<voi
     userIds.flatMap((id) => [cacheDel(blockedKey(id)), cacheDel(blockersKey(id))]),
   );
 }
+
+function mutedKey(userId: string): string {
+  return `mutes:mutedBy:${userId}`;
+}
+
+/**
+ * IDs of users that `userId` has muted. One-way and invisible to the muted
+ * user: used to suppress their content in the muter's feed/explore/activity
+ * streams only — profiles, post detail pages, and comments stay visible.
+ * Cached briefly like the block lists since the same hot read paths use it.
+ */
+export async function getMutedUserIds(userId: string): Promise<string[]> {
+  const cached = await cacheGet<string[]>(mutedKey(userId));
+  if (cached) return cached;
+  const rows = await prisma.mute.findMany({
+    where: { muterId: userId },
+    select: { mutedId: true },
+  });
+  const ids = rows.map((r) => r.mutedId);
+  await cacheSet(mutedKey(userId), ids, TTL_SECONDS);
+  return ids;
+}
+
+export async function invalidateMuteCacheFor(...userIds: string[]): Promise<void> {
+  await Promise.all(userIds.map((id) => cacheDel(mutedKey(id))));
+}

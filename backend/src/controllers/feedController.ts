@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheSet } from '../lib/cache';
-import { getHiddenUserIds } from '../lib/blocks';
+import { getHiddenUserIds, getMutedUserIds } from '../lib/blocks';
+import { redactPostLocation } from '../utils/locationPrivacy';
 
 const userSelect = {
   id: true,
@@ -29,17 +30,20 @@ export async function getPersonalizedFeed(req: Request, res: Response, next: Nex
     }
 
     // Independent lookups run in parallel.
-    const [follows, hiddenIds] = await Promise.all([
+    const [follows, hiddenIds, mutedIds] = await Promise.all([
       prisma.follow.findMany({
         where: { followerId: userId, status: 'accepted' },
         select: { followingId: true },
       }),
       getHiddenUserIds(userId),
+      getMutedUserIds(userId),
     ]);
     const followedIds = follows.map((f) => f.followingId);
 
-    // Include own posts + followed users' posts, excluding blocked users
-    const feedUserIds = [userId, ...followedIds].filter((id) => !hiddenIds.includes(id));
+    // Include own posts + followed users' posts, excluding blocked and muted
+    // users (blocks are symmetric; mutes are one-way and viewer-only).
+    const excluded = new Set([...hiddenIds, ...mutedIds]);
+    const feedUserIds = [userId, ...followedIds].filter((id) => !excluded.has(id));
 
     const posts = await prisma.post.findMany({
       where: {
@@ -72,7 +76,7 @@ export async function getPersonalizedFeed(req: Request, res: Response, next: Nex
 
     const responseData = {
       items: items.map((post) => ({
-        ...post,
+        ...redactPostLocation(post, userId),
         isSaved: savedPostIds.has(post.id),
       })),
       nextCursor,
@@ -104,17 +108,19 @@ export async function getDiscoverFeed(req: Request, res: Response, next: NextFun
 
     let excludeUserIds: string[] = [];
     if (req.user) {
-      const [follows, hiddenIds] = await Promise.all([
+      const [follows, hiddenIds, mutedIds] = await Promise.all([
         prisma.follow.findMany({
           where: { followerId: req.user.userId },
           select: { followingId: true },
         }),
         getHiddenUserIds(req.user.userId),
+        getMutedUserIds(req.user.userId),
       ]);
       excludeUserIds = Array.from(new Set([
         req.user.userId,
         ...follows.map((f) => f.followingId),
         ...hiddenIds,
+        ...mutedIds,
       ]));
     }
 
@@ -150,7 +156,7 @@ export async function getDiscoverFeed(req: Request, res: Response, next: NextFun
 
     const responseData = {
       items: items.map((post) => ({
-        ...post,
+        ...redactPostLocation(post, req.user?.userId ?? null),
         isSaved: savedPostIds.has(post.id),
       })),
       nextCursor,

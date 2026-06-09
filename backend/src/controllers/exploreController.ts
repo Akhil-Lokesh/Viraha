@@ -1,16 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheSet } from '../lib/cache';
-import { getHiddenUserIds } from '../lib/blocks';
+import { getHiddenUserIds, getMutedUserIds } from '../lib/blocks';
+import { redactPostLocation } from '../utils/locationPrivacy';
+
+/**
+ * Users whose content the viewer must not see in explore surfaces:
+ * blocked (both directions) plus muted (one-way). Empty for anonymous viewers.
+ */
+async function getExcludedUserIds(viewerId: string | undefined): Promise<string[]> {
+  if (!viewerId) return [];
+  const [hiddenIds, mutedIds] = await Promise.all([
+    getHiddenUserIds(viewerId),
+    getMutedUserIds(viewerId),
+  ]);
+  return Array.from(new Set([...hiddenIds, ...mutedIds]));
+}
 
 export async function getTrendingLocations(req: Request, res: Response, next: NextFunction) {
   try {
+    // Viewers with blocks/mutes get a personalized (uncached) result so the
+    // shared trending cache is never poisoned with per-viewer exclusions.
+    const excludeIds = await getExcludedUserIds(req.user?.userId);
+    const useSharedCache = excludeIds.length === 0;
+
     const cacheKey = 'explore:trending-locations';
-    const cached = await cacheGet<any>(cacheKey);
-    if (cached) {
-      res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
-      res.json({ success: true, data: cached });
-      return;
+    if (useSharedCache) {
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
+        res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
+        res.json({ success: true, data: cached });
+        return;
+      }
     }
 
     // Aggregate counts in the database instead of pulling ~500 rows into JS.
@@ -20,6 +41,7 @@ export async function getTrendingLocations(req: Request, res: Response, next: Ne
         isDeleted: false,
         privacy: 'public',
         locationCity: { not: null },
+        ...(excludeIds.length > 0 && { userId: { notIn: excludeIds } }),
       },
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
@@ -49,6 +71,7 @@ export async function getTrendingLocations(req: Request, res: Response, next: Ne
               ON p.location_city = t.city
               AND COALESCE(p.location_country, '') = t.country
             WHERE p.is_deleted = false AND p.privacy = 'public'
+              AND p.user_id <> ALL(${excludeIds}::uuid[])
             ORDER BY p.location_city, p.location_country, p.posted_at DESC
           `;
 
@@ -71,9 +94,16 @@ export async function getTrendingLocations(req: Request, res: Response, next: Ne
     });
 
     const result = { locations };
-    await cacheSet(cacheKey, result, 900);
+    if (useSharedCache) {
+      await cacheSet(cacheKey, result, 900);
+    }
 
-    res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
+    // Personalized (block/mute-filtered) results must never be cached by
+    // shared HTTP caches.
+    res.set(
+      'Cache-Control',
+      useSharedCache ? 'public, max-age=900, stale-while-revalidate=300' : 'private, no-store'
+    );
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -82,20 +112,30 @@ export async function getTrendingLocations(req: Request, res: Response, next: Ne
 
 export async function getTrendingTags(req: Request, res: Response, next: NextFunction) {
   try {
+    // Same shared-cache bypass as trending locations for viewers with
+    // blocks/mutes.
+    const excludeIds = await getExcludedUserIds(req.user?.userId);
+    const useSharedCache = excludeIds.length === 0;
+
     const cacheKey = 'explore:trending-tags';
-    const cached = await cacheGet<any>(cacheKey);
-    if (cached) {
-      res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
-      res.json({ success: true, data: cached });
-      return;
+    if (useSharedCache) {
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
+        res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
+        res.json({ success: true, data: cached });
+        return;
+      }
     }
 
     // Count tag frequency in Postgres via unnest + GROUP BY instead of pulling
     // hundreds of rows into JS and counting them in-process.
+    // (`<> ALL` over an empty array is always true, so the filter is a no-op
+    // for viewers with nothing to exclude.)
     const rows = await prisma.$queryRaw<Array<{ tag: string; count: bigint }>>`
       SELECT tag, COUNT(*) AS count
       FROM posts p, unnest(p.tags) AS tag
       WHERE p.is_deleted = false AND p.privacy = 'public'
+        AND p.user_id <> ALL(${excludeIds}::uuid[])
       GROUP BY tag
       ORDER BY count DESC
       LIMIT 20
@@ -104,9 +144,16 @@ export async function getTrendingTags(req: Request, res: Response, next: NextFun
     const tags = rows.map((r) => ({ tag: r.tag, count: Number(r.count) }));
 
     const result = { tags };
-    await cacheSet(cacheKey, result, 900);
+    if (useSharedCache) {
+      await cacheSet(cacheKey, result, 900);
+    }
 
-    res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=300');
+    // Personalized (block/mute-filtered) results must never be cached by
+    // shared HTTP caches.
+    res.set(
+      'Cache-Control',
+      useSharedCache ? 'public, max-age=900, stale-while-revalidate=300' : 'private, no-store'
+    );
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -145,9 +192,13 @@ export async function getFeaturedContent(req: Request, res: Response, next: Next
       await cacheSet(cacheKey, pool, 900);
     }
 
-    const hiddenIds = req.user ? await getHiddenUserIds(req.user.userId) : [];
-    const hidden = new Set(hiddenIds);
-    const posts = pool.filter((p: any) => !hidden.has(p.userId)).slice(0, limit);
+    const viewerId = req.user?.userId ?? null;
+    const excludeIds = await getExcludedUserIds(req.user?.userId);
+    const hidden = new Set(excludeIds);
+    const posts = pool
+      .filter((p: any) => !hidden.has(p.userId))
+      .slice(0, limit)
+      .map((p: any) => redactPostLocation(p, viewerId));
 
     res.json({ success: true, data: { posts } });
   } catch (err) {

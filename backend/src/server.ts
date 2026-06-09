@@ -8,9 +8,12 @@ import { env } from './config/env';
 import { logger } from './lib/logger';
 import { prisma } from './lib/prisma';
 import { redis } from './lib/redis';
+import { shutdownRealtime } from './lib/realtime';
+import { startJobs, stopJobs } from './jobs/scheduler';
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Viraha API started');
+  startJobs();
 });
 
 let shuttingDown = false;
@@ -26,6 +29,13 @@ function gracefulShutdown(signal: string): void {
     process.exit(1);
   }, 10000);
   failsafe.unref();
+
+  stopJobs();
+  try {
+    shutdownRealtime();
+  } catch (err) {
+    logger.error({ err }, 'Error shutting down realtime connections');
+  }
 
   server.close(async () => {
     try {

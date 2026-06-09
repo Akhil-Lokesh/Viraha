@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
+import { getMutedUserIds } from '../lib/blocks';
 
 const userSelect = {
   id: true,
@@ -14,11 +15,18 @@ export async function getActivities(req: Request, res: Response, next: NextFunct
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const cursor = req.query.cursor as string | undefined;
 
+    // Muted actors are invisible in the activity stream (one-way mute).
+    const mutedIds = await getMutedUserIds(userId);
+
     const activities = await prisma.activity.findMany({
       // follow_request activities are surfaced by the dedicated follow-requests
       // section (Accept/Decline), not this generic stream, so exclude them here
       // to keep the feed, pagination, and unread count consistent.
-      where: { userId, type: { not: 'follow_request' } },
+      where: {
+        userId,
+        type: { not: 'follow_request' },
+        ...(mutedIds.length > 0 && { actorId: { notIn: mutedIds } }),
+      },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { createdAt: 'desc' },
@@ -107,8 +115,17 @@ export async function getUnreadCount(req: Request, res: Response, next: NextFunc
   try {
     const userId = req.user!.userId;
 
+    // Keep the badge consistent with the visible list: activities from muted
+    // actors are hidden there, so they must not count as unread either.
+    const mutedIds = await getMutedUserIds(userId);
+
     const count = await prisma.activity.count({
-      where: { userId, read: false, type: { not: 'follow_request' } },
+      where: {
+        userId,
+        read: false,
+        type: { not: 'follow_request' },
+        ...(mutedIds.length > 0 && { actorId: { notIn: mutedIds } }),
+      },
     });
 
     res.json({ success: true, data: { count } });

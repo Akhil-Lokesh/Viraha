@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { deleteFile } from '../lib/storage';
 import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
+import { redactPostLocation, redactPostsLocation } from '../utils/locationPrivacy';
 import { CreatePostInput, UpdatePostInput } from '../validators/postValidators';
 
 const userSelect = {
@@ -72,7 +73,7 @@ export async function getPosts(req: Request, res: Response, next: NextFunction) 
     res.json({
       success: true,
       data: {
-        items,
+        items: redactPostsLocation(items, req.user?.userId ?? null),
         nextCursor,
       },
     });
@@ -139,7 +140,10 @@ export async function getPostById(req: Request, res: Response, next: NextFunctio
       }
     }
 
-    res.json({ success: true, data: { post } });
+    res.json({
+      success: true,
+      data: { post: redactPostLocation(post, req.user?.userId ?? null) },
+    });
   } catch (err) {
     next(err);
   }
@@ -266,7 +270,7 @@ export async function searchPosts(req: Request, res: Response, next: NextFunctio
       success: true,
       data: {
         items: items.map((post) => ({
-          ...post,
+          ...redactPostLocation(post, req.user?.userId ?? null),
           isSaved: savedPostIds.has(post.id),
         })),
         nextCursor,

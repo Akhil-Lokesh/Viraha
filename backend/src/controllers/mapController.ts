@@ -28,8 +28,11 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
     } = req.query as Record<string, string | undefined>;
 
     const limit = Math.min(Number(req.query.limit) || 200, 500);
+    const viewerId = req.user?.userId ?? null;
 
-    const cacheKey = `map:${swLat}:${swLng}:${neLat}:${neLng}:${type || 'all'}:${userId || ''}:${startDate || ''}:${endDate || ''}`;
+    // Viewer is part of the key: owners see their own showLocation=false pins,
+    // so their result set must never be served to (or read from) other viewers.
+    const cacheKey = `map:${swLat}:${swLng}:${neLat}:${neLng}:${type || 'all'}:${userId || ''}:${startDate || ''}:${endDate || ''}:${viewerId || 'anon'}`;
     const cacheHash = crypto.createHash('md5').update(cacheKey).digest('hex');
     const cached = await cacheGet<MapMarkersResult>(`map:${cacheHash}`);
     if (cached) {
@@ -41,9 +44,14 @@ export async function getMapMarkers(req: Request, res: Response, next: NextFunct
 
     // Fetch post markers
     if (!type || type === 'all' || type === 'posts' || type === 'post') {
+      // Location-private posts (showLocation=false) are excluded outright for
+      // everyone but their owner — a null-coordinate map pin is useless.
       const postWhere: Prisma.PostWhereInput = {
         isDeleted: false,
         privacy: 'public',
+        ...(viewerId
+          ? { OR: [{ showLocation: true }, { userId: viewerId }] }
+          : { showLocation: true }),
       };
 
       if (userId) postWhere.userId = userId;
