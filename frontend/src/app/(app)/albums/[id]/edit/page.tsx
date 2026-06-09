@@ -155,11 +155,29 @@ export default function EditAlbumPage({
         </Button>
         <Typography
           sx={{
-            fontSize: { xs: '1.875rem', md: '2.25rem' },
-            fontWeight: 'bold',
-            letterSpacing: '-0.01em',
-            mb: 1,
+            fontFamily: 'var(--font-brand)',
+            fontSize: '11px',
+            fontWeight: 600,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            color: 'var(--viraha-gold, #D4A843)',
+            mb: 0.75,
           }}
+        >
+          The Shelf — Collections
+        </Typography>
+        <Typography
+          component="h1"
+          sx={(theme) => ({
+            fontFamily: 'var(--font-accent)',
+            fontSize: { xs: '1.875rem', md: '2.5rem' },
+            lineHeight: 1.1,
+            color:
+              theme.palette.mode === 'dark'
+                ? 'var(--viraha-ink-dark, #F2EAD9)'
+                : 'var(--viraha-ink, #221C18)',
+            mb: 1,
+          })}
         >
           Edit Album
         </Typography>
@@ -259,7 +277,7 @@ export default function EditAlbumPage({
             disableElevation
             onClick={() => router.push(`/albums/${album.id}`)}
             disabled={updateAlbum.isPending}
-            sx={{ borderRadius: '9999px', flex: 1 }}
+            sx={{ borderRadius: '4px', flex: 1, borderColor: 'divider', color: 'text.secondary' }}
             size="large"
           >
             Cancel
@@ -268,7 +286,14 @@ export default function EditAlbumPage({
             type="submit"
             variant="contained"
             disableElevation
-            sx={{ borderRadius: '9999px', flex: 1 }}
+            sx={{
+              borderRadius: '4px',
+              flex: 1,
+              bgcolor: 'var(--viraha-gold, #D4A843)',
+              color: 'var(--viraha-ink, #221C18)',
+              fontWeight: 700,
+              '&:hover': { bgcolor: '#C09934' },
+            }}
             size="large"
             disabled={!title.trim() || updateAlbum.isPending}
           >

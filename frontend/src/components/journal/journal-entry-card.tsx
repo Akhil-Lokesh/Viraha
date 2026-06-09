@@ -38,9 +38,11 @@ export function JournalEntryCard({ entry, journalId }: Props) {
       viewport={{ once: true, margin: '-50px' }}
       style={{
         position: 'relative',
-        borderRadius: 12,
+        borderRadius: 4,
         border: '1px solid var(--mui-palette-divider)',
+        borderLeft: '2px dashed var(--viraha-gold, #D4A843)',
         backgroundColor: 'var(--mui-palette-background-paper)',
+        boxShadow: '3px 3px 0 rgba(34,28,24,0.08)',
         overflow: 'hidden',
       }}
     >
@@ -53,13 +55,12 @@ export function JournalEntryCard({ entry, journalId }: Props) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 0.75,
-                borderRadius: '9999px',
-                bgcolor: 'rgba(var(--mui-palette-secondary-mainChannel) / 0.1)',
-                px: 1.5,
-                py: 0.5,
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                color: 'secondary.main',
+                fontFamily: 'var(--font-brand)',
+                fontSize: '0.68rem',
+                fontWeight: 600,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'var(--viraha-gold, #D4A843)',
               }}
             >
               <Calendar style={{ width: 12, height: 12 }} />

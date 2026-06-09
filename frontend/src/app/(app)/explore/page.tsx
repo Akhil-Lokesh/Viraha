@@ -15,12 +15,9 @@ import {
   X,
   Plus,
   MapPin,
-  Star,
   Compass,
   Loader2,
   Maximize2,
-  TrendingUp,
-  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { usePersonalizedFeed, useDiscoverFeed } from '@/lib/hooks/use-feed';
@@ -31,6 +28,16 @@ import { useMapMarkers } from '@/lib/hooks/use-map';
 import { PostCard } from '@/components/post/post-card';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { EmptyState } from '@/components/shared/empty-state';
+import {
+  GOLD,
+  paper,
+  ink,
+  inkMuted,
+  hairline,
+  hardShadow,
+  grain,
+  EYEBROW_SX,
+} from '@/components/post/keepsake';
 import {
   fadeInUp,
   fadeIn,
@@ -56,7 +63,7 @@ const mapStyles = (
       '.maplibregl-ctrl-group': {
         background: 'rgba(0,0,0,0.5) !important',
         backdropFilter: 'blur(12px)',
-        borderRadius: '10px !important',
+        borderRadius: '6px !important',
         border: 'none !important',
         boxShadow: '0 2px 8px rgba(0,0,0,0.2) !important',
         overflow: 'hidden',
@@ -70,7 +77,7 @@ const mapStyles = (
         filter: 'invert(1)',
       },
       '.maplibregl-popup-content': {
-        borderRadius: '10px !important',
+        borderRadius: '6px !important',
         padding: '8px 12px !important',
         boxShadow: '0 4px 16px rgba(0,0,0,0.2) !important',
         fontSize: '13px',
@@ -79,7 +86,7 @@ const mapStyles = (
   />
 );
 
-// ─── Sidebar Map ─────────────────────────────────────
+// ─── Side-rail Map ───────────────────────────────────
 function SidebarMap() {
   const theme = useTheme();
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -146,7 +153,7 @@ function SidebarMap() {
 
       markers!.forEach((m) => {
         const el = document.createElement('div');
-        const color = m.type === 'post' ? '#10B981' : '#A594F9';
+        const color = m.type === 'post' ? '#D4A843' : '#A594F9';
         el.style.cssText = `
           width: 14px; height: 14px;
           background: ${color};
@@ -202,14 +209,13 @@ function SidebarMap() {
   return (
     <Box
       sx={{
-        borderRadius: '20px',
+        borderRadius: '6px',
         overflow: 'hidden',
         position: 'relative',
         height: '100%',
         minHeight: 220,
-        boxShadow: isDark
-          ? '0 0 0 1px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4)'
-          : '0 0 0 1px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.08)',
+        border: `1px solid ${hairline(isDark)}`,
+        boxShadow: hardShadow(isDark),
       }}
     >
       <Box ref={mapContainerRef} sx={{ width: '100%', height: '100%' }} />
@@ -222,7 +228,7 @@ function SidebarMap() {
           left: 0,
           right: 0,
           height: 60,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), transparent)',
+          background: 'linear-gradient(to bottom, rgba(22,18,31,0.35), transparent)',
           pointerEvents: 'none',
           zIndex: 1,
         }}
@@ -237,20 +243,21 @@ function SidebarMap() {
             left: 12,
             px: 1.5,
             py: 0.75,
-            borderRadius: '10px',
-            bgcolor: 'rgba(0,0,0,0.5)',
+            borderRadius: '4px',
+            bgcolor: 'rgba(22,18,31,0.6)',
             backdropFilter: 'blur(12px)',
+            border: `1px solid rgba(212,168,67,0.4)`,
             display: 'flex',
             alignItems: 'center',
             gap: 0.75,
             cursor: 'pointer',
             zIndex: 2,
             transition: 'all 0.2s',
-            '&:hover': { bgcolor: 'rgba(0,0,0,0.7)', transform: 'scale(1.02)' },
+            '&:hover': { bgcolor: 'rgba(22,18,31,0.8)', transform: 'scale(1.02)' },
           }}
         >
-          <Maximize2 style={{ width: 13, height: 13, color: 'white' }} />
-          <Typography sx={{ fontSize: '12px', fontWeight: 600, color: 'white', letterSpacing: '0.02em' }}>
+          <Maximize2 style={{ width: 13, height: 13, color: GOLD }} />
+          <Typography sx={{ ...EYEBROW_SX, fontSize: '0.625rem', color: '#FAF6EE' }}>
             Explore Map
           </Typography>
         </Box>
@@ -265,8 +272,8 @@ function SidebarMap() {
             right: 12,
             px: 1.25,
             py: 0.5,
-            borderRadius: '9999px',
-            bgcolor: 'rgba(0,0,0,0.5)',
+            borderRadius: '4px',
+            bgcolor: 'rgba(22,18,31,0.6)',
             backdropFilter: 'blur(12px)',
             display: 'flex',
             alignItems: 'center',
@@ -279,11 +286,11 @@ function SidebarMap() {
               width: 6,
               height: 6,
               borderRadius: '50%',
-              bgcolor: '#10B981',
-              boxShadow: '0 0 4px #10B981',
+              bgcolor: GOLD,
+              boxShadow: `0 0 4px ${GOLD}`,
             }}
           />
-          <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'white' }}>
+          <Typography sx={{ ...EYEBROW_SX, fontSize: '0.625rem', color: '#FAF6EE' }}>
             {markers.length} places
           </Typography>
         </Box>
@@ -301,24 +308,43 @@ function useDebounce(value: string, delay: number) {
   return debounced;
 }
 
-// ─── Feed skeleton ───────────────────────────────────
+// ─── Feed skeleton — postcard-shaped ─────────────────
 function FeedSkeleton() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const bone = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(34,28,24,0.07)';
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <Box key={i} sx={{ py: 3, borderBottom: 1, borderColor: 'divider' }}>
-          <Skeleton variant="text" animation="pulse" sx={{ width: 120, height: 14, mb: 1.5 }} />
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <Skeleton variant="circular" animation="pulse" sx={{ width: 40, height: 40, flexShrink: 0 }} />
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Box
+          key={i}
+          sx={{
+            bgcolor: paper(isDark),
+            border: `1px solid ${hairline(isDark)}`,
+            borderRadius: '6px',
+            boxShadow: hardShadow(isDark),
+            overflow: 'hidden',
+          }}
+        >
+          <Box sx={{ display: 'flex', gap: 1.5, px: 2.25, pt: 2, alignItems: 'center' }}>
+            <Skeleton variant="circular" animation="pulse" sx={{ width: 40, height: 40, flexShrink: 0, bgcolor: bone }} />
             <Box sx={{ flex: 1 }}>
-              <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                <Skeleton variant="text" animation="pulse" sx={{ width: 96, height: 16 }} />
-                <Skeleton variant="text" animation="pulse" sx={{ width: 64, height: 12 }} />
-              </Box>
-              <Skeleton variant="text" animation="pulse" sx={{ width: '100%', height: 16 }} />
-              <Skeleton variant="text" animation="pulse" sx={{ width: '66%', height: 16 }} />
-              <Skeleton variant="rounded" animation="pulse" sx={{ mt: 1.5, aspectRatio: '16/9', borderRadius: '16px' }} />
+              <Skeleton variant="text" animation="pulse" sx={{ width: 110, height: 16, bgcolor: bone }} />
+              <Skeleton variant="text" animation="pulse" sx={{ width: 70, height: 12, bgcolor: bone }} />
             </Box>
+          </Box>
+          <Box sx={{ px: 1.5, mt: 1.75 }}>
+            <Skeleton
+              variant="rounded"
+              animation="pulse"
+              sx={{ aspectRatio: '4/3', height: 'auto', width: '100%', borderRadius: '3px', bgcolor: bone }}
+            />
+          </Box>
+          <Box sx={{ px: 2.5, py: 2 }}>
+            <Skeleton variant="text" animation="pulse" sx={{ width: 140, height: 12, bgcolor: bone, mb: 1 }} />
+            <Skeleton variant="text" animation="pulse" sx={{ width: '85%', height: 16, bgcolor: bone }} />
+            <Skeleton variant="text" animation="pulse" sx={{ width: '55%', height: 16, bgcolor: bone }} />
           </Box>
         </Box>
       ))}
@@ -326,108 +352,80 @@ function FeedSkeleton() {
   );
 }
 
-// ─── Top Rated Spots ─────────────────────────────────
-function TopRatedSpots() {
+// ─── Trending stamp rail ─────────────────────────────
+function TrendingStampRail() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const { data: locations } = useTrendingLocations();
-  const spots = locations?.slice(0, 4) ?? [];
+  const spots = locations?.slice(0, 8) ?? [];
 
   if (spots.length === 0) return null;
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <TrendingUp style={{ width: 18, height: 18, color: isDark ? '#A594F9' : '#7B68EE' }} />
+    <Box sx={{ mb: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 1.5 }}>
+        <Typography sx={{ ...EYEBROW_SX, color: GOLD }}>Trending stamps</Typography>
+        <Link href="/map" style={{ textDecoration: 'none' }}>
           <Typography
             sx={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 700,
-              fontStyle: 'italic',
-              fontSize: '1.15rem',
+              ...EYEBROW_SX,
+              fontSize: '0.625rem',
+              color: inkMuted(isDark),
+              '&:hover': { color: GOLD },
+              transition: 'color 0.2s',
             }}
           >
-            Top Rated Spots
+            See map →
           </Typography>
-        </Box>
-        <Link href="/map" style={{ textDecoration: 'none' }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.25,
-              color: 'primary.main',
-              '&:hover': { opacity: 0.8 },
-              transition: 'opacity 0.2s',
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}
-            >
-              See All
-            </Typography>
-            <ChevronRight style={{ width: 14, height: 14 }} />
-          </Box>
         </Link>
       </Box>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 2,
+          overflowX: 'auto',
+          pb: 1.5,
+          pt: 0.5,
+          px: 0.5,
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': { display: 'none' },
+        }}
+      >
         {spots.map((spot, i) => (
           <Box
-            key={i}
+            key={`${spot.city}-${spot.country}-${i}`}
             component={motion.div}
-            whileHover={{ x: 4 }}
-            transition={{ duration: 0.15 }}
+            whileHover={{ rotate: 0, scale: 1.04 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             sx={{
+              flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
-              gap: 1.5,
-              p: 1.25,
-              borderRadius: '14px',
-              bgcolor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-              transition: 'all 0.2s',
-              cursor: 'pointer',
-              '&:hover': {
-                bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-              },
+              gap: 1.25,
+              px: 1.5,
+              py: 1,
+              border: `1.5px solid ${GOLD}`,
+              borderRadius: '4px',
+              bgcolor: paper(isDark),
+              backgroundImage: grain(isDark),
+              transform: `rotate(${i % 2 === 0 ? -1.5 : 1.2}deg)`,
+              boxShadow: hardShadow(isDark),
             }}
           >
-            {/* Rank number */}
-            <Typography
-              sx={{
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 700,
-                fontSize: '1.1rem',
-                color: 'primary.main',
-                opacity: 0.5,
-                width: 20,
-                textAlign: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {i + 1}
-            </Typography>
-
             {/* Photo */}
             <Box
               sx={{
-                width: 52,
-                height: 52,
-                borderRadius: '12px',
+                width: 38,
+                height: 38,
+                borderRadius: '3px',
                 overflow: 'hidden',
                 flexShrink: 0,
-                boxShadow: isDark
-                  ? '0 2px 8px rgba(0,0,0,0.3)'
-                  : '0 2px 8px rgba(0,0,0,0.08)',
+                border: `1px solid ${hairline(isDark)}`,
               }}
             >
               {spot.photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={resolveImageUrl(spot.photo)}
                   alt={spot.city}
@@ -441,36 +439,43 @@ function TopRatedSpots() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                    bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(34,28,24,0.05)',
                   }}
                 >
-                  <MapPin style={{ width: 18, height: 18, color: 'var(--mui-palette-text-secondary)' }} />
+                  <MapPin style={{ width: 16, height: 16, color: GOLD }} />
                 </Box>
               )}
             </Box>
 
             {/* Info */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ minWidth: 0 }}>
               <Typography
                 sx={{
-                  fontFamily: 'var(--font-heading)',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
+                  ...EYEBROW_SX,
+                  fontSize: '0.625rem',
+                  color: ink(isDark),
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  maxWidth: 130,
                 }}
               >
                 {spot.city}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                <Star style={{ width: 11, height: 11, color: '#F59E0B', fill: '#F59E0B' }} />
-                <Typography sx={{ fontSize: '0.72rem', color: isDark ? '#A594F9' : '#7B68EE', fontWeight: 600 }}>
-                  {spot.count} {spot.count === 1 ? 'post' : 'posts'}
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mt: 0.15 }}>
+              <Typography
+                sx={{
+                  fontSize: '0.65rem',
+                  color: inkMuted(isDark),
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: 130,
+                }}
+              >
                 {spot.country}
+              </Typography>
+              <Typography sx={{ fontSize: '0.65rem', color: GOLD, fontWeight: 600 }}>
+                {spot.count} {spot.count === 1 ? 'post' : 'posts'}
               </Typography>
             </Box>
           </Box>
@@ -514,6 +519,23 @@ export default function ExplorePage() {
   const searchResults = searchData?.pages.flatMap((page) => page.items) ?? [];
   const isSearchActive = searchInput.length > 0;
 
+  const stampButton = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 1,
+    px: 3,
+    py: 1.25,
+    borderRadius: '4px',
+    border: `1.5px solid ${GOLD}`,
+    ...EYEBROW_SX,
+    color: ink(isDark),
+    bgcolor: 'transparent',
+    cursor: 'pointer',
+    '&:hover': { bgcolor: isDark ? 'rgba(212,168,67,0.1)' : 'rgba(212,168,67,0.12)' },
+    transition: 'background-color 0.2s',
+    '&:disabled': { opacity: 0.5 },
+  } as const;
+
   // Unauthenticated empty state
   if (!isAuthenticated && posts.length === 0 && !isLoading) {
     return (
@@ -528,9 +550,10 @@ export default function ExplorePage() {
           gap: 3,
         }}
       >
+        <Typography sx={{ ...EYEBROW_SX, color: GOLD }}>The travel keepsake</Typography>
         <Typography
           variant="h3"
-          sx={{ fontFamily: 'var(--font-brand)', fontWeight: 700, color: 'primary.main' }}
+          sx={{ fontFamily: 'var(--font-accent)', fontWeight: 400, color: ink(isDark), mt: -2 }}
         >
           Viraha
         </Typography>
@@ -554,63 +577,29 @@ export default function ExplorePage() {
     <Box
       sx={{
         display: 'flex',
-        mx: { lg: -3 },
-        mt: { lg: -3 },
-        mb: { lg: -3 },
-        width: { xs: '100%', lg: 'calc(100% + 48px)' },
-        minHeight: { lg: '100vh' },
+        justifyContent: 'center',
+        gap: { xl: 6 },
+        pb: 10,
       }}
     >
       {mapStyles}
 
-      {/* ── Left Panel (desktop) ─── ~40% ──────────────── */}
+      {/* ── Main column — full-width editorial postcard feed ── */}
       <Box
         sx={{
-          display: { xs: 'none', lg: 'flex' },
-          flexDirection: 'column',
-          width: '40%',
-          flexShrink: 0,
-          position: 'sticky',
-          top: 0,
-          alignSelf: 'flex-start',
-          height: '100vh',
-          borderRight: 1,
-          borderColor: 'divider',
-          p: 2.5,
-          gap: 3,
-          overflowY: 'auto',
-          '&::-webkit-scrollbar': { width: 0 },
-          // Subtle left panel background tint
-          bgcolor: isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.01)',
-        }}
-      >
-        {/* Map — takes ~50% of the panel */}
-        <Box sx={{ height: '48%', flexShrink: 0 }}>
-          <SidebarMap />
-        </Box>
-
-        {/* Top Rated Spots */}
-        <TopRatedSpots />
-      </Box>
-
-      {/* ── Right Panel — Feed ─── ~60% ────────────────── */}
-      <Box
-        sx={{
-          flex: 1,
+          width: '100%',
+          maxWidth: 720,
           minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          px: { xs: 2, lg: 5 },
-          py: { xs: 2, lg: 4 },
+          pt: { xs: 1, md: 4 },
         }}
       >
-        {/* Discovery Feed header */}
+        {/* Header */}
         <Box
           component={motion.div}
           variants={fadeInUp}
           initial="hidden"
           animate="visible"
-          sx={{ mb: 3 }}
+          sx={{ mb: 4 }}
         >
           <Box
             sx={{
@@ -622,21 +611,18 @@ export default function ExplorePage() {
             }}
           >
             <Box>
+              <Typography sx={{ ...EYEBROW_SX, color: GOLD, mb: 1 }}>
+                Field notes
+              </Typography>
               <Typography
+                component="h1"
                 sx={{
-                  fontSize: { xs: '1.75rem', md: '2.75rem' },
-                  fontFamily: 'var(--font-heading)',
-                  fontWeight: 700,
-                  fontStyle: 'italic',
-                  letterSpacing: '-0.02em',
+                  fontSize: { xs: '2.25rem', md: '3rem' },
+                  fontFamily: 'var(--font-accent)',
+                  fontWeight: 400,
+                  letterSpacing: '-0.01em',
                   lineHeight: 1.05,
-                  // Subtle gradient text
-                  background: isDark
-                    ? 'linear-gradient(135deg, #E8E3F3 0%, #A594F9 100%)'
-                    : 'linear-gradient(135deg, #1A1A2E 0%, #7B68EE 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
+                  color: ink(isDark),
                 }}
               >
                 Discovery Feed
@@ -645,51 +631,41 @@ export default function ExplorePage() {
                 sx={{
                   color: 'text.secondary',
                   fontSize: '0.9rem',
-                  mt: 0.75,
+                  mt: 1,
                 }}
               >
                 Personalized recommendations for you
               </Typography>
             </Box>
 
-            {/* Tab toggles */}
-            <Box
-              sx={{
-                display: 'flex',
-                borderRadius: '12px',
-                p: 0.5,
-                bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
-                flexShrink: 0,
-              }}
-            >
+            {/* Tab toggles — journal-tab stamps */}
+            <Box sx={{ display: 'flex', gap: 1.25, flexShrink: 0 }}>
               {(['following', 'forYou'] as const)
                 .filter((tab) => tab !== 'following' || isAuthenticated)
-                .map((tab) => (
+                .map((tab, i) => (
                 <Box
                   key={tab}
                   component="button"
                   onClick={() => setActiveTab(tab)}
                   sx={{
-                    px: 2.5,
-                    py: 1,
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    border: 'none',
-                    borderRadius: '9px',
+                    ...EYEBROW_SX,
+                    px: 2,
+                    py: 0.9,
+                    borderRadius: '4px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     ...(activeTab === tab
                       ? {
-                          bgcolor: isDark ? 'primary.main' : 'primary.main',
-                          color: 'white',
-                          boxShadow: isDark
-                            ? '0 2px 8px rgba(165,148,249,0.3)'
-                            : '0 2px 8px rgba(123,104,238,0.3)',
+                          border: `1.5px solid ${GOLD}`,
+                          color: ink(isDark),
+                          bgcolor: isDark ? 'rgba(212,168,67,0.1)' : 'rgba(212,168,67,0.12)',
+                          transform: `rotate(${i % 2 === 0 ? -1 : 1}deg)`,
                         }
                       : {
+                          border: `1px solid ${hairline(isDark)}`,
+                          color: inkMuted(isDark),
                           bgcolor: 'transparent',
-                          color: 'text.secondary',
-                          '&:hover': { color: 'text.primary' },
+                          '&:hover': { color: ink(isDark), borderColor: GOLD },
                         }),
                   }}
                 >
@@ -699,19 +675,16 @@ export default function ExplorePage() {
             </Box>
           </Box>
 
-          {/* Divider */}
+          {/* Flight-path divider */}
           <Box
             sx={{
-              height: 1,
               mt: 3,
-              background: isDark
-                ? 'linear-gradient(to right, transparent, rgba(255,255,255,0.08) 20%, rgba(255,255,255,0.08) 80%, transparent)'
-                : 'linear-gradient(to right, transparent, rgba(0,0,0,0.08) 20%, rgba(0,0,0,0.08) 80%, transparent)',
+              borderTop: `1px dashed ${isDark ? 'rgba(212,168,67,0.3)' : 'rgba(212,168,67,0.5)'}`,
             }}
           />
         </Box>
 
-        {/* Search Bar */}
+        {/* Search Bar — field-notes input */}
         <Box
           sx={{
             position: 'sticky',
@@ -719,7 +692,7 @@ export default function ExplorePage() {
             zIndex: 40,
             py: 1,
             bgcolor: 'background.default',
-            mb: 2,
+            mb: 3,
           }}
         >
           <Box sx={{ position: 'relative' }}>
@@ -731,8 +704,8 @@ export default function ExplorePage() {
                 transform: 'translateY(-50%)',
                 height: 18,
                 width: 18,
-                color: 'var(--mui-palette-text-secondary)',
-                opacity: 0.6,
+                color: '#D4A843',
+                opacity: 0.8,
               }}
             />
             <Box
@@ -741,27 +714,33 @@ export default function ExplorePage() {
               type="text"
               value={searchInput}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchInput(e.target.value)}
-              placeholder="Search destinations, travelers..."
+              placeholder="SEARCH DESTINATIONS, TRAVELERS…"
               sx={{
                 width: '100%',
                 height: 48,
-                borderRadius: '14px',
+                borderRadius: '4px',
                 pl: 6,
                 pr: 6,
-                bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                border: 1,
-                borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                fontSize: '0.875rem',
+                bgcolor: paper(isDark),
+                backgroundImage: grain(isDark),
+                border: `1px solid ${hairline(isDark)}`,
+                borderBottom: `2px solid ${isDark ? 'rgba(212,168,67,0.45)' : 'rgba(212,168,67,0.6)'}`,
                 outline: 'none',
                 transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                color: 'text.primary',
-                '&::placeholder': { color: 'text.secondary', opacity: 0.6 },
+                color: ink(isDark),
+                '&::placeholder': {
+                  fontFamily: 'var(--font-brand)',
+                  letterSpacing: '0.12em',
+                  fontSize: '0.75rem',
+                  color: inkMuted(isDark),
+                  opacity: 0.7,
+                },
                 '&:focus': {
-                  borderColor: 'primary.main',
-                  bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.01)',
+                  borderColor: GOLD,
+                  borderBottomColor: GOLD,
                   boxShadow: isDark
-                    ? '0 0 0 3px rgba(165,148,249,0.15), 0 4px 16px rgba(0,0,0,0.2)'
-                    : '0 0 0 3px rgba(123,104,238,0.1), 0 4px 16px rgba(0,0,0,0.04)',
+                    ? '0 0 0 3px rgba(212,168,67,0.12)'
+                    : '0 0 0 3px rgba(212,168,67,0.15)',
                 },
               }}
             />
@@ -780,13 +759,13 @@ export default function ExplorePage() {
                   height: 26,
                   width: 26,
                   borderRadius: '50%',
-                  bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                  bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(34,28,24,0.08)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   border: 'none',
                   cursor: 'pointer',
-                  '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' },
+                  '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(34,28,24,0.12)' },
                   transition: 'background-color 0.2s',
                 }}
                 aria-label="Clear search"
@@ -796,6 +775,9 @@ export default function ExplorePage() {
             )}
           </Box>
         </Box>
+
+        {/* Trending locations — horizontal stamp rail */}
+        {!isSearchActive && <TrendingStampRail />}
 
         {/* Content area */}
         <AnimatePresence mode="wait">
@@ -810,7 +792,7 @@ export default function ExplorePage() {
             >
               {(searchLoading && usersLoading) && debouncedQuery ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8 }}>
-                  <Loader2 style={{ height: 24, width: 24, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }} />
+                  <Loader2 style={{ height: 24, width: 24, animation: 'spin 1s linear infinite', color: '#D4A843' }} />
                 </Box>
               ) : searchResults.length === 0 && userResults.length === 0 && debouncedQuery ? (
                 <Box
@@ -822,18 +804,20 @@ export default function ExplorePage() {
                 >
                   <Box
                     sx={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '50%',
-                      bgcolor: isDark ? 'rgba(165,148,249,0.1)' : 'rgba(123,104,238,0.08)',
+                      width: 72,
+                      height: 72,
+                      borderRadius: '4px',
+                      border: `1.5px dashed ${GOLD}`,
+                      transform: 'rotate(-2deg)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      mb: 2,
+                      mb: 2.5,
                     }}
                   >
-                    <Search style={{ width: 28, height: 28, color: isDark ? '#A594F9' : '#7B68EE' }} />
+                    <Search style={{ width: 28, height: 28, color: '#D4A843' }} />
                   </Box>
+                  <Typography sx={{ ...EYEBROW_SX, color: GOLD, mb: 1 }}>No stamps found</Typography>
                   <Typography sx={{ color: 'text.secondary', fontWeight: 500 }}>
                     No results for &ldquo;{debouncedQuery}&rdquo;
                   </Typography>
@@ -846,16 +830,7 @@ export default function ExplorePage() {
                   {/* User results */}
                   {userResults.length > 0 && (
                     <Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.06em',
-                          textTransform: 'uppercase',
-                          color: 'text.secondary',
-                          mb: 2,
-                        }}
-                      >
+                      <Typography sx={{ ...EYEBROW_SX, color: GOLD, mb: 2 }}>
                         People &middot; {userResults.length}
                       </Typography>
                       <Box
@@ -873,13 +848,14 @@ export default function ExplorePage() {
                               sx={{
                                 flexShrink: 0,
                                 width: 160,
-                                borderRadius: '14px',
-                                border: 1,
-                                borderColor: 'divider',
-                                bgcolor: 'background.paper',
+                                borderRadius: '6px',
+                                border: `1px solid ${hairline(isDark)}`,
+                                bgcolor: paper(isDark),
+                                backgroundImage: grain(isDark),
+                                boxShadow: hardShadow(isDark),
                                 p: 2,
                                 textAlign: 'center',
-                                '&:hover': { borderColor: 'primary.main' },
+                                '&:hover': { borderColor: GOLD },
                                 transition: 'border-color 0.2s',
                               }}
                             >
@@ -890,10 +866,10 @@ export default function ExplorePage() {
                                 size="lg"
                                 sx={{ mx: 'auto', mb: 1 }}
                               />
-                              <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <Typography variant="body2" sx={{ fontWeight: 500, color: ink(isDark), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {u.displayName || u.username}
                               </Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                              <Typography variant="caption" sx={{ color: inkMuted(isDark), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
                                 @{u.username}
                               </Typography>
                             </Box>
@@ -906,30 +882,19 @@ export default function ExplorePage() {
                   {/* Post results */}
                   {searchResults.length > 0 && (
                     <Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.06em',
-                          textTransform: 'uppercase',
-                          color: 'text.secondary',
-                          mb: 2,
-                        }}
-                      >
+                      <Typography sx={{ ...EYEBROW_SX, color: GOLD, mb: 2 }}>
                         Posts &middot; {searchResults.length}
                       </Typography>
                       <Box
                         component={motion.div}
-                        sx={{ display: 'flex', flexDirection: 'column' }}
+                        sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}
                         variants={staggerContainer}
                         initial="hidden"
                         animate="visible"
                       >
                         {searchResults.map((post) => (
                           <motion.div key={post.id} variants={staggerItem}>
-                            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                              <PostCard post={post} />
-                            </Box>
+                            <PostCard post={post} />
                           </motion.div>
                         ))}
                       </Box>
@@ -940,28 +905,11 @@ export default function ExplorePage() {
                             component="button"
                             onClick={() => searchFetchNext()}
                             disabled={searchFetching}
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 1,
-                              px: 3,
-                              py: 1.25,
-                              borderRadius: '12px',
-                              border: 1,
-                              borderColor: 'divider',
-                              fontSize: '0.875rem',
-                              fontWeight: 500,
-                              color: 'text.primary',
-                              bgcolor: 'transparent',
-                              cursor: 'pointer',
-                              '&:hover': { bgcolor: 'action.hover' },
-                              transition: 'background-color 0.2s',
-                              '&:disabled': { opacity: 0.5 },
-                            }}
+                            sx={stampButton}
                           >
                             {searchFetching ? (
                               <>
-                                <Loader2 style={{ height: 16, width: 16, animation: 'spin 1s linear infinite' }} />
+                                <Loader2 style={{ height: 14, width: 14, animation: 'spin 1s linear infinite' }} />
                                 Loading...
                               </>
                             ) : (
@@ -999,14 +947,9 @@ export default function ExplorePage() {
                     title="Couldn't load your feed"
                     description="Something went wrong while loading posts. Please try again."
                   />
-                  <Button
-                    variant="contained"
-                    disableElevation
-                    onClick={() => refetch()}
-                    sx={{ mt: -4 }}
-                  >
+                  <Box component="button" onClick={() => refetch()} sx={{ ...stampButton, mt: -4 }}>
                     Try Again
-                  </Button>
+                  </Box>
                 </Box>
               ) : posts.length === 0 ? (
                 <Box
@@ -1025,18 +968,20 @@ export default function ExplorePage() {
                 >
                   <Box
                     sx={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      bgcolor: isDark ? 'rgba(165,148,249,0.1)' : 'rgba(123,104,238,0.08)',
+                      width: 88,
+                      height: 88,
+                      borderRadius: '4px',
+                      border: `1.5px dashed ${GOLD}`,
+                      transform: 'rotate(-2deg)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       mb: 3,
                     }}
                   >
-                    <Compass style={{ width: 36, height: 36, color: isDark ? '#A594F9' : '#7B68EE' }} />
+                    <Compass style={{ width: 36, height: 36, color: '#D4A843' }} />
                   </Box>
+                  <Typography sx={{ ...EYEBROW_SX, color: GOLD, mb: 1 }}>No stamps yet</Typography>
                   <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
                     {activeTab === 'following' ? 'Your feed is empty' : 'No posts yet'}
                   </Typography>
@@ -1052,44 +997,25 @@ export default function ExplorePage() {
                   variants={staggerContainer}
                   initial="hidden"
                   animate="visible"
+                  sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}
                 >
                   {posts.map((post) => (
                     <motion.div key={post.id} variants={staggerItem}>
-                      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                        <PostCard post={post} />
-                      </Box>
+                      <PostCard post={post} />
                     </motion.div>
                   ))}
 
                   {hasNextPage && (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                       <Box
                         component="button"
                         onClick={() => fetchNextPage()}
                         disabled={isFetchingNextPage}
-                        sx={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          px: 4,
-                          py: 1.5,
-                          borderRadius: '12px',
-                          border: 'none',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          color: isDark ? '#A594F9' : '#7B68EE',
-                          bgcolor: isDark ? 'rgba(165,148,249,0.1)' : 'rgba(123,104,238,0.08)',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            bgcolor: isDark ? 'rgba(165,148,249,0.15)' : 'rgba(123,104,238,0.12)',
-                          },
-                          transition: 'all 0.2s',
-                          '&:disabled': { opacity: 0.5 },
-                        }}
+                        sx={stampButton}
                       >
                         {isFetchingNextPage ? (
                           <>
-                            <Loader2 style={{ height: 16, width: 16, animation: 'spin 1s linear infinite' }} />
+                            <Loader2 style={{ height: 14, width: 14, animation: 'spin 1s linear infinite' }} />
                             Loading...
                           </>
                         ) : (
@@ -1103,6 +1029,26 @@ export default function ExplorePage() {
             </motion.div>
           )}
         </AnimatePresence>
+      </Box>
+
+      {/* ── Side rail (xl) — the map room ───────────────── */}
+      <Box
+        sx={{
+          display: { xs: 'none', xl: 'flex' },
+          flexDirection: 'column',
+          gap: 1.5,
+          width: 360,
+          flexShrink: 0,
+          position: 'sticky',
+          top: 24,
+          alignSelf: 'flex-start',
+          pt: 4,
+        }}
+      >
+        <Typography sx={{ ...EYEBROW_SX, color: GOLD }}>The map room</Typography>
+        <Box sx={{ height: 420 }}>
+          <SidebarMap />
+        </Box>
       </Box>
 
       {/* ── Create Post FAB ────────────────────────────── */}

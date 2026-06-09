@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { fadeInUp } from '@/lib/animations';
 import { Box, Typography } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
 import MuiTabs from '@mui/material/Tabs';
@@ -32,9 +34,54 @@ import {
   MarkerPopup,
   MapControls,
 } from '@/components/ui/map';
-import { Map, Bookmark, Grid3X3, FolderOpen, BookOpen, Lock, MoreVertical, Flag } from 'lucide-react';
+import { Map, Bookmark, Grid3X3, FolderOpen, BookOpen, Lock, MoreVertical, Flag, VolumeX, Volume2 } from 'lucide-react';
+import { useMutedUsers, useMuteUser, useUnmuteUser } from '@/lib/hooks/use-mutes';
+import { toast } from 'sonner';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+const GOLD = 'var(--viraha-gold, #D4A843)';
+
+// Subtle paper-grain texture (CSS-only, per design brief — no asset files).
+const PAPER_GRAIN =
+  'repeating-linear-gradient(0deg, rgba(34,28,24,0.03) 0px, rgba(34,28,24,0.03) 1px, transparent 1px, transparent 3px)';
+
+/** Dashed-gold passport-stamp roundel used by the restyled error/private states. */
+function StampRoundel({ children }: { children: React.ReactNode }) {
+  return (
+    <Box
+      aria-hidden="true"
+      sx={(theme) => ({
+        width: 88,
+        height: 88,
+        borderRadius: '50%',
+        border: '1.5px dashed rgba(212,168,67,0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transform: 'rotate(-4deg)',
+        bgcolor:
+          theme.palette.mode === 'dark' ? 'rgba(212,168,67,0.06)' : 'rgba(212,168,67,0.1)',
+        backgroundImage: PAPER_GRAIN,
+        mb: 3,
+      })}
+    >
+      <Box
+        sx={{
+          width: 68,
+          height: 68,
+          borderRadius: '50%',
+          border: '1.5px solid rgba(212,168,67,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
+}
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
@@ -70,6 +117,29 @@ export default function ProfilePage() {
   } = useUserProfile(username);
 
   const isOwnProfile = !!(authUser && user && authUser.username === user.username);
+
+  // Mute state (one-way — the target is never notified).
+  const { data: mutedUsers } = useMutedUsers(!!authUser && !isOwnProfile);
+  const muteUser = useMuteUser();
+  const unmuteUser = useUnmuteUser();
+  const isMuted = !!user && !!mutedUsers?.some((m) => m.id === user.id);
+
+  function handleMuteToggle() {
+    setOverflowAnchor(null);
+    if (!user) return;
+    if (isMuted) {
+      unmuteUser.mutate(user.username, {
+        onSuccess: () => toast.success(`Unmuted @${user.username}`),
+        onError: () => toast.error('Could not unmute'),
+      });
+    } else {
+      muteUser.mutate(user.username, {
+        onSuccess: () =>
+          toast.success(`Muted @${user.username} — their posts won't show in your feed`),
+        onError: () => toast.error('Could not mute'),
+      });
+    }
+  }
 
   // Fetch posts filtered by userId on the backend
   const {
@@ -121,7 +191,7 @@ export default function ProfilePage() {
     return (
       <Box sx={{ maxWidth: 896, mx: 'auto' }}>
         {/* Cover skeleton */}
-        <Skeleton variant="rounded" animation="pulse" sx={{ height: { xs: 192, md: 288 }, width: '100%', borderRadius: 0 }} />
+        <Skeleton variant="rounded" animation="pulse" sx={{ height: { xs: 192, md: 264 }, width: '100%', borderRadius: 0 }} />
         {/* Avatar + info skeleton */}
         <Box sx={{ mt: -8, px: { xs: 2, md: 4 }, position: 'relative', zIndex: 10 }}>
           <Skeleton variant="rounded" animation="pulse" sx={{ height: 96, width: 96, borderRadius: '50%', outline: '4px solid', outlineColor: 'background.default' }} />
@@ -141,7 +211,7 @@ export default function ProfilePage() {
         </Box>
         {/* Content grid skeleton */}
         <Box sx={{ mt: 5, px: { xs: 2, md: 4 } }}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 3 }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton variant="rounded" animation="pulse" key={i} sx={{ aspectRatio: '4/3', borderRadius: '12px' }} />
             ))}
@@ -153,9 +223,38 @@ export default function ProfilePage() {
 
   if (userError || !user) {
     return (
-      <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
-        <Typography variant="h6">User not found</Typography>
-        <Typography variant="body2" sx={{ mt: 0.5 }}>The profile you are looking for does not exist.</Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          py: 10,
+          px: 2,
+        }}
+      >
+        <StampRoundel>
+          <MapPin style={{ width: 28, height: 28, color: 'var(--viraha-gold, #D4A843)' }} />
+        </StampRoundel>
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-brand, sans-serif)',
+            fontSize: '11px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.16em',
+            color: GOLD,
+            fontWeight: 500,
+            mb: 1,
+          }}
+        >
+          No stamp on record
+        </Typography>
+        <Typography sx={{ fontFamily: 'var(--font-accent, serif)', fontSize: '1.75rem', color: 'text.primary' }}>
+          User not found
+        </Typography>
+        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', maxWidth: 384 }}>
+          The profile you are looking for does not exist.
+        </Typography>
       </Box>
     );
   }
@@ -200,8 +299,40 @@ export default function ProfilePage() {
               onClose={() => setOverflowAnchor(null)}
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 160 } } }}
+              slotProps={{
+                paper: {
+                  sx: (theme) => ({
+                    borderRadius: '10px',
+                    minWidth: 160,
+                    border: '1px solid',
+                    borderColor:
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(212,168,67,0.3)'
+                        : 'rgba(212,168,67,0.45)',
+                    bgcolor:
+                      theme.palette.mode === 'dark'
+                        ? 'var(--viraha-ink-plum, #16121F)'
+                        : 'var(--viraha-paper, #FAF6EE)',
+                    boxShadow:
+                      theme.palette.mode === 'dark'
+                        ? '3px 3px 0 rgba(0,0,0,0.4)'
+                        : '3px 3px 0 rgba(34,28,24,0.12)',
+                  }),
+                },
+              }}
             >
+              <MuiMenuItem
+                onClick={handleMuteToggle}
+                disabled={muteUser.isPending || unmuteUser.isPending}
+                sx={{ fontSize: '0.875rem', borderRadius: 1, mx: 0.5 }}
+              >
+                {isMuted ? (
+                  <Volume2 size={16} style={{ marginRight: 8 }} />
+                ) : (
+                  <VolumeX size={16} style={{ marginRight: 8 }} />
+                )}
+                {isMuted ? 'Unmute' : 'Mute'}
+              </MuiMenuItem>
               <MuiMenuItem
                 onClick={() => {
                   setOverflowAnchor(null);
@@ -242,10 +373,48 @@ export default function ProfilePage() {
         )}
       </Box>
 
-      {/* Tabs */}
-      <Box sx={{ mt: 4, px: { xs: 2, md: 4 } }}>
+      {/* Tabs — journal tabs with a gold stamp underline */}
+      <motion.div variants={fadeInUp} initial="hidden" animate="visible" transition={{ delay: 0.25 }}>
+      <Box sx={{ mt: 5, px: { xs: 2, md: 4 } }}>
         <Box>
-          <MuiTabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="scrollable" scrollButtons={false} sx={{ width: '100%', justifyContent: 'flex-start', borderBottom: 1, borderColor: 'divider', position: 'sticky', top: 0, bgcolor: 'rgba(var(--mui-palette-background-defaultChannel) / 0.95)', backdropFilter: 'blur(4px)', zIndex: 10, mb: 3, minHeight: 36, '& .MuiTab-root': { minHeight: 36, textTransform: 'none', fontWeight: 500, fontSize: '0.875rem', px: 2 } }}>
+          <MuiTabs
+            value={activeTab}
+            onChange={(_, v) => setActiveTab(v)}
+            variant="scrollable"
+            scrollButtons={false}
+            sx={(theme) => ({
+              width: '100%',
+              justifyContent: 'flex-start',
+              borderBottom: '1px solid',
+              borderColor:
+                theme.palette.mode === 'dark'
+                  ? 'rgba(212,168,67,0.25)'
+                  : 'rgba(212,168,67,0.4)',
+              position: 'sticky',
+              top: 0,
+              bgcolor: 'rgba(var(--mui-palette-background-defaultChannel) / 0.95)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 10,
+              mb: 4,
+              minHeight: 40,
+              '& .MuiTabs-indicator': {
+                backgroundColor: GOLD,
+                height: 3,
+                borderRadius: '3px 3px 0 0',
+              },
+              '& .MuiTab-root': {
+                minHeight: 40,
+                textTransform: 'uppercase',
+                fontFamily: 'var(--font-brand, sans-serif)',
+                fontWeight: 500,
+                fontSize: '0.7rem',
+                letterSpacing: '0.12em',
+                px: 2,
+                color: 'text.secondary',
+                '&.Mui-selected': { color: 'text.primary' },
+              },
+            })}
+          >
             <MuiTab value="posts" label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Grid3X3 style={{ height: 16, width: 16 }} /> Posts</Box>} />
             <MuiTab value="map" label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Map style={{ height: 16, width: 16 }} /> Map</Box>} />
             <MuiTab value="albums" label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><FolderOpen style={{ height: 16, width: 16 }} /> Albums</Box>} />
@@ -257,7 +426,7 @@ export default function ProfilePage() {
 
           {activeTab === 'posts' && (
             postsLoading ? (
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 3 }}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton variant="rounded" animation="pulse" key={i} sx={{ aspectRatio: '4/3', borderRadius: '12px' }} />
                 ))}
@@ -275,7 +444,22 @@ export default function ProfilePage() {
                 description="Posts with location data will appear here on an interactive map."
               />
             ) : (
-              <Box sx={{ borderRadius: '12px', overflow: 'hidden', border: 1, borderColor: 'divider', height: 500 }}>
+              <Box
+                sx={(theme) => ({
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor:
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(212,168,67,0.3)'
+                      : 'rgba(212,168,67,0.45)',
+                  boxShadow:
+                    theme.palette.mode === 'dark'
+                      ? '3px 3px 0 rgba(0,0,0,0.35)'
+                      : '3px 3px 0 rgba(34,28,24,0.1)',
+                  height: 500,
+                })}
+              >
                 <MapComponent
                   center={[
                     Number(mapPosts[0]?.locationLng ?? 0),
@@ -358,7 +542,7 @@ export default function ProfilePage() {
 
           {activeTab === 'albums' && (
             albumsLoading ? (
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 3 }}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton variant="rounded" animation="pulse" key={i} sx={{ aspectRatio: '4/3', borderRadius: '12px' }} />
                 ))}
@@ -370,7 +554,7 @@ export default function ProfilePage() {
 
           {activeTab === 'journals' && (
             journalsLoading ? (
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 3 }}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton variant="rounded" animation="pulse" key={i} sx={{ aspectRatio: '4/3', borderRadius: '12px' }} />
                 ))}
@@ -383,7 +567,7 @@ export default function ProfilePage() {
           {activeTab === 'saved' && (
             isOwnProfile ? (
               savedLoading ? (
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 3 }}>
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton variant="rounded" animation="pulse" key={i} sx={{ aspectRatio: '4/3', borderRadius: '12px' }} />
                   ))}
@@ -420,22 +604,26 @@ export default function ProfilePage() {
               )
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, textAlign: 'center' }}>
-                <Box
+                <StampRoundel>
+                  <Lock style={{ width: 26, height: 26, color: 'var(--viraha-gold, #D4A843)' }} />
+                </StampRoundel>
+                <Typography
                   sx={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    bgcolor: 'action.selected',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mb: 3,
+                    fontFamily: 'var(--font-brand, sans-serif)',
+                    fontSize: '11px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.16em',
+                    color: GOLD,
+                    fontWeight: 500,
+                    mb: 1,
                   }}
                 >
-                  <Lock style={{ width: 40, height: 40, color: 'var(--mui-palette-text-secondary)' }} />
-                </Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>Saved posts are private</Typography>
-                <Typography sx={{ color: 'text.secondary', maxWidth: 384 }}>
+                  Sealed page
+                </Typography>
+                <Typography sx={{ fontFamily: 'var(--font-accent, serif)', fontSize: '1.5rem', color: 'text.primary', mb: 1 }}>
+                  Saved posts are private
+                </Typography>
+                <Typography sx={{ color: 'text.secondary', maxWidth: 384, fontStyle: 'italic' }}>
                   You can only view your own saved posts.
                 </Typography>
               </Box>
@@ -443,6 +631,7 @@ export default function ProfilePage() {
           )}
         </Box>
       </Box>
+      </motion.div>
     </Box>
   );
 }

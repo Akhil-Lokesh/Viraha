@@ -32,9 +32,14 @@ import {
   Download,
   Trash2,
   UserX,
+  VolumeX,
   ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import { SectionEyebrow } from '@/components/settings/section-eyebrow';
+import { TicketDivider } from '@/components/settings/ticket-divider';
+import { paperPanelSx, VIRAHA_GOLD } from '@/components/settings/paper-panel';
+import { SessionsSection } from '@/components/settings/sessions-section';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { updateProfile, exportData, deleteAccount } from '@/lib/api/users';
 import { changePassword, logoutApi } from '@/lib/api/auth';
@@ -150,8 +155,9 @@ function ProfileTab() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 3 }}
+        sx={paperPanelSx}
       >
+        <SectionEyebrow gold>Traveler</SectionEyebrow>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
           <input
             ref={fileInputRef}
@@ -263,6 +269,8 @@ function ProfileTab() {
         </Box>
       </Box>
 
+      <TicketDivider />
+
       {/* Form fields */}
       <Box
         component={motion.div}
@@ -270,8 +278,9 @@ function ProfileTab() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}
+        sx={{ ...paperPanelSx, display: 'flex', flexDirection: 'column', gap: 2 }}
       >
+        <SectionEyebrow gold>About you</SectionEyebrow>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <FormLabel htmlFor="displayName" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>
             Display Name
@@ -315,6 +324,8 @@ function ProfileTab() {
         </Box>
       </Box>
 
+      <TicketDivider />
+
       {/* Home location */}
       <Box
         component={motion.div}
@@ -322,11 +333,11 @@ function ProfileTab() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 3 }}
+        sx={paperPanelSx}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <MapPin style={{ height: 16, width: 16, color: 'var(--mui-palette-text-secondary)' }} />
-          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>Home Base</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <MapPin style={{ height: 14, width: 14, color: VIRAHA_GOLD, marginBottom: 8 }} />
+          <SectionEyebrow gold>Home base</SectionEyebrow>
         </Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -386,11 +397,11 @@ function ProfileTab() {
           sx={{
             width: '100%',
             height: 44,
-            borderRadius: '12px',
+            borderRadius: '10px',
             bgcolor: 'secondary.main',
             color: 'white',
             fontWeight: 500,
-            boxShadow: '0 4px 14px rgba(var(--mui-palette-secondary-mainChannel) / 0.2)',
+            boxShadow: '2px 2px 0 rgba(34, 28, 24, 0.18)',
             '&:hover': { bgcolor: 'secondary.dark' },
           }}
         >
@@ -433,9 +444,12 @@ function AppearanceTab() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 3 }}
+        sx={paperPanelSx}
       >
-        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', mb: 2 }}>Theme</Typography>
+        <SectionEyebrow gold>Theme</SectionEyebrow>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+          Choose how your journal looks.
+        </Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.5 }}>
           {themes.map((t) => {
             const Icon = t.icon;
@@ -450,17 +464,17 @@ function AppearanceTab() {
                 whileTap={{ scale: 0.98 }}
                 sx={{
                   position: 'relative',
-                  borderRadius: '12px',
-                  border: 1,
+                  borderRadius: '10px',
+                  border: '1.5px solid',
                   p: 2,
                   textAlign: 'center',
                   transition: 'all 0.2s',
                   cursor: 'pointer',
-                  bgcolor: isActive ? 'secondary.light' : 'transparent',
-                  borderColor: isActive ? 'secondary.main' : 'divider',
+                  bgcolor: isActive ? 'rgba(212, 168, 67, 0.08)' : 'transparent',
+                  borderColor: isActive ? VIRAHA_GOLD : 'divider',
                   ...(isActive
                     ? {
-                        boxShadow: 1,
+                        boxShadow: '2px 2px 0 rgba(212, 168, 67, 0.25)',
                       }
                     : {
                         '&:hover': { borderColor: 'divider', bgcolor: 'action.hover' },
@@ -479,7 +493,7 @@ function AppearanceTab() {
                     borderRadius: '8px',
                     transition: 'all 0.2s',
                     ...(isActive
-                      ? { bgcolor: 'rgba(var(--mui-palette-secondary-mainChannel) / 0.1)', color: 'secondary.main' }
+                      ? { bgcolor: 'rgba(212, 168, 67, 0.12)', color: VIRAHA_GOLD }
                       : { bgcolor: 'action.selected', color: 'text.secondary' }),
                   }}
                 >
@@ -493,7 +507,7 @@ function AppearanceTab() {
                   <Box
                     component={motion.div}
                     layoutId="theme-indicator"
-                    sx={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', bgcolor: 'secondary.main' }}
+                    sx={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', bgcolor: VIRAHA_GOLD }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                   />
                 )}
@@ -570,8 +584,9 @@ function PrivacyTab() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}
+        sx={{ ...paperPanelSx, display: 'flex', flexDirection: 'column', gap: 3 }}
       >
+        <SectionEyebrow gold>Visibility</SectionEyebrow>
         {/* Private Account */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
@@ -605,7 +620,7 @@ function PrivacyTab() {
           />
         </Box>
 
-        <Box sx={{ height: 1, bgcolor: 'divider', opacity: 0.5 }} />
+        <Box sx={{ borderTop: '1px dashed', borderColor: 'divider' }} />
 
         {/* Show Location */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
@@ -638,6 +653,101 @@ function PrivacyTab() {
             onChange={(e) => handleShowLocationChange(e.target.checked)}
             disabled={saving}
           />
+        </Box>
+      </Box>
+
+      <TicketDivider />
+
+      {/* Muted & blocked accounts */}
+      <Box
+        component={motion.div}
+        custom={1}
+        variants={sectionVariants}
+        initial="hidden"
+        animate="visible"
+        sx={{ ...paperPanelSx, p: 2 }}
+      >
+        <Box sx={{ px: 1, pt: 0.5 }}>
+          <SectionEyebrow gold>Muted &amp; blocked</SectionEyebrow>
+        </Box>
+        <Box
+          component={Link}
+          href="/settings/muted"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            p: 1.5,
+            borderRadius: '8px',
+            textDecoration: 'none',
+            color: 'inherit',
+            transition: 'background-color 0.2s',
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
+              borderRadius: '8px',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <VolumeX style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+              Muted accounts
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Hidden from your feed — they&apos;re never notified.
+            </Typography>
+          </Box>
+          <ChevronRight style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
+        </Box>
+        <Box sx={{ borderTop: '1px dashed', borderColor: 'divider', mx: 1.5 }} />
+        <Box
+          component={Link}
+          href="/settings/blocked"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            p: 1.5,
+            borderRadius: '8px',
+            textDecoration: 'none',
+            color: 'inherit',
+            transition: 'background-color 0.2s',
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
+              borderRadius: '8px',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <UserX style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+              Blocked accounts
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Manage the accounts you&apos;ve blocked.
+            </Typography>
+          </Box>
+          <ChevronRight style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
         </Box>
       </Box>
 
@@ -790,11 +900,14 @@ function AccountTab() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}
+        sx={{ ...paperPanelSx, display: 'flex', flexDirection: 'column', gap: 2 }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Lock style={{ height: 16, width: 16, color: 'var(--mui-palette-text-secondary)' }} />
-          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>Change Password</Typography>
+        <Box>
+          <SectionEyebrow gold>Security</SectionEyebrow>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Lock style={{ height: 16, width: 16, color: 'var(--mui-palette-text-secondary)' }} />
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>Change Password</Typography>
+          </Box>
         </Box>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -870,11 +983,11 @@ function AccountTab() {
           sx={{
             width: '100%',
             height: 44,
-            borderRadius: '12px',
+            borderRadius: '10px',
             bgcolor: 'secondary.main',
             color: 'white',
             fontWeight: 500,
-            boxShadow: '0 4px 14px rgba(var(--mui-palette-secondary-mainChannel) / 0.2)',
+            boxShadow: '2px 2px 0 rgba(34, 28, 24, 0.18)',
             '&:hover': { bgcolor: 'secondary.dark' },
           }}
         >
@@ -882,54 +995,20 @@ function AccountTab() {
         </Button>
       </Box>
 
-      {/* Blocked accounts link */}
+      <TicketDivider />
+
+      {/* Active sessions */}
       <Box
         component={motion.div}
         custom={2}
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 1 }}
       >
-        <Box
-          component={Link}
-          href="/settings/blocked"
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            p: 2,
-            borderRadius: '12px',
-            textDecoration: 'none',
-            color: 'inherit',
-            transition: 'background-color 0.2s',
-            '&:hover': { bgcolor: 'action.hover' },
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 36,
-              height: 36,
-              borderRadius: '8px',
-              bgcolor: 'action.selected',
-            }}
-          >
-            <UserX style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
-              Blocked accounts
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Manage the accounts you&apos;ve blocked.
-            </Typography>
-          </Box>
-          <ChevronRight style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
-        </Box>
+        <SessionsSection />
       </Box>
+
+      <TicketDivider />
 
       {/* Download your data */}
       <Box
@@ -938,11 +1017,14 @@ function AccountTab() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'divider', bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}
+        sx={{ ...paperPanelSx, display: 'flex', flexDirection: 'column', gap: 2 }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Download style={{ height: 16, width: 16, color: 'var(--mui-palette-text-secondary)' }} />
-          <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>Download your data</Typography>
+        <Box>
+          <SectionEyebrow gold>Your data</SectionEyebrow>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Download style={{ height: 16, width: 16, color: 'var(--mui-palette-text-secondary)' }} />
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>Download your data</Typography>
+          </Box>
         </Box>
         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
           Export a copy of your posts, journals, albums, saves, and account details as a JSON file.
@@ -960,6 +1042,8 @@ function AccountTab() {
         </Button>
       </Box>
 
+      <TicketDivider />
+
       {/* Danger Zone */}
       <Box
         component={motion.div}
@@ -967,7 +1051,7 @@ function AccountTab() {
         variants={sectionVariants}
         initial="hidden"
         animate="visible"
-        sx={{ borderRadius: '16px', border: 1, borderColor: 'error.main', bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}
+        sx={{ ...paperPanelSx, borderColor: 'error.main', boxShadow: '2px 2px 0 rgba(239, 68, 68, 0.15)', display: 'flex', flexDirection: 'column', gap: 2 }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Trash2 style={{ height: 16, width: 16, color: 'var(--mui-palette-error-main)' }} />
@@ -1099,7 +1183,7 @@ function SettingsContent() {
         <Box
           component={motion.div}
           initial={{ scale: 0, rotate: -30 }}
-          animate={{ scale: 1, rotate: 0 }}
+          animate={{ scale: 1, rotate: -2 }}
           transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.1 }}
           sx={{
             display: { xs: 'none', md: 'flex' },
@@ -1107,15 +1191,35 @@ function SettingsContent() {
             justifyContent: 'center',
             width: 40,
             height: 40,
-            borderRadius: '12px',
-            bgcolor: 'rgba(100,116,139,0.1)',
+            borderRadius: '8px',
+            border: '1.5px solid',
+            borderColor: VIRAHA_GOLD,
           }}
         >
-          <Settings style={{ height: 20, width: 20, color: '#64748b' }} />
+          <Settings style={{ height: 20, width: 20, color: 'var(--viraha-gold, #D4A843)' }} />
         </Box>
-        <Typography variant="h5" sx={{ fontFamily: 'var(--font-heading)', fontWeight: 600, color: 'text.primary' }}>
-          Settings
-        </Typography>
+        <Box>
+          <Box
+            component="p"
+            sx={{
+              m: 0,
+              fontFamily: 'var(--font-brand, Posterama, sans-serif)',
+              fontSize: '11px',
+              fontWeight: 600,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'text.secondary',
+            }}
+          >
+            The keepsake · Your account
+          </Box>
+          <Typography
+            variant="h5"
+            sx={{ fontFamily: 'var(--font-accent, var(--font-heading))', fontWeight: 600, color: 'text.primary' }}
+          >
+            Settings
+          </Typography>
+        </Box>
       </Box>
 
       {/* Tabs */}
@@ -1131,7 +1235,12 @@ function SettingsContent() {
             p: 0.5,
             '& .MuiTab-root': { minHeight: 36, textTransform: 'none', fontWeight: 500, fontSize: '0.875rem', px: 2 },
             '& .MuiTabs-indicator': { display: 'none' },
-            '& .Mui-selected': { bgcolor: 'background.paper', borderRadius: '8px', boxShadow: 1 },
+            '& .Mui-selected': {
+              bgcolor: 'background.paper',
+              borderRadius: '8px',
+              boxShadow: '1px 1px 0 rgba(34, 28, 24, 0.12)',
+              color: `${VIRAHA_GOLD} !important`,
+            },
             width: { xs: '100%', sm: 'auto' },
             position: { xs: 'sticky', md: 'relative' },
             top: { xs: 52, md: 'auto' },

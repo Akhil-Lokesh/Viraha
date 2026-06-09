@@ -7,8 +7,17 @@ import { motion } from 'framer-motion';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { useAuthStore, useAuthHydrated } from '@/lib/stores/auth-store';
-import { heroPhotos } from '@/lib/mock-data';
 import { fadeIn } from '@/lib/animations';
+
+const PANEL_INK = '#16121F'; // brand panel stays deep ink-plum in both modes
+const PANEL_CREAM = '#F3EDE3';
+const PANEL_GOLD = '#E2BC5C';
+
+const stamps: Array<{ label: string; top: string; left?: string; right?: string; rotate: string }> = [
+  { label: '48.8566° N · 2.3522° E', top: '14%', left: '10%', rotate: '-3deg' },
+  { label: 'Kyoto · Field Notes', top: '26%', right: '12%', rotate: '2deg' },
+  { label: 'Stamped · Viraha', top: '74%', left: '14%', rotate: '-1.5deg' },
+];
 
 export default function AuthLayout({
   children,
@@ -39,58 +48,103 @@ export default function AuthLayout({
         flexDirection: { xs: 'column', md: 'row' },
       }}
     >
-      {/* Left half -- full-bleed travel photo (desktop only) */}
+      {/* Left half -- brand panel: ink-plum paper, stamps, drifting flight path (desktop only) */}
       <Box
+        className="paper-grain"
         sx={{
           display: { xs: 'none', md: 'flex' },
           position: 'relative',
           width: '50%',
           overflow: 'hidden',
+          bgcolor: PANEL_INK,
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
+        {/* Drifting dashed flight path across the panel */}
         <Box
-          component="img"
-          src={heroPhotos[1]}
-          alt="Travel inspiration"
+          component="svg"
+          viewBox="0 0 600 800"
+          preserveAspectRatio="none"
+          aria-hidden
           sx={{
             position: 'absolute',
             inset: 0,
-            height: '100%',
             width: '100%',
-            objectFit: 'cover',
+            height: '100%',
+            opacity: 0.55,
           }}
-        />
-        {/* Gradient overlay */}
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background:
-              'linear-gradient(to top, rgba(45, 31, 78, 0.8), rgba(45, 31, 78, 0.3), rgba(45, 31, 78, 0.1))',
-          }}
-        />
-        {/* Logo + tagline at bottom-left */}
-        <Box sx={{ position: 'absolute', bottom: 48, left: 48, zIndex: 10 }}>
+        >
+          <path
+            d="M -40 620 C 140 520, 180 360, 320 320 S 560 220, 660 80"
+            fill="none"
+            stroke={PANEL_GOLD}
+            strokeWidth="1.5"
+            strokeDasharray="8 10"
+            style={{ animation: 'flight-drift 14s linear infinite' }}
+          />
+          <circle cx="320" cy="320" r="3.5" fill={PANEL_GOLD} />
+        </Box>
+
+        {/* Rotated passport stamps */}
+        {stamps.map((stamp) => (
+          <Box
+            key={stamp.label}
+            className="stamp"
+            sx={{
+              position: 'absolute',
+              top: stamp.top,
+              left: stamp.left,
+              right: stamp.right,
+              '--stamp-rotate': stamp.rotate,
+              color: PANEL_CREAM,
+              borderColor: PANEL_GOLD,
+              opacity: 0.85,
+            }}
+          >
+            {stamp.label}
+          </Box>
+        ))}
+
+        {/* Oversized brand moment */}
+        <Box sx={{ position: 'relative', zIndex: 10, textAlign: 'center', px: 6 }}>
+          <Typography
+            sx={{
+              fontFamily: 'var(--font-brand)',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: PANEL_GOLD,
+              mb: 2,
+            }}
+          >
+            A travel memory journal
+          </Typography>
           <Link href="/" style={{ textDecoration: 'none' }}>
             <Typography
-              variant="h2"
+              component="span"
               sx={{
-                fontSize: '3rem',
-                fontWeight: 700,
-                color: '#fff',
-                fontFamily: 'var(--font-brand)',
-                letterSpacing: '-0.025em',
+                display: 'block',
+                fontFamily: 'var(--font-accent)',
+                fontSize: 'clamp(4rem, 9vw, 7rem)',
+                lineHeight: 1,
+                color: PANEL_CREAM,
               }}
             >
               Viraha
             </Typography>
           </Link>
+          <Box
+            className="flight-path"
+            sx={{ width: 120, mx: 'auto', my: 3, borderTopColor: PANEL_GOLD }}
+          />
           <Typography
             sx={{
-              color: 'rgba(255, 255, 255, 0.8)',
-              mt: 1.5,
-              fontSize: '1.125rem',
-              maxWidth: 320,
+              color: 'rgba(243, 237, 227, 0.75)',
+              fontSize: '1.05rem',
+              maxWidth: 340,
+              mx: 'auto',
               lineHeight: 1.7,
             }}
           >
@@ -100,19 +154,20 @@ export default function AuthLayout({
         </Box>
       </Box>
 
-      {/* Right half -- centered auth form */}
+      {/* Right half -- centered auth form on warm paper */}
       <Box
         component={motion.div}
         variants={fadeIn}
         initial="hidden"
         animate="visible"
+        className="paper-grain"
         sx={{
           width: { xs: '100%', md: '50%' },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '100vh',
-          bgcolor: 'background.default',
+          bgcolor: 'var(--viraha-paper, #FAF6EE)',
         }}
       >
         <Box
@@ -124,7 +179,7 @@ export default function AuthLayout({
             py: 6,
           }}
         >
-          {/* Mobile logo (hidden on desktop since it is on the left panel) */}
+          {/* Mobile brand moment (hidden on desktop since it is on the left panel) */}
           <Box
             sx={{
               display: { xs: 'block', md: 'none' },
@@ -132,15 +187,28 @@ export default function AuthLayout({
               mb: 5,
             }}
           >
+            <Typography
+              sx={{
+                fontFamily: 'var(--font-brand)',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                color: 'var(--viraha-gold, #D4A843)',
+                mb: 1,
+              }}
+            >
+              A travel memory journal
+            </Typography>
             <Link href="/" style={{ textDecoration: 'none' }}>
               <Typography
-                variant="h3"
+                component="span"
                 sx={{
-                  fontSize: '2.25rem',
-                  fontWeight: 700,
-                  color: 'primary.main',
-                  fontFamily: 'var(--font-brand)',
-                  letterSpacing: '-0.025em',
+                  display: 'block',
+                  fontFamily: 'var(--font-accent)',
+                  fontSize: '3rem',
+                  lineHeight: 1.1,
+                  color: 'var(--viraha-ink, #221C18)',
                 }}
               >
                 Viraha

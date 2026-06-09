@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Share2, MessageCircle, MessageCircleOff, Send, Loader2, FolderPlus, MoreVertical, Flag, Pencil, Trash2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Share2, MessageCircle, MessageCircleOff, Send, Loader2, FolderPlus, MoreVertical, Flag, Pencil, Trash2, MessageSquare, MapPin } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Box, Typography, Divider } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
@@ -15,7 +15,6 @@ import MenuItem from '@mui/material/MenuItem';
 import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import { UserAvatar } from '@/components/shared/user-avatar';
-import { LocationBadge } from '@/components/shared/location-badge';
 import { ReportDialog } from '@/components/shared/report-dialog';
 import { useComments, useCreateComment, useReplies, useUpdateComment, useDeleteComment } from '@/lib/hooks/use-comments';
 import { useUpdatePost } from '@/lib/hooks/use-posts';
@@ -25,6 +24,18 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { AddToAlbumDialog } from '@/components/album/add-to-album-dialog';
 import { ImageLightbox } from '@/components/shared/image-lightbox';
 import { fadeInUp, fadeIn } from '@/lib/animations';
+import {
+  GOLD,
+  paper,
+  ink,
+  inkMuted,
+  hairline,
+  hardShadow,
+  grain,
+  EYEBROW_SX,
+  hasCoordinates,
+  formatCoordinates,
+} from './keepsake';
 import type { Post, Comment } from '@/lib/types';
 
 const API_BASE =
@@ -363,8 +374,42 @@ function ReplyRow({ reply, isOwner }: { reply: Comment; isOwner: boolean }) {
   );
 }
 
+/**
+ * Ticket-stub divider: perforation line with notched edges. The notches use
+ * the page background color so they read as punched-out semicircles.
+ */
+function TicketDivider({ isDark, sx }: { isDark: boolean; sx?: object }) {
+  const notch = {
+    width: 18,
+    height: 18,
+    borderRadius: '50%',
+    bgcolor: 'background.default',
+    border: `1px solid ${hairline(isDark)}`,
+    flexShrink: 0,
+  } as const;
+
+  return (
+    <Box
+      aria-hidden="true"
+      sx={{ display: 'flex', alignItems: 'center', my: 3.5, ...sx }}
+    >
+      <Box sx={{ ...notch, ml: { xs: -4.25, md: -6.25 } }} />
+      <Box
+        sx={{
+          flex: 1,
+          mx: 1.5,
+          borderTop: `2px dashed ${isDark ? 'rgba(212,168,67,0.35)' : 'rgba(212,168,67,0.55)'}`,
+        }}
+      />
+      <Box sx={{ ...notch, mr: { xs: -4.25, md: -6.25 } }} />
+    </Box>
+  );
+}
+
 export function PostDetail({ post }: { post: Post }) {
   const router = useRouter();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [currentPhoto, setCurrentPhoto] = useState(0);
   const [commentValue, setCommentValue] = useState('');
   const [isSaved, setIsSaved] = useState(post.isSaved ?? false);
@@ -426,6 +471,13 @@ export function PostDetail({ post }: { post: Post }) {
   const location = [post.locationName, post.locationCity, post.locationCountry]
     .filter(Boolean)
     .join(', ');
+
+  // The backend redacts hidden locations: lat/lng arrive as null while
+  // city/country remain. Such posts get an "Approximate location" stamp
+  // instead of coordinates and no map affordances.
+  const hasCoords = hasCoordinates(post.locationLat, post.locationLng);
+  const isApproximateLocation =
+    !hasCoords && !!(post.locationCity || post.locationCountry);
 
   const heroImage = post.mediaUrls[currentPhoto]
     ? getImageUrl(post.mediaUrls[currentPhoto])
@@ -506,12 +558,26 @@ export function PostDetail({ post }: { post: Post }) {
           />
         )}
 
-        {/* Gradient overlay */}
+        {/* Gradient overlay — warm ink-plum wash */}
         <Box
           sx={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.3))',
+            background: 'linear-gradient(to top, rgba(22,18,31,0.72), rgba(22,18,31,0.2) 50%, rgba(22,18,31,0.32))',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Postcard inset frame */}
+        <Box
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+            inset: { xs: 12, md: 20 },
+            border: '1px solid rgba(250,246,238,0.35)',
+            borderRadius: '2px',
+            pointerEvents: 'none',
+            zIndex: 5,
           }}
         />
 
@@ -803,7 +869,7 @@ export function PostDetail({ post }: { post: Post }) {
           marginTop: -80,
           marginLeft: 'auto',
           marginRight: 'auto',
-          maxWidth: 672,
+          maxWidth: 1040,
           paddingLeft: 16,
           paddingRight: 16,
           paddingBottom: 48,
@@ -812,16 +878,26 @@ export function PostDetail({ post }: { post: Post }) {
         initial="hidden"
         animate="visible"
       >
+        {/* Postcard surface: warm paper, hairline border, hard offset shadow */}
         <Box
           sx={{
-            bgcolor: 'background.paper',
-            borderRadius: 6,
+            bgcolor: paper(isDark),
+            backgroundImage: grain(isDark),
+            borderRadius: '8px',
             p: { xs: 3, md: 5 },
-            boxShadow: 6,
-            border: '1px solid',
-            borderColor: 'divider',
+            boxShadow: hardShadow(isDark),
+            border: `1px solid ${hairline(isDark)}`,
           }}
         >
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 340px' },
+            columnGap: { md: 6 },
+          }}
+        >
+        {/* ── Main column ─────────────────────────────────── */}
+        <Box sx={{ minWidth: 0 }}>
           {/* User row */}
           {post.user && (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -883,28 +959,81 @@ export function PostDetail({ post }: { post: Post }) {
             </Box>
           )}
 
+          {/* Coordinates eyebrow + passport-stamp location */}
+          {(hasCoords || isApproximateLocation || location) && (
+            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 2.5 }}>
+              {hasCoords ? (
+                <Typography component="span" sx={{ ...EYEBROW_SX, color: inkMuted(isDark) }}>
+                  {formatCoordinates(post.locationLat, post.locationLng)}
+                </Typography>
+              ) : isApproximateLocation ? (
+                /* Redacted location: approximate stamp, no coordinates, no map affordances */
+                <Box
+                  component="span"
+                  sx={{
+                    ...EYEBROW_SX,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1,
+                    py: 0.4,
+                    border: `1.5px dashed ${GOLD}`,
+                    borderRadius: '3px',
+                    transform: 'rotate(-1.5deg)',
+                    color: GOLD,
+                    fontSize: '0.625rem',
+                  }}
+                >
+                  <MapPin style={{ height: 11, width: 11 }} />
+                  Approximate location
+                </Box>
+              ) : null}
+
+              {location && (
+                <Box
+                  component="span"
+                  sx={{
+                    ...EYEBROW_SX,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1.25,
+                    py: 0.5,
+                    border: `1.5px solid ${GOLD}`,
+                    borderRadius: '3px',
+                    transform: 'rotate(1.2deg)',
+                    color: ink(isDark),
+                    letterSpacing: '0.1em',
+                    fontSize: '0.625rem',
+                    maxWidth: '100%',
+                  }}
+                >
+                  <MapPin style={{ height: 11, width: 11, color: GOLD, flexShrink: 0 }} />
+                  <Box
+                    component="span"
+                    sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
+                    {location}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+
           {/* Caption */}
           {post.caption && (
             <Typography
               sx={{
                 fontSize: '1.125rem',
-                lineHeight: 1.625,
+                lineHeight: 1.7,
                 whiteSpace: 'pre-wrap',
                 fontWeight: 300,
-                color: 'text.primary',
-                opacity: 0.9,
+                color: ink(isDark),
                 mb: 3,
               }}
             >
               {post.caption}
             </Typography>
-          )}
-
-          {/* Location */}
-          {location && (
-            <Box sx={{ mb: 2 }}>
-              <LocationBadge location={location} variant="subtle" />
-            </Box>
           )}
 
           {/* Tags */}
@@ -914,37 +1043,52 @@ export function PostDetail({ post }: { post: Post }) {
                 <Chip
                   key={tag}
                   label={`#${tag}`}
-                  variant="filled"
-                  color="secondary"
+                  variant="outlined"
                   size="small"
                   sx={{
-                    borderRadius: '9999px',
-                    fontWeight: 400,
-                    px: 1.5,
-                    py: 0.5,
-                    fontSize: '0.75rem',
+                    borderRadius: '3px',
+                    border: `1px solid ${isDark ? 'rgba(212,168,67,0.4)' : 'rgba(212,168,67,0.6)'}`,
+                    color: GOLD,
+                    fontWeight: 600,
+                    px: 0.5,
+                    fontSize: '0.7rem',
+                    bgcolor: 'transparent',
                   }}
                 />
               ))}
             </Box>
           )}
 
-          {/* Engagement stats */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.875rem', color: 'text.secondary', mb: 3 }}>
-            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <MessageCircle style={{ height: 16, width: 16 }} />
+          {/* Engagement stats — Posterama microtext */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: { xs: 0, md: 3 } }}>
+            <Box component="span" sx={{ ...EYEBROW_SX, display: 'flex', alignItems: 'center', gap: 0.75, color: inkMuted(isDark) }}>
+              <MessageCircle style={{ height: 14, width: 14, color: '#D4A843' }} />
               {post.commentCount} comments
             </Box>
-            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Bookmark style={{ height: 16, width: 16 }} />
+            <Box component="span" sx={{ ...EYEBROW_SX, display: 'flex', alignItems: 'center', gap: 0.75, color: inkMuted(isDark) }}>
+              <Bookmark style={{ height: 14, width: 14, color: '#D4A843' }} />
               {post.saveCount} saves
             </Box>
           </Box>
+        </Box>
 
-          <Divider sx={{ mb: 3 }} />
+        {/* ── Margin-note column: comments ────────────────── */}
+        <Box
+          sx={{
+            minWidth: 0,
+            borderLeft: { md: `1px dashed ${isDark ? 'rgba(212,168,67,0.3)' : 'rgba(212,168,67,0.5)'}` },
+            pl: { md: 4 },
+            mt: { xs: 0, md: 0.5 },
+          }}
+        >
+          {/* Ticket-stub divider between the photo/content and comments (stacked layout) */}
+          <TicketDivider isDark={isDark} sx={{ display: { xs: 'flex', md: 'none' } }} />
 
           {/* -- Comments Section ------------------------------------------ */}
           <Box>
+            <Typography sx={{ ...EYEBROW_SX, color: GOLD, mb: 1.5 }}>
+              Margin notes
+            </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5 }}>
               <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>
                 Comments
@@ -1077,6 +1221,8 @@ export function PostDetail({ post }: { post: Post }) {
               </Box>
             )}
           </Box>
+        </Box>
+        </Box>
         </Box>
       </motion.div>
 

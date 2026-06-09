@@ -52,7 +52,7 @@ const proseMirrorStyles = (
           margin: '1em 0',
         },
         '& blockquote': {
-          borderLeft: `3px solid ${theme.palette.divider}`,
+          borderLeft: `2px solid var(--viraha-gold, #D4A843)`,
           paddingLeft: '1em',
           color: theme.palette.text.secondary,
           fontStyle: 'italic',

@@ -25,6 +25,12 @@ import {
   getJournalColor,
 } from '@/lib/stores/journal-colors-store';
 
+const GOLD = 'var(--viraha-gold, #D4A843)';
+
+/** Cloth-weave texture for the cover — two crossed fine gradients, no asset files. */
+const clothTexture =
+  'repeating-linear-gradient(0deg, rgba(34,28,24,0.03) 0px, rgba(34,28,24,0.03) 1px, transparent 1px, transparent 3px), repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 3px)';
+
 // ─── Decorative icons ─────────────────────────────────
 const DECORATIVE_ICONS = [MapPin, Bookmark, Star, Sun, Snowflake, Compass, Anchor, Mountain];
 
@@ -45,7 +51,7 @@ function estimateWordCount(summary: string | null): string {
   return `${words} words`;
 }
 
-// ─── Card ─────────────────────────────────────────────
+// ─── Card: a cloth-bound journal, custom color as the cover/spine ──────
 export function JournalCard({ journal }: { journal: Journal }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -61,7 +67,7 @@ export function JournalCard({ journal }: { journal: Journal }) {
   const wordCount = estimateWordCount(journal.summary);
   const dateStr = format(new Date(journal.updatedAt), 'MMM yyyy').toUpperCase();
   const isQuote =
-    journal.summary?.startsWith('"') || journal.summary?.startsWith('\u201C');
+    journal.summary?.startsWith('"') || journal.summary?.startsWith('“');
 
   // Extract location from first entry if available
   const firstEntry = journal.entries?.[0];
@@ -75,8 +81,8 @@ export function JournalCard({ journal }: { journal: Journal }) {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.3 }}
+      whileHover={{ y: -4, rotate: -0.5 }}
+      transition={{ type: 'spring', stiffness: 280, damping: 22 }}
     >
       <Link
         href={`/journals/${journal.id}`}
@@ -86,45 +92,92 @@ export function JournalCard({ journal }: { journal: Journal }) {
           sx={{
             position: 'relative',
             bgcolor: bg,
-            borderRadius: '16px',
+            backgroundImage: clothTexture,
+            // book silhouette: tight spine edge, rounded fore-edge
+            borderRadius: '3px 10px 10px 3px',
+            border: '1px solid',
+            borderColor: divider,
+            boxShadow: '3px 3px 0 rgba(34,28,24,0.12)',
             p: { xs: 2.5, md: 3 },
+            pl: { xs: 4, md: 4.5 },
             minHeight: { xs: 260, md: 320 },
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            transition: 'box-shadow 0.3s, transform 0.3s',
-            '&:hover': {
-              boxShadow: isDark
-                ? '0 12px 40px rgba(0,0,0,0.4)'
-                : '0 12px 40px rgba(0,0,0,0.12)',
-            },
+            transition: 'box-shadow 0.3s',
+            '&:hover': { boxShadow: '4px 5px 0 rgba(34,28,24,0.18)' },
           }}
         >
-          {/* Top row: location badge + icon */}
+          {/* Spine: darker band with a gold tooling rule */}
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: 14,
+              bgcolor: accent,
+              opacity: 0.35,
+            }}
+          />
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 14,
+              width: '1px',
+              bgcolor: GOLD,
+              opacity: 0.7,
+            }}
+          />
+          {/* Gold tooling frame inset on the cover */}
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              bottom: 8,
+              left: 22,
+              border: `1px solid ${GOLD}`,
+              opacity: 0.35,
+              borderRadius: '2px 8px 8px 2px',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Top row: location stamp + icon */}
           <Box
             sx={{
               display: 'flex',
               alignItems: 'flex-start',
               justifyContent: 'space-between',
               mb: 2,
+              position: 'relative',
             }}
           >
-            {/* Location badge */}
+            {/* Location — passport stamp */}
             {location ? (
               <Box
                 sx={{
-                  bgcolor: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.6)',
-                  backdropFilter: 'blur(8px)',
-                  borderRadius: '6px',
-                  px: 1.25,
-                  py: 0.5,
+                  transform: 'rotate(-1.5deg)',
+                  border: '1.5px solid',
+                  borderColor: text,
+                  borderRadius: '4px',
+                  px: 1,
+                  py: 0.4,
+                  opacity: 0.85,
                 }}
               >
                 <Typography
                   sx={{
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    letterSpacing: '0.08em',
+                    fontFamily: 'var(--font-brand)',
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.12em',
                     textTransform: 'uppercase',
                     color: text,
                   }}
@@ -159,17 +212,19 @@ export function JournalCard({ journal }: { journal: Journal }) {
             </Box>
           </Box>
 
-          {/* Date */}
+          {/* Date eyebrow */}
           <Typography
             sx={{
-              fontSize: '0.65rem',
-              fontWeight: 500,
-              letterSpacing: '0.06em',
+              fontFamily: 'var(--font-brand)',
+              fontSize: '0.62rem',
+              fontWeight: 600,
+              letterSpacing: '0.14em',
               color: accent,
               mb: 0.75,
               display: 'flex',
               alignItems: 'center',
               gap: 0.75,
+              position: 'relative',
             }}
           >
             {dateStr}
@@ -177,13 +232,16 @@ export function JournalCard({ journal }: { journal: Journal }) {
               <Box
                 component="span"
                 sx={{
-                  fontSize: '0.6rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.05em',
-                  bgcolor: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.5)',
-                  borderRadius: '4px',
+                  fontFamily: 'var(--font-brand)',
+                  fontSize: '0.58rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  border: `1.5px solid ${GOLD}`,
+                  color: GOLD,
+                  borderRadius: '3px',
+                  transform: 'rotate(2deg)',
                   px: 0.75,
-                  py: 0.25,
+                  py: 0.2,
                 }}
               >
                 DRAFT
@@ -191,19 +249,25 @@ export function JournalCard({ journal }: { journal: Journal }) {
             )}
           </Typography>
 
-          {/* Title */}
+          {/* Title — gold-tooled display serif */}
           <Typography
             sx={{
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 700,
-              fontSize: { xs: '1.35rem', md: '1.6rem' },
+              fontFamily: 'var(--font-accent)',
+              fontSize: { xs: '1.4rem', md: '1.65rem' },
               lineHeight: 1.2,
               color: text,
               mb: 1.5,
+              position: 'relative',
               display: '-webkit-box',
               WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
+              // gold rule under the title, like foil tooling
+              pb: 1,
+              backgroundImage: `linear-gradient(${GOLD}, ${GOLD})`,
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '48px 1.5px',
+              backgroundPosition: 'left bottom',
             }}
           >
             {journal.title}
@@ -217,13 +281,12 @@ export function JournalCard({ journal }: { journal: Journal }) {
                 lineHeight: 1.6,
                 color: accent,
                 flex: 1,
+                position: 'relative',
                 display: '-webkit-box',
                 WebkitLineClamp: 4,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
-                ...(isQuote
-                  ? { fontStyle: 'italic' }
-                  : {}),
+                ...(isQuote ? { fontStyle: 'italic' } : {}),
               }}
             >
               {journal.summary}
@@ -241,6 +304,7 @@ export function JournalCard({ journal }: { journal: Journal }) {
               bgcolor: divider,
               mt: 2,
               mb: 1.5,
+              position: 'relative',
             }}
           />
 
@@ -250,6 +314,7 @@ export function JournalCard({ journal }: { journal: Journal }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              position: 'relative',
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -258,11 +323,12 @@ export function JournalCard({ journal }: { journal: Journal }) {
                   <Pen style={{ width: 12, height: 12, color: accent, opacity: 0.6 }} />
                   <Typography
                     sx={{
-                      fontSize: '0.7rem',
-                      fontWeight: 500,
+                      fontFamily: 'var(--font-brand)',
+                      fontSize: '0.66rem',
+                      fontWeight: 600,
                       color: accent,
-                      opacity: 0.7,
-                      letterSpacing: '0.04em',
+                      opacity: 0.75,
+                      letterSpacing: '0.08em',
                       textTransform: 'uppercase',
                     }}
                   >
@@ -277,11 +343,12 @@ export function JournalCard({ journal }: { journal: Journal }) {
                   />
                   <Typography
                     sx={{
-                      fontSize: '0.7rem',
-                      fontWeight: 500,
+                      fontFamily: 'var(--font-brand)',
+                      fontSize: '0.66rem',
+                      fontWeight: 600,
                       color: accent,
-                      opacity: 0.7,
-                      letterSpacing: '0.04em',
+                      opacity: 0.75,
+                      letterSpacing: '0.08em',
                       textTransform: 'uppercase',
                     }}
                   >

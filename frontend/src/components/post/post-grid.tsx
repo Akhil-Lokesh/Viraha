@@ -18,12 +18,11 @@ export function PostGrid({ posts }: { posts: Post[] }) {
     );
   }
 
+  // Postcards are self-contained paper artifacts — generous gaps, no dividers.
   return (
-    <Box sx={{ maxWidth: 640, display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 4, py: 1 }}>
       {posts.map((post) => (
-        <Box key={post.id} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <PostCard post={post} />
-        </Box>
+        <PostCard key={post.id} post={post} />
       ))}
     </Box>
   );

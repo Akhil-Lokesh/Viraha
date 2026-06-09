@@ -148,11 +148,25 @@ export default function SignUpPage() {
       {/* Heading */}
       <Box component={motion.div} variants={staggerItem}>
         <Typography
+          sx={{
+            fontFamily: 'var(--font-brand)',
+            fontWeight: 600,
+            fontSize: '0.7rem',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--viraha-gold, #D4A843)',
+            mb: 1,
+          }}
+        >
+          New passport · Sign up
+        </Typography>
+        <Typography
           variant="h4"
           sx={{
-            fontSize: '1.875rem',
-            fontFamily: 'var(--font-heading)',
-            fontWeight: 700,
+            fontSize: '2.25rem',
+            fontFamily: 'var(--font-accent)',
+            fontWeight: 400,
+            lineHeight: 1.15,
             color: 'text.primary',
           }}
         >
@@ -176,11 +190,15 @@ export default function SignUpPage() {
       <Box component={motion.div} variants={staggerItem}>
         <Divider
           sx={{
-            fontSize: '0.75rem',
+            fontFamily: 'var(--font-brand)',
+            fontSize: '0.65rem',
+            letterSpacing: '0.14em',
             textTransform: 'uppercase',
             color: 'text.secondary',
             '&::before, &::after': {
-              borderColor: 'divider',
+              borderTop: '1px dashed var(--viraha-gold, #D4A843)',
+              borderBottom: 'none',
+              opacity: 0.6,
             },
           }}
         >
@@ -196,6 +214,7 @@ export default function SignUpPage() {
       >
         <Box component={motion.div} variants={staggerItem}>
           <TextField
+            className="auth-field"
             label="Username"
             placeholder="traveler"
             fullWidth
@@ -205,7 +224,8 @@ export default function SignUpPage() {
             sx={{
               '& .MuiOutlinedInput-root': {
                 height: 48,
-                borderRadius: 3,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
               },
             }}
           />
@@ -213,6 +233,7 @@ export default function SignUpPage() {
 
         <Box component={motion.div} variants={staggerItem}>
           <TextField
+            className="auth-field"
             label="Email"
             type="email"
             placeholder="you@example.com"
@@ -223,7 +244,8 @@ export default function SignUpPage() {
             sx={{
               '& .MuiOutlinedInput-root': {
                 height: 48,
-                borderRadius: 3,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
               },
             }}
           />
@@ -231,6 +253,7 @@ export default function SignUpPage() {
 
         <Box component={motion.div} variants={staggerItem}>
           <TextField
+            className="auth-field"
             label="Display Name (optional)"
             placeholder="Your Name"
             fullWidth
@@ -238,7 +261,8 @@ export default function SignUpPage() {
             sx={{
               '& .MuiOutlinedInput-root': {
                 height: 48,
-                borderRadius: 3,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
               },
             }}
           />
@@ -246,6 +270,7 @@ export default function SignUpPage() {
 
         <Box component={motion.div} variants={staggerItem}>
           <TextField
+            className="auth-field"
             label="Password"
             type={showPassword ? 'text' : 'password'}
             placeholder="At least 8 characters"
@@ -277,7 +302,8 @@ export default function SignUpPage() {
             sx={{
               '& .MuiOutlinedInput-root': {
                 height: 48,
-                borderRadius: 3,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
               },
             }}
           />

@@ -11,6 +11,42 @@ import { useJournals } from '@/lib/hooks/use-journals';
 import { JournalNotesList } from '@/components/journal/journal-notes-list';
 import { fadeInUp, fadeIn } from '@/lib/animations';
 
+const GOLD = 'var(--viraha-gold, #D4A843)';
+
+const eyebrowSx = {
+  fontFamily: 'var(--font-brand)',
+  fontSize: '11px',
+  fontWeight: 600,
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+  color: GOLD,
+} as const;
+
+/** Skeleton shaped like a book cover: spine band + cover block. */
+function BookSkeleton() {
+  return (
+    <Box sx={{ position: 'relative' }}>
+      <Skeleton
+        variant="rounded"
+        animation="pulse"
+        sx={{ borderRadius: '3px 10px 10px 3px', height: { xs: 260, md: 320 }, width: '100%' }}
+      />
+      <Box
+        sx={(theme) => ({
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          width: 14,
+          bgcolor:
+            theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.08)' : 'rgba(34,28,24,0.08)',
+          borderRadius: '3px 0 0 3px',
+        })}
+      />
+    </Box>
+  );
+}
+
 export default function JournalsPage() {
   const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useJournals();
@@ -34,7 +70,7 @@ export default function JournalsPage() {
         animate="visible"
         sx={{
           pt: { xs: 2, md: 4 },
-          mb: 4,
+          mb: 5,
         }}
       >
         {/* Title row */}
@@ -49,15 +85,18 @@ export default function JournalsPage() {
           }}
         >
           <Box>
+            <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>The Shelf — Field Journals</Typography>
             <Typography
-              sx={{
-                fontSize: { xs: '2rem', md: '3rem' },
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 700,
-                fontStyle: 'italic',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1,
-              }}
+              component="h1"
+              sx={(theme) => ({
+                fontSize: { xs: '2.25rem', md: '3rem' },
+                fontFamily: 'var(--font-accent)',
+                lineHeight: 1.05,
+                color:
+                  theme.palette.mode === 'dark'
+                    ? 'var(--viraha-ink-dark, #F2EAD9)'
+                    : 'var(--viraha-ink, #221C18)',
+              })}
             >
               Journals
             </Typography>
@@ -84,20 +123,28 @@ export default function JournalsPage() {
               width: { xs: '100%', md: 'auto' },
             }}
           >
+            {/* Field-notes search */}
             <Box
-              sx={{
+              sx={(theme) => ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
                 px: 2,
                 py: 1.25,
-                borderRadius: '12px',
-                bgcolor: 'action.hover',
-                border: 1,
-                borderColor: 'divider',
+                borderRadius: '4px',
+                bgcolor:
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(242,234,217,0.04)'
+                    : 'rgba(34,28,24,0.02)',
+                border: '1px solid',
+                borderColor:
+                  theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.2)' : 'rgba(34,28,24,0.25)',
+                borderBottomStyle: 'dashed',
+                borderBottomColor: GOLD,
                 flex: { xs: 1, md: 'unset' },
                 width: { md: 240 },
-              }}
+                '&:focus-within': { borderColor: GOLD },
+              })}
             >
               <Search
                 style={{
@@ -116,20 +163,20 @@ export default function JournalsPage() {
             </Box>
 
             <Button
-              variant="contained"
+              variant="outlined"
               disableElevation
               component={Link}
               href="/create/journal"
               sx={{
-                borderRadius: '12px',
+                borderRadius: '4px',
                 flexShrink: 0,
-                bgcolor: 'secondary.main',
-                color: 'white',
+                borderColor: GOLD,
+                color: 'text.primary',
                 px: 2.5,
                 py: 1.25,
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                '&:hover': { bgcolor: 'secondary.dark' },
+                '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
               }}
             >
               <Plus style={{ width: 16, height: 16, marginRight: 6 }} />
@@ -149,15 +196,7 @@ export default function JournalsPage() {
           }}
         >
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              variant="rounded"
-              animation="pulse"
-              sx={{
-                borderRadius: '16px',
-                height: { xs: 260, md: 320 },
-              }}
-            />
+            <BookSkeleton key={i} />
           ))}
         </Box>
       ) : isError ? (
@@ -166,9 +205,25 @@ export default function JournalsPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, textAlign: 'center', gap: 1.5 }}
+          sx={(theme) => ({
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            py: 8,
+            textAlign: 'center',
+            gap: 1.5,
+            mx: 'auto',
+            maxWidth: 480,
+            border: '1px dashed',
+            borderColor:
+              theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.25)' : 'rgba(34,28,24,0.25)',
+            borderRadius: '6px',
+          })}
         >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>Couldn&apos;t load your journals</Typography>
+          <Typography sx={{ fontFamily: 'var(--font-accent)', fontSize: '1.4rem' }}>
+            Couldn&apos;t load your journals
+          </Typography>
           <Typography sx={{ color: 'text.secondary', maxWidth: 384 }}>
             Something went wrong while loading your journals. Please try again.
           </Typography>
@@ -176,7 +231,15 @@ export default function JournalsPage() {
             variant="outlined"
             disableElevation
             onClick={() => refetch()}
-            sx={{ borderRadius: '9999px', px: 4, mt: 1 }}
+            sx={{
+              borderRadius: '4px',
+              px: 4,
+              mt: 1,
+              borderColor: GOLD,
+              color: 'text.primary',
+              fontWeight: 600,
+              '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
+            }}
           >
             Try Again
           </Button>
@@ -193,7 +256,14 @@ export default function JournalsPage() {
                 size="large"
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                sx={{ borderRadius: '9999px', px: 4 }}
+                sx={{
+                  borderRadius: '4px',
+                  px: 4,
+                  borderColor: GOLD,
+                  color: 'text.primary',
+                  fontWeight: 600,
+                  '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
+                }}
               >
                 {isFetchingNextPage ? 'Loading...' : 'Load More'}
               </Button>
@@ -202,7 +272,7 @@ export default function JournalsPage() {
         </Box>
       )}
 
-      {/* FAB — Write new memory */}
+      {/* FAB — Write new memory (small purple interactive accent, per brief) */}
       <Link href="/create/journal" style={{ textDecoration: 'none', color: 'inherit' }}>
         <Box
           sx={{
@@ -211,8 +281,8 @@ export default function JournalsPage() {
             right: { xs: 16, md: 32 },
             bgcolor: 'secondary.main',
             color: 'white',
-            borderRadius: '16px',
-            boxShadow: 4,
+            borderRadius: '4px',
+            boxShadow: '3px 3px 0 rgba(34,28,24,0.25)',
             display: 'flex',
             alignItems: 'center',
             gap: 1.25,

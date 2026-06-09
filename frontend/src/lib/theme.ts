@@ -1,6 +1,7 @@
 'use client';
 
 import { createTheme, alpha } from '@mui/material/styles';
+import type { Shadows } from '@mui/material/styles';
 
 // ── M3 palette augmentation ────────────────────────────────────────────
 declare module '@mui/material/styles' {
@@ -67,6 +68,38 @@ const virahaPalette = {
   warmGray: '#e7eaee',
 };
 
+// ── Keepsake surface tokens (mirror of --viraha-* CSS vars in globals.css) ──
+// Light: warm cream paper. Dark: deep ink-plum. Keep hex literals here so MUI
+// can derive color channels; globals.css owns the var(--viraha-*) contract.
+const keepsake = {
+  light: {
+    paper: '#FAF6EE',
+    paperRaised: '#FFFDF7',
+    ink: '#221C18',
+    inkMuted: '#6F655C',
+    gold: '#D4A843',
+    hairline: alpha('#221C18', 0.15),
+  },
+  dark: {
+    paper: '#16121F',
+    paperRaised: '#1E1929',
+    ink: '#F3EDE3',
+    inkMuted: '#A89F93',
+    gold: '#E2BC5C',
+    hairline: alpha('#F3EDE3', 0.16),
+  },
+};
+
+// ── Hard offset shadows (replace soft ambient blur per design brief) ──
+// Hairline ring + small hard drop; resolves per-mode via --viraha-hairline.
+const hardShadow = (offset: number): string =>
+  `0 0 0 1px var(--viraha-hairline, rgba(34, 28, 24, 0.15)), ${offset}px ${offset}px 0 rgba(0, 0, 0, 0.10)`;
+
+const keepsakeShadows = [
+  'none',
+  ...Array.from({ length: 24 }, (_, i) => hardShadow(Math.min(Math.floor(i / 6) + 1, 4))),
+] as Shadows;
+
 // ── M3 shape scale ─────────────────────────────────────────────────────
 const m3Shape = {
   borderRadius: 12, // M3 "medium"
@@ -115,7 +148,7 @@ const components = {
       },
       contained: {
         '&:hover': {
-          boxShadow: '0 1px 3px 0 rgba(0,0,0,0.12)',
+          boxShadow: '2px 2px 0 rgba(0,0,0,0.12)',
         },
       },
       outlined: {
@@ -130,7 +163,7 @@ const components = {
       root: {
         borderRadius: 16,
         border: '1px solid',
-        borderColor: 'var(--mui-palette-outlineVariant)',
+        borderColor: 'var(--viraha-hairline, var(--mui-palette-outlineVariant))',
         backgroundImage: 'none',
       },
     },
@@ -189,7 +222,7 @@ const components = {
     styleOverrides: {
       root: {
         borderRadius: 16,
-        boxShadow: '0 3px 5px -1px rgba(0,0,0,0.1), 0 6px 10px 0 rgba(0,0,0,0.07), 0 1px 18px 0 rgba(0,0,0,0.06)',
+        boxShadow: '0 0 0 1px var(--viraha-hairline, rgba(34,28,24,0.15)), 3px 3px 0 rgba(0,0,0,0.12)',
         textTransform: 'none' as const,
       },
     },
@@ -259,56 +292,58 @@ export const theme = createTheme({
     light: {
       palette: {
         primary: { main: '#7B68EE', light: '#A594F9', dark: '#5A4FCF', contrastText: '#FFFFFF' },
-        secondary: { main: '#F0EBFF', light: '#F5F3FF', dark: '#DDD6FE', contrastText: '#6D5BD0' },
+        secondary: { main: keepsake.light.gold, light: '#F5E6C4', dark: '#A58335', contrastText: '#221C18' },
         tertiary: { main: '#D4A843', light: '#F5E6C4', dark: '#A58335', contrastText: '#FFFFFF' },
         warning: { main: '#D4A843', light: '#F5E6C4' },
         error: { main: '#D32F2F', light: '#FFCDD2', dark: '#B71C1C' },
-        background: { default: '#FEF7FF', paper: '#FFFFFF' },
-        text: { primary: '#1A1A2E', secondary: '#6E6E82' },
-        divider: alpha('#7B68EE', 0.12),
+        background: { default: keepsake.light.paper, paper: keepsake.light.paperRaised },
+        text: { primary: keepsake.light.ink, secondary: keepsake.light.inkMuted },
+        divider: keepsake.light.hairline,
         action: {
           hover: alpha('#7B68EE', 0.08),
           selected: alpha('#7B68EE', 0.12),
           focus: alpha('#7B68EE', 0.12),
-          disabled: alpha('#1A1A2E', 0.38),
-          disabledBackground: alpha('#1A1A2E', 0.12),
+          disabled: alpha(keepsake.light.ink, 0.38),
+          disabledBackground: alpha(keepsake.light.ink, 0.12),
         },
         surfaceTint: '#7B68EE',
-        surfaceContainerLowest: '#FFFFFF',
-        surfaceContainerLow: '#F8F2FC',
-        surfaceContainer: '#F2ECF6',
-        surfaceContainerHigh: '#ECE6F0',
+        surfaceContainerLowest: '#FFFDF7',
+        surfaceContainerLow: '#F6F0E2',
+        surfaceContainer: '#F1EAD9',
+        surfaceContainerHigh: '#ECE4D0',
+        // surfaceContainerHighest pinned: sidebar toggle thumb must stay identical
         surfaceContainerHighest: '#E6E0EA',
-        outline: '#79747E',
-        outlineVariant: '#CAC4D0',
+        outline: '#8A8075',
+        outlineVariant: '#E0D7C6',
         viraha: virahaPalette,
       },
     },
     dark: {
       palette: {
         primary: { main: '#A594F9', light: '#BDB0F7', dark: '#7B68EE', contrastText: '#1A1025' },
-        secondary: { main: '#2D1F4E', light: '#4A3D6E', dark: '#1A1035', contrastText: '#B8A4E8' },
-        tertiary: { main: '#F5E6C4', light: '#FFF3D6', dark: '#D4A843', contrastText: '#2D2A1F' },
-        warning: { main: '#D4A843', light: '#F5E6C4' },
+        secondary: { main: keepsake.dark.gold, light: '#F5E6C4', dark: '#D4A843', contrastText: '#16121F' },
+        tertiary: { main: '#E2BC5C', light: '#F5E6C4', dark: '#D4A843', contrastText: '#16121F' },
+        warning: { main: '#E2BC5C', light: '#F5E6C4' },
         error: { main: '#EF5350', light: '#FFCDD2', dark: '#C62828' },
-        background: { default: '#141218', paper: '#1D1B20' },
-        text: { primary: '#E6E0E9', secondary: '#AEA9B4' },
-        divider: alpha('#CAC4D0', 0.12),
+        background: { default: keepsake.dark.paper, paper: keepsake.dark.paperRaised },
+        text: { primary: keepsake.dark.ink, secondary: keepsake.dark.inkMuted },
+        divider: keepsake.dark.hairline,
         action: {
           hover: alpha('#A594F9', 0.08),
           selected: alpha('#A594F9', 0.12),
           focus: alpha('#A594F9', 0.12),
-          disabled: alpha('#E6E0E9', 0.38),
-          disabledBackground: alpha('#E6E0E9', 0.12),
+          disabled: alpha(keepsake.dark.ink, 0.38),
+          disabledBackground: alpha(keepsake.dark.ink, 0.12),
         },
         surfaceTint: '#A594F9',
-        surfaceContainerLowest: '#0F0D13',
-        surfaceContainerLow: '#1D1B20',
-        surfaceContainer: '#211F26',
-        surfaceContainerHigh: '#2B2930',
+        surfaceContainerLowest: '#110D18',
+        surfaceContainerLow: '#1A1524',
+        surfaceContainer: '#1E1929',
+        surfaceContainerHigh: '#241E31',
+        // surfaceContainerHighest pinned: sidebar toggle thumb must stay identical
         surfaceContainerHighest: '#36343B',
-        outline: '#938F99',
-        outlineVariant: '#49454F',
+        outline: '#7E7668',
+        outlineVariant: '#3B3547',
         viraha: virahaPalette,
       },
     },
@@ -317,6 +352,7 @@ export const theme = createTheme({
   breakpoints,
   typography,
   components,
+  shadows: keepsakeShadows,
 });
 
 // Backward-compat exports

@@ -70,7 +70,19 @@ function VerifyEmailContent() {
   if (state === 'missing') {
     return (
       <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Typography variant="h5" sx={{ fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-brand)',
+            fontWeight: 600,
+            fontSize: '0.7rem',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--viraha-gold, #D4A843)',
+          }}
+        >
+          Customs check · Verify email
+        </Typography>
+        <Typography variant="h5" sx={{ fontFamily: 'var(--font-accent)', fontWeight: 400, fontSize: '1.875rem' }}>
           Missing verification token
         </Typography>
         <Typography sx={{ color: 'text.secondary' }}>
@@ -97,10 +109,11 @@ function VerifyEmailContent() {
         component={motion.div}
         variants={staggerItem}
         sx={{
-          width: 48,
-          height: 48,
-          borderRadius: '50%',
-          bgcolor: state === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+          width: 56,
+          height: 56,
+          borderRadius: 1,
+          border: state === 'success' ? '1.5px solid #059669' : '1.5px solid #dc2626',
+          transform: 'rotate(-2deg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -114,7 +127,20 @@ function VerifyEmailContent() {
         )}
       </Box>
       <Box component={motion.div} variants={staggerItem}>
-        <Typography variant="h5" sx={{ fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
+        <Typography
+          sx={{
+            fontFamily: 'var(--font-brand)',
+            fontWeight: 600,
+            fontSize: '0.7rem',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--viraha-gold, #D4A843)',
+            mb: 1,
+          }}
+        >
+          Customs check · Verify email
+        </Typography>
+        <Typography variant="h5" sx={{ fontFamily: 'var(--font-accent)', fontWeight: 400, fontSize: '1.875rem' }}>
           {state === 'success' ? 'Email verified' : 'Verification failed'}
         </Typography>
         <Typography sx={{ color: 'text.secondary', mt: 1, maxWidth: 360, mx: 'auto' }}>

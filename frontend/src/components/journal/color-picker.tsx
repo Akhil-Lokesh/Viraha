@@ -18,20 +18,22 @@ export function ColorPicker({ selected, onChange }: ColorPickerProps) {
     <Box>
       <Typography
         sx={{
-          fontSize: '0.75rem',
-          fontWeight: 500,
-          color: 'text.secondary',
-          letterSpacing: '0.04em',
+          fontFamily: 'var(--font-brand)',
+          fontSize: '11px',
+          fontWeight: 600,
+          color: 'var(--viraha-gold, #D4A843)',
+          letterSpacing: '0.16em',
           textTransform: 'uppercase',
           mb: 1,
         }}
       >
-        Color
+        Cover Color
       </Typography>
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         {JOURNAL_COLORS.map((c: JournalColor) => {
           const isSelected = c.key === selected;
           const bg = isDark ? c.bgDark : c.bg;
+          const accent = isDark ? c.accentDark : c.accent;
           return (
             <Box
               key={c.key}
@@ -39,14 +41,15 @@ export function ColorPicker({ selected, onChange }: ColorPickerProps) {
               onClick={() => onChange(c.key)}
               aria-label={c.label}
               sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
+                width: 30,
+                height: 38,
+                // tiny book: tight spine edge, rounded fore-edge
+                borderRadius: '2px 6px 6px 2px',
                 bgcolor: bg,
-                border: isSelected ? '2px solid' : '2px solid transparent',
-                borderColor: isSelected
-                  ? (isDark ? c.accentDark : c.accent)
-                  : 'transparent',
+                // spine band rendered as an inset edge
+                boxShadow: `inset 5px 0 0 ${accent}55`,
+                border: isSelected ? '2px solid' : '1px solid',
+                borderColor: isSelected ? 'var(--viraha-gold, #D4A843)' : `${accent}44`,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -55,7 +58,7 @@ export function ColorPicker({ selected, onChange }: ColorPickerProps) {
                 p: 0,
                 outline: 'none',
                 '&:hover': {
-                  transform: 'scale(1.15)',
+                  transform: 'translateY(-2px) rotate(-2deg)',
                 },
                 '&:focus-visible': {
                   outline: '2px solid',
@@ -69,7 +72,7 @@ export function ColorPicker({ selected, onChange }: ColorPickerProps) {
                   style={{
                     width: 14,
                     height: 14,
-                    color: isDark ? c.accentDark : c.accent,
+                    color: accent,
                   }}
                 />
               )}

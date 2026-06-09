@@ -41,6 +41,17 @@ function getPlainTextExcerpt(html: string, maxLength = 200): string {
   return text.length > maxLength ? text.slice(0, maxLength).trimEnd() + '...' : text;
 }
 
+const GOLD = 'var(--viraha-gold, #D4A843)';
+
+const eyebrowSx = {
+  fontFamily: 'var(--font-brand)',
+  fontSize: '11px',
+  fontWeight: 600,
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+  color: GOLD,
+} as const;
+
 const contentStyles = (
   <GlobalStyles
     styles={(theme) => ({
@@ -73,7 +84,7 @@ const contentStyles = (
           margin: '1em 0',
         },
         '& blockquote': {
-          borderLeft: `3px solid ${theme.palette.divider}`,
+          borderLeft: `2px solid var(--viraha-gold, #D4A843)`,
           paddingLeft: '1em',
           color: theme.palette.text.secondary,
           fontStyle: 'italic',
@@ -261,10 +272,11 @@ export default function JournalDetailPage() {
             onClick={handleSave}
             disabled={saving}
             sx={{
-              borderRadius: '9999px',
-              bgcolor: 'secondary.main',
-              color: 'white',
-              '&:hover': { bgcolor: 'secondary.dark' },
+              borderRadius: '4px',
+              bgcolor: GOLD,
+              color: 'var(--viraha-ink, #221C18)',
+              fontWeight: 700,
+              '&:hover': { bgcolor: '#C09934' },
             }}
           >
             {saving ? 'Saving...' : 'Save'}
@@ -279,16 +291,14 @@ export default function JournalDetailPage() {
           autoFocus
           sx={{
             fontSize: '2.25rem',
-            fontWeight: 700,
-            fontFamily: 'var(--font-heading)',
-            letterSpacing: '-0.01em',
+            fontFamily: 'var(--font-accent)',
             lineHeight: 1.2,
             '& input::placeholder': { color: 'text.disabled' },
           }}
         />
 
-        <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mt: 0.5, mb: 2 }}>
-          {format(new Date(journal.updatedAt), 'MMM d, yyyy')}
+        <Typography sx={{ ...eyebrowSx, mt: 0.75, mb: 2 }}>
+          Entry — {format(new Date(journal.updatedAt), 'MMM d, yyyy')}
         </Typography>
 
         <Box sx={{ mb: 3 }}>
@@ -355,10 +365,11 @@ export default function JournalDetailPage() {
                 }
               }}
               sx={{
-                borderRadius: '9999px',
-                bgcolor: 'secondary.main',
-                color: 'white',
-                '&:hover': { bgcolor: 'secondary.dark' },
+                borderRadius: '4px',
+                bgcolor: GOLD,
+                color: 'var(--viraha-ink, #221C18)',
+                fontWeight: 700,
+                '&:hover': { bgcolor: '#C09934' },
               }}
             >
               {publishMutation.isPending ? 'Publishing...' : 'Publish'}
@@ -370,8 +381,12 @@ export default function JournalDetailPage() {
               disableElevation
               onClick={startEditing}
               sx={{
-                borderRadius: '9999px',
+                borderRadius: '4px',
                 gap: 0.75,
+                borderColor: GOLD,
+                color: 'text.primary',
+                fontWeight: 600,
+                '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
               }}
             >
               <Pencil style={{ width: 14, height: 14 }} />
@@ -381,33 +396,75 @@ export default function JournalDetailPage() {
         </Box>
       </Box>
 
-      <Typography
-        sx={{
-          fontSize: '2.25rem',
-          fontWeight: 700,
-          fontFamily: 'var(--font-heading)',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.2,
-        }}
+      {/* The journal page: paper sheet with a flight-path margin rule */}
+      <Box
+        sx={(theme) => ({
+          position: 'relative',
+          border: '1px solid',
+          borderColor:
+            theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.18)' : 'rgba(34,28,24,0.2)',
+          borderRadius: '4px',
+          bgcolor:
+            theme.palette.mode === 'dark' ? 'var(--viraha-paper-dark, #1D1828)' : '#FFFDF6',
+          backgroundImage:
+            'repeating-linear-gradient(0deg, rgba(34,28,24,0.015) 0px, rgba(34,28,24,0.015) 1px, transparent 1px, transparent 3px)',
+          boxShadow: '3px 3px 0 rgba(34,28,24,0.08)',
+          px: { xs: 2.5, md: 4 },
+          py: { xs: 3, md: 4 },
+        })}
       >
-        {journal.title}
-      </Typography>
+        {/* Date eyebrow with stamp dot + flight-path rule */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+          <Box
+            aria-hidden
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              border: `1.5px solid ${GOLD}`,
+              bgcolor: 'rgba(212,168,67,0.25)',
+              flexShrink: 0,
+            }}
+          />
+          <Typography sx={eyebrowSx}>
+            Entry — {format(new Date(journal.updatedAt), 'MMM d, yyyy')}
+          </Typography>
+          <Box aria-hidden sx={{ flex: 1, borderBottom: `1px dashed ${GOLD}`, opacity: 0.5 }} />
+        </Box>
 
-      <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mt: 0.5, mb: 3 }}>
-        {format(new Date(journal.updatedAt), 'MMM d, yyyy')}
-      </Typography>
-
-      {entry?.content ? (
-        <Box
-          className="journal-content"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(entry.content) }}
-          sx={{ lineHeight: 1.7, fontSize: '1rem' }}
-        />
-      ) : (
-        <Typography sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-          No content yet. Click Edit to start writing.
+        <Typography
+          component="h1"
+          sx={(theme) => ({
+            fontSize: { xs: '1.9rem', md: '2.4rem' },
+            fontFamily: 'var(--font-accent)',
+            lineHeight: 1.15,
+            mb: 3,
+            color:
+              theme.palette.mode === 'dark'
+                ? 'var(--viraha-ink-dark, #F2EAD9)'
+                : 'var(--viraha-ink, #221C18)',
+          })}
+        >
+          {journal.title}
         </Typography>
-      )}
+
+        {entry?.content ? (
+          <Box
+            className="journal-content"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(entry.content) }}
+            sx={{
+              lineHeight: 1.7,
+              fontSize: '1rem',
+              pl: { md: 2.5 },
+              borderLeft: { md: `1px dashed ${GOLD}` },
+            }}
+          />
+        ) : (
+          <Typography sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+            No content yet. Click Edit to start writing.
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 }

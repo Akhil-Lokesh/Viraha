@@ -91,11 +91,25 @@ export default function SignInPage() {
       {/* Heading */}
       <Box component={motion.div} variants={staggerItem}>
         <Typography
+          sx={{
+            fontFamily: 'var(--font-brand)',
+            fontWeight: 600,
+            fontSize: '0.7rem',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--viraha-gold, #D4A843)',
+            mb: 1,
+          }}
+        >
+          Field notes · Sign in
+        </Typography>
+        <Typography
           variant="h4"
           sx={{
-            fontSize: '1.875rem',
-            fontFamily: 'var(--font-heading)',
-            fontWeight: 700,
+            fontSize: '2.25rem',
+            fontFamily: 'var(--font-accent)',
+            fontWeight: 400,
+            lineHeight: 1.15,
             color: 'text.primary',
           }}
         >
@@ -119,11 +133,15 @@ export default function SignInPage() {
       <Box component={motion.div} variants={staggerItem}>
         <Divider
           sx={{
-            fontSize: '0.75rem',
+            fontFamily: 'var(--font-brand)',
+            fontSize: '0.65rem',
+            letterSpacing: '0.14em',
             textTransform: 'uppercase',
             color: 'text.secondary',
             '&::before, &::after': {
-              borderColor: 'divider',
+              borderTop: '1px dashed var(--viraha-gold, #D4A843)',
+              borderBottom: 'none',
+              opacity: 0.6,
             },
           }}
         >
@@ -139,6 +157,7 @@ export default function SignInPage() {
       >
         <Box component={motion.div} variants={staggerItem}>
           <TextField
+            className="auth-field"
             label="Email"
             type="email"
             placeholder="you@example.com"
@@ -149,7 +168,8 @@ export default function SignInPage() {
             sx={{
               '& .MuiOutlinedInput-root': {
                 height: 48,
-                borderRadius: 3,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
               },
             }}
           />
@@ -157,6 +177,7 @@ export default function SignInPage() {
 
         <Box component={motion.div} variants={staggerItem}>
           <TextField
+            className="auth-field"
             label="Password"
             type={showPassword ? 'text' : 'password'}
             placeholder="Your password"
@@ -188,7 +209,8 @@ export default function SignInPage() {
             sx={{
               '& .MuiOutlinedInput-root': {
                 height: 48,
-                borderRadius: 3,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
               },
             }}
           />
@@ -223,13 +245,15 @@ export default function SignInPage() {
             sx={{
               width: '100%',
               height: 48,
-              borderRadius: 3,
-              bgcolor: 'warning.main',
-              color: 'warning.contrastText',
+              borderRadius: 1,
+              bgcolor: 'var(--viraha-gold, #D4A843)',
+              color: '#221C18',
               fontWeight: 600,
               fontSize: '1rem',
+              letterSpacing: '0.04em',
               '&:hover': {
                 bgcolor: 'warning.dark',
+                boxShadow: '2px 2px 0 var(--viraha-hairline, rgba(34,28,24,0.15))',
               },
             }}
             disabled={loading}

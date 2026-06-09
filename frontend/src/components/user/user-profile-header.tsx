@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Settings, UserPlus, UserCheck, MessageCircle, Loader2, Ban, Clock } from 'lucide-react';
+import { MapPin, Settings, UserPlus, UserCheck, Loader2, Ban, Clock } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import { toast } from 'sonner';
-import { fadeInUp } from '@/lib/animations';
+import { staggerContainer, staggerItem } from '@/lib/animations';
 import { UserAvatar, resolveAvatarUrl } from '@/components/shared/user-avatar';
-import { LocationBadge } from '@/components/shared/location-badge';
 import Button from '@mui/material/Button';
 import { useFollowUser, useUnfollowUser } from '@/lib/hooks/use-follows';
 import { useBlockUser } from '@/lib/hooks/use-user';
@@ -21,12 +20,100 @@ interface UserProfileHeaderProps {
   isOwnProfile?: boolean;
 }
 
+const GOLD = 'var(--viraha-gold, #D4A843)';
+const INK = 'var(--viraha-ink, #221C18)';
+const PAPER = 'var(--viraha-paper, #FAF6EE)';
+
+// Subtle paper-grain texture (CSS-only, per design brief — no asset files).
+const PAPER_GRAIN =
+  'repeating-linear-gradient(0deg, rgba(34,28,24,0.03) 0px, rgba(34,28,24,0.03) 1px, transparent 1px, transparent 3px)';
+
 // `isPending` is set by the backend when the viewer has an outstanding follow
 // request to a private account (follow.status === 'pending'). It is not yet part
 // of the shared UserProfile type, so read it through a narrowed accessor.
 function readPendingFlag(user: UserProfile): boolean {
   const value = (user as { isPending?: unknown }).isPending;
   return value === true;
+}
+
+interface StatStampProps {
+  value: string;
+  label: string;
+  rotation: number;
+  ariaLabel?: string;
+  onActivate?: () => void;
+}
+
+/** Follower/following/post counts rendered as passport-stamp chips. */
+function StatStamp({ value, label, rotation, ariaLabel, onActivate }: StatStampProps) {
+  const interactive = Boolean(onActivate);
+
+  return (
+    <Box
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={ariaLabel}
+      onClick={onActivate}
+      onKeyDown={
+        interactive
+          ? (e: React.KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onActivate?.();
+              }
+            }
+          : undefined
+      }
+      sx={(theme) => ({
+        display: 'inline-flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        px: 2,
+        py: 1,
+        border: '1.5px solid',
+        borderColor:
+          theme.palette.mode === 'dark' ? 'rgba(212,168,67,0.55)' : 'rgba(212,168,67,0.7)',
+        borderRadius: '7px',
+        transform: `rotate(${rotation}deg)`,
+        bgcolor:
+          theme.palette.mode === 'dark' ? 'rgba(212,168,67,0.06)' : 'rgba(212,168,67,0.08)',
+        cursor: interactive ? 'pointer' : 'default',
+        transition: 'transform 0.2s ease, border-color 0.2s ease',
+        '&:hover': interactive
+          ? { transform: 'rotate(0deg) scale(1.03)', borderColor: GOLD }
+          : undefined,
+        '&:focus-visible': {
+          outline: `2px solid ${GOLD}`,
+          outlineOffset: 2,
+        },
+      })}
+    >
+      <Typography
+        component="span"
+        sx={{
+          fontFamily: 'var(--font-accent, serif)',
+          fontSize: '1.5rem',
+          lineHeight: 1.2,
+          color: 'text.primary',
+        }}
+      >
+        {value}
+      </Typography>
+      <Typography
+        component="span"
+        sx={{
+          fontFamily: 'var(--font-brand, sans-serif)',
+          fontSize: '9px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.16em',
+          color: GOLD,
+          fontWeight: 500,
+        }}
+      >
+        {label}
+      </Typography>
+    </Box>
+  );
 }
 
 export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHeaderProps) {
@@ -124,15 +211,18 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
 
   return (
     <Box>
-      {/* Cover -- gradient background using the user's avatar colors or a default gradient */}
+      {/* Cover — passport-spread top page: avatar wash or warm paper, grain + flight path */}
       <Box
-        sx={{
+        sx={(theme) => ({
           position: 'relative',
-          height: { xs: 224, md: 320 },
+          height: { xs: 192, md: 264 },
           width: '100%',
           overflow: 'hidden',
           borderRadius: 0,
-        }}
+          borderBottom: '1.5px solid',
+          borderColor:
+            theme.palette.mode === 'dark' ? 'rgba(212,168,67,0.35)' : 'rgba(212,168,67,0.5)',
+        })}
       >
         {user.avatar ? (
           <>
@@ -147,36 +237,75 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
                 width: '100%',
                 objectFit: 'cover',
                 transform: 'scale(1.1)',
-                filter: 'blur(16px)',
+                filter: 'blur(16px) saturate(0.85)',
               }}
             />
-            <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.2)' }} />
+            <Box
+              sx={(theme) => ({
+                position: 'absolute',
+                inset: 0,
+                bgcolor:
+                  theme.palette.mode === 'dark' ? 'rgba(22,18,31,0.55)' : 'rgba(34,28,24,0.28)',
+              })}
+            />
           </>
         ) : (
           <Box
-            sx={{
+            sx={(theme) => ({
               position: 'absolute',
               inset: 0,
-              background: (theme) =>
+              background:
                 theme.palette.mode === 'dark'
-                  ? 'linear-gradient(to bottom right, rgba(var(--mui-palette-primary-mainChannel) / 0.6), rgba(var(--mui-palette-primary-mainChannel) / 0.3), #1F1530)'
-                  : 'linear-gradient(to bottom right, rgba(var(--mui-palette-primary-mainChannel) / 0.6), rgba(var(--mui-palette-primary-mainChannel) / 0.3), #fff2e5)',
-            }}
+                  ? 'linear-gradient(135deg, #1C1628 0%, var(--viraha-ink-plum, #16121F) 55%, rgba(212,168,67,0.16) 100%)'
+                  : `linear-gradient(135deg, #F2E8D2 0%, ${PAPER} 55%, rgba(212,168,67,0.28) 100%)`,
+            })}
           />
         )}
-        {/* Gradient overlay at the bottom */}
+
+        {/* Paper grain over the whole cover */}
+        <Box sx={{ position: 'absolute', inset: 0, backgroundImage: PAPER_GRAIN, pointerEvents: 'none' }} />
+
+        {/* Flight-path motif: dashed gold route with endpoint dots */}
         <Box
+          aria-hidden="true"
           sx={{
             position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
+            left: '6%',
+            right: '6%',
+            top: '38%',
+            borderTop: '1.5px dashed rgba(212,168,67,0.65)',
+            transform: 'rotate(-3deg)',
+            pointerEvents: 'none',
+            '&::before, &::after': {
+              content: '""',
+              position: 'absolute',
+              top: -4,
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              bgcolor: GOLD,
+            },
+            '&::before': { left: 0 },
+            '&::after': { right: 0 },
           }}
+        />
+
+        {/* Soft fade into the page below */}
+        <Box
+          sx={(theme) => ({
+            position: 'absolute',
+            inset: 0,
+            background:
+              theme.palette.mode === 'dark'
+                ? 'linear-gradient(to top, rgba(22,18,31,0.65), transparent 55%)'
+                : 'linear-gradient(to top, rgba(34,28,24,0.25), transparent 55%)',
+          })}
         />
       </Box>
 
-      {/* Profile Info -- overlapping the cover */}
+      {/* Profile Info — overlapping the cover, staggered reveal */}
       <motion.div
-        variants={fadeInUp}
+        variants={staggerContainer}
         initial="hidden"
         animate="visible"
         style={{
@@ -186,158 +315,245 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
         }}
       >
         <Box sx={{ px: { xs: 2, md: 4 } }}>
-          {/* Avatar with ring */}
-          <UserAvatar
-            src={user.avatar}
-            username={user.username}
-            displayName={user.displayName}
-            size="xl"
-            link={false}
-            sx={{
-              outline: '4px solid',
-              outlineColor: 'background.default',
-              boxShadow: 3,
-            }}
-          />
+          {/* Avatar in a pasted-photo paper frame */}
+          <motion.div variants={staggerItem} style={{ display: 'inline-block' }}>
+            <Box
+              sx={{
+                display: 'inline-block',
+                transform: 'rotate(-1.5deg)',
+                transition: 'transform 0.25s ease',
+                '&:hover': { transform: 'rotate(0deg)' },
+              }}
+            >
+              <UserAvatar
+                src={user.avatar}
+                username={user.username}
+                displayName={user.displayName}
+                size="xl"
+                link={false}
+                sx={(theme) => ({
+                  border: '5px solid',
+                  borderColor: theme.palette.mode === 'dark' ? '#241D31' : PAPER,
+                  boxShadow:
+                    theme.palette.mode === 'dark'
+                      ? '3px 3px 0 rgba(0,0,0,0.45)'
+                      : '3px 3px 0 rgba(34,28,24,0.18)',
+                })}
+              />
+            </Box>
+          </motion.div>
 
-          {/* Name & Bio */}
-          <Typography sx={{ fontSize: '1.875rem', fontWeight: 700, mt: 2 }}>
-            {user.displayName || user.username}
-          </Typography>
-          <Typography sx={{ color: 'text.secondary' }}>@{user.username}</Typography>
-          {user.bio && (
-            <Typography sx={{ fontSize: '0.875rem', maxWidth: 448, mt: 1, color: 'text.primary', opacity: 0.8 }}>
-              {user.bio}
+          {/* Eyebrow + display-serif name */}
+          <motion.div variants={staggerItem}>
+            <Typography
+              sx={{
+                mt: 2,
+                fontFamily: 'var(--font-brand, sans-serif)',
+                fontSize: '11px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.16em',
+                color: GOLD,
+                fontWeight: 500,
+              }}
+            >
+              @{user.username}
             </Typography>
-          )}
+            <Typography
+              component="h1"
+              sx={{
+                fontFamily: 'var(--font-accent, serif)',
+                fontSize: { xs: '2rem', md: '2.5rem' },
+                lineHeight: 1.15,
+                color: 'text.primary',
+                mt: 0.5,
+              }}
+            >
+              {user.displayName || user.username}
+            </Typography>
+          </motion.div>
 
-          {/* Home location */}
+          {/* Home base as a passport stamp */}
           {homeLocation && (
-            <Box sx={{ mt: 1 }}>
-              <LocationBadge location={homeLocation} variant="default" />
-            </Box>
+            <motion.div variants={staggerItem}>
+              <Box
+                sx={(theme) => ({
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  mt: 1.5,
+                  px: 1.5,
+                  py: 0.5,
+                  border: '1.5px solid',
+                  borderColor:
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(212,168,67,0.55)'
+                      : 'rgba(212,168,67,0.7)',
+                  borderRadius: '6px',
+                  transform: 'rotate(-1.5deg)',
+                  bgcolor:
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(212,168,67,0.06)'
+                      : 'rgba(212,168,67,0.08)',
+                })}
+              >
+                <MapPin style={{ height: 12, width: 12, color: 'var(--viraha-gold, #D4A843)' }} />
+                <Typography
+                  component="span"
+                  sx={{
+                    fontFamily: 'var(--font-brand, sans-serif)',
+                    fontSize: '10px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.14em',
+                    color: 'text.primary',
+                    fontWeight: 500,
+                  }}
+                >
+                  Home base · {homeLocation}
+                </Typography>
+              </Box>
+            </motion.div>
           )}
 
-          {/* Stats Row */}
-          <Box sx={{ display: 'flex', gap: 4, mt: 3 }}>
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: 'text.primary' }}>
-                {formatCount(postCount)}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '10px',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  fontWeight: 500,
-                }}
+          {/* Bio as a journal note — TT Chocolates italic on paper */}
+          {user.bio && (
+            <motion.div variants={staggerItem}>
+              <Box
+                sx={(theme) => ({
+                  position: 'relative',
+                  maxWidth: 460,
+                  mt: 2,
+                  px: 2,
+                  py: 1.5,
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(250,246,238,0.04)' : '#FFFDF6',
+                  border: '1px solid',
+                  borderColor:
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(212,168,67,0.25)'
+                      : 'rgba(212,168,67,0.4)',
+                  borderLeft: `3px solid ${GOLD}`,
+                  borderRadius: '4px',
+                  boxShadow:
+                    theme.palette.mode === 'dark'
+                      ? '2px 2px 0 rgba(0,0,0,0.35)'
+                      : '2px 2px 0 rgba(34,28,24,0.08)',
+                  backgroundImage: PAPER_GRAIN,
+                })}
               >
-                posts
-              </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: 'var(--font-body, sans-serif)',
+                    fontStyle: 'italic',
+                    fontSize: '0.9rem',
+                    lineHeight: 1.6,
+                    color: 'text.primary',
+                    opacity: 0.9,
+                  }}
+                >
+                  {user.bio}
+                </Typography>
+              </Box>
+            </motion.div>
+          )}
+
+          {/* Stats as stamp chips */}
+          <motion.div variants={staggerItem}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 3 }}>
+              <StatStamp value={formatCount(postCount)} label="posts" rotation={-1.5} />
+              <StatStamp
+                value={formatCount(displayedFollowerCount)}
+                label="followers"
+                rotation={1}
+                ariaLabel="View followers"
+                onActivate={() => setFollowDialog('followers')}
+              />
+              <StatStamp
+                value={formatCount(followingCount)}
+                label="following"
+                rotation={-0.75}
+                ariaLabel="View following"
+                onActivate={() => setFollowDialog('following')}
+              />
             </Box>
-            <Box sx={{ height: 40, width: 1, bgcolor: 'divider' }} />
-            <Box
-              role="button"
-              tabIndex={0}
-              aria-label="View followers"
-              onClick={() => setFollowDialog('followers')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setFollowDialog('followers');
-                }
-              }}
-              sx={{ textAlign: 'center', cursor: 'pointer', '&:hover': { opacity: 0.7 }, transition: 'opacity 0.15s' }}
-            >
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: 'text.primary' }}>
-                {formatCount(displayedFollowerCount)}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '10px',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  fontWeight: 500,
-                }}
-              >
-                followers
-              </Typography>
-            </Box>
-            <Box sx={{ height: 40, width: 1, bgcolor: 'divider' }} />
-            <Box
-              role="button"
-              tabIndex={0}
-              aria-label="View following"
-              onClick={() => setFollowDialog('following')}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setFollowDialog('following');
-                }
-              }}
-              sx={{ textAlign: 'center', cursor: 'pointer', '&:hover': { opacity: 0.7 }, transition: 'opacity 0.15s' }}
-            >
-              <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: 'text.primary' }}>
-                {formatCount(followingCount)}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '10px',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  fontWeight: 500,
-                }}
-              >
-                following
-              </Typography>
-            </Box>
-          </Box>
+          </motion.div>
 
           {/* Action Buttons */}
-          <Box sx={{ mt: 2, display: 'flex', gap: 1.5 }}>
-            {isOwnProfile ? (
-              <Button variant="outlined" disableElevation sx={{ gap: 1 }} component={Link} href="/settings">
-                <Settings style={{ height: 16, width: 16 }} />
-                Edit Profile
-              </Button>
-            ) : (
-              <>
-                <Button
-                  sx={{ gap: 1 }}
-                  variant={isFollowing || isPending ? 'outlined' : 'contained'}
-                  disableElevation
-                  onClick={handleFollowToggle}
-                  disabled={isFollowLoading}
-                >
-                  {isFollowLoading ? (
-                    <Loader2 style={{ height: 16, width: 16, animation: 'spin 1s linear infinite' }} />
-                  ) : isPending ? (
-                    <Clock style={{ height: 16, width: 16 }} />
-                  ) : isFollowing ? (
-                    <UserCheck style={{ height: 16, width: 16 }} />
-                  ) : (
-                    <UserPlus style={{ height: 16, width: 16 }} />
-                  )}
-                  {isPending ? 'Requested' : isFollowing ? 'Following' : 'Follow'}
-                </Button>
+          <motion.div variants={staggerItem}>
+            <Box sx={{ mt: 2.5, display: 'flex', gap: 1.5 }}>
+              {isOwnProfile ? (
                 <Button
                   variant="outlined"
-                  color="error"
                   disableElevation
-                  sx={{ gap: 1 }}
-                  onClick={handleBlock}
-                  disabled={blockMutation.isPending}
-                  aria-label={`Block ${user.username}`}
+                  component={Link}
+                  href="/settings"
+                  sx={{
+                    gap: 1,
+                    borderRadius: '8px',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    color: 'text.primary',
+                    borderColor: 'rgba(212,168,67,0.7)',
+                    '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
+                  }}
                 >
-                  <Ban style={{ height: 16, width: 16 }} />
-                  Block
+                  <Settings style={{ height: 16, width: 16 }} />
+                  Edit Profile
                 </Button>
-              </>
-            )}
-          </Box>
+              ) : (
+                <>
+                  <Button
+                    variant={isFollowing || isPending ? 'outlined' : 'contained'}
+                    disableElevation
+                    onClick={handleFollowToggle}
+                    disabled={isFollowLoading}
+                    sx={
+                      isFollowing || isPending
+                        ? {
+                            gap: 1,
+                            borderRadius: '8px',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            color: 'text.primary',
+                            borderColor: 'rgba(212,168,67,0.7)',
+                            '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
+                          }
+                        : {
+                            gap: 1,
+                            borderRadius: '8px',
+                            textTransform: 'none',
+                            fontWeight: 700,
+                            bgcolor: GOLD,
+                            color: INK,
+                            '&:hover': { bgcolor: '#C2973A' },
+                          }
+                    }
+                  >
+                    {isFollowLoading ? (
+                      <Loader2 style={{ height: 16, width: 16, animation: 'spin 1s linear infinite' }} />
+                    ) : isPending ? (
+                      <Clock style={{ height: 16, width: 16 }} />
+                    ) : isFollowing ? (
+                      <UserCheck style={{ height: 16, width: 16 }} />
+                    ) : (
+                      <UserPlus style={{ height: 16, width: 16 }} />
+                    )}
+                    {isPending ? 'Requested' : isFollowing ? 'Following' : 'Follow'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    disableElevation
+                    sx={{ gap: 1, borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}
+                    onClick={handleBlock}
+                    disabled={blockMutation.isPending}
+                    aria-label={`Block ${user.username}`}
+                  >
+                    <Ban style={{ height: 16, width: 16 }} />
+                    Block
+                  </Button>
+                </>
+              )}
+            </Box>
+          </motion.div>
         </Box>
       </motion.div>
 

@@ -343,6 +343,27 @@ export interface TrendingTag {
   count: number;
 }
 
+// ─── Mutes ───────────────────────────────────────────
+
+export interface MutedUser {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatar: string | null;
+  mutedAt: string;
+}
+
+// ─── Auth Sessions ───────────────────────────────────
+
+export interface AuthSession {
+  id: string;
+  userAgent: string | null;
+  ip: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+  current: boolean;
+}
+
 // ─── Places ──────────────────────────────────────────
 
 export interface PlacePrediction {

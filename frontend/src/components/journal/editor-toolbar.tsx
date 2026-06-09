@@ -52,10 +52,11 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   const btnSx = (isActive: boolean) => ({
     width: 34,
     height: 34,
-    borderRadius: '8px',
-    color: isActive ? 'secondary.main' : 'text.secondary',
-    bgcolor: isActive ? 'action.selected' : 'transparent',
-    '&:hover': { bgcolor: 'action.hover' },
+    borderRadius: '4px',
+    color: isActive ? 'var(--viraha-gold, #D4A843)' : 'text.secondary',
+    bgcolor: isActive ? 'rgba(212,168,67,0.12)' : 'transparent',
+    border: isActive ? '1px solid rgba(212,168,67,0.5)' : '1px solid transparent',
+    '&:hover': { bgcolor: 'rgba(212,168,67,0.08)' },
   });
 
   const iconSize = { width: 18, height: 18 };
@@ -73,8 +74,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         top: 0,
         zIndex: 10,
         bgcolor: 'background.paper',
-        borderBottom: 1,
-        borderColor: 'divider',
+        borderBottom: '1px dashed rgba(212,168,67,0.6)',
       }}
     >
       {/* Text formatting */}

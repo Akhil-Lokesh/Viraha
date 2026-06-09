@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { useBlockedUsers, useUnblockUser } from '@/lib/hooks/use-user';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import { SectionEyebrow } from '@/components/settings/section-eyebrow';
+import { paperPanelSx } from '@/components/settings/paper-panel';
 
 function BlockedRow({ entry }: { entry: { id: string; user: { id: string; username: string; displayName: string | null; avatar: string | null } } }) {
   const unblock = useUnblockUser();
@@ -17,8 +19,7 @@ function BlockedRow({ entry }: { entry: { id: string; user: { id: string; userna
         alignItems: 'center',
         gap: 2,
         py: 1.75,
-        borderBottom: 1,
-        borderColor: 'divider',
+        '& + &': { borderTop: '1px dashed', borderTopColor: 'divider' },
       }}
     >
       <UserAvatar
@@ -45,7 +46,7 @@ function BlockedRow({ entry }: { entry: { id: string; user: { id: string; userna
           })
         }
         disabled={unblock.isPending}
-        sx={{ textTransform: 'none', fontWeight: 600 }}
+        sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
       >
         Unblock
       </Button>
@@ -58,17 +59,34 @@ export default function BlockedUsersPage() {
 
   return (
     <Box sx={{ maxWidth: 640, mx: 'auto', py: { xs: 2, md: 4 } }}>
-        <Box component={Link} href="/settings" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: '0.875rem', color: 'text.secondary', textDecoration: 'none', mb: 2, '&:hover': { color: 'text.primary' } }}>
-          <ArrowLeft size={16} />
-          Back to settings
-        </Box>
-        <Typography sx={{ fontFamily: 'var(--font-heading)', fontSize: '1.75rem', fontWeight: 700, mb: 0.5 }}>
-          Blocked accounts
-        </Typography>
-        <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 3 }}>
-          Blocked users can&apos;t see your content and don&apos;t appear in your feed, explore, or search.
-        </Typography>
+      <Box
+        component={Link}
+        href="/settings?tab=privacy"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.75,
+          fontSize: '0.875rem',
+          color: 'text.secondary',
+          textDecoration: 'none',
+          mb: 2,
+          '&:hover': { color: 'text.primary' },
+        }}
+      >
+        <ArrowLeft size={16} />
+        Back to settings
+      </Box>
+      <SectionEyebrow gold>Privacy</SectionEyebrow>
+      <Typography
+        sx={{ fontFamily: 'var(--font-accent, serif)', fontSize: '1.75rem', fontWeight: 700, mb: 0.5 }}
+      >
+        Blocked accounts
+      </Typography>
+      <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 3 }}>
+        Blocked users can&apos;t see your content and don&apos;t appear in your feed, explore, or search.
+      </Typography>
 
+      <Box sx={paperPanelSx}>
         {isLoading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }}>
             <Loader2 style={{ height: 20, width: 20, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }} />
@@ -85,6 +103,7 @@ export default function BlockedUsersPage() {
             ))}
           </Box>
         )}
+      </Box>
     </Box>
   );
 }

@@ -10,6 +10,46 @@ import Skeleton from '@mui/material/Skeleton';
 import Link from 'next/link';
 import { fadeInUp, fadeIn, staggerContainer, staggerItem } from '@/lib/animations';
 
+const GOLD = 'var(--viraha-gold, #D4A843)';
+
+const eyebrowSx = {
+  fontFamily: 'var(--font-brand)',
+  fontSize: '11px',
+  fontWeight: 600,
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+  color: GOLD,
+} as const;
+
+/** Skeleton shaped like the photo-stack cards. */
+function StackSkeleton() {
+  return (
+    <Box sx={{ position: 'relative', pt: '10px', px: '8px' }}>
+      <Skeleton
+        variant="rounded"
+        animation="pulse"
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 14,
+          right: 14,
+          height: '55%',
+          transform: 'rotate(-2.5deg)',
+          borderRadius: '4px',
+          opacity: 0.4,
+        }}
+      />
+      <Skeleton
+        variant="rounded"
+        animation="pulse"
+        sx={{ aspectRatio: '4/3', borderRadius: '4px', width: '100%' }}
+      />
+      <Skeleton variant="rounded" animation="pulse" sx={{ height: 18, width: '60%', mt: 1.5, borderRadius: '2px' }} />
+      <Skeleton variant="rounded" animation="pulse" sx={{ height: 12, width: '35%', mt: 1, borderRadius: '2px' }} />
+    </Box>
+  );
+}
+
 export default function AlbumsPage() {
   const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useAlbums();
@@ -24,7 +64,7 @@ export default function AlbumsPage() {
         variants={fadeInUp}
         initial="hidden"
         animate="visible"
-        sx={{ pt: { xs: 2, md: 4 }, mb: 4 }}
+        sx={{ pt: { xs: 2, md: 4 }, mb: 5 }}
       >
         <Box
           sx={{
@@ -36,15 +76,19 @@ export default function AlbumsPage() {
           }}
         >
           <Box>
+            <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>The Shelf — Collections</Typography>
             <Typography
-              sx={{
-                fontSize: { xs: '2rem', md: '3rem' },
-                fontFamily: 'var(--font-heading)',
-                fontWeight: 700,
-                fontStyle: 'italic',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.1,
-              }}
+              component="h1"
+              sx={(theme) => ({
+                fontSize: { xs: '2.25rem', md: '3rem' },
+                fontFamily: 'var(--font-accent)',
+                letterSpacing: '0.005em',
+                lineHeight: 1.05,
+                color:
+                  theme.palette.mode === 'dark'
+                    ? 'var(--viraha-ink-dark, #F2EAD9)'
+                    : 'var(--viraha-ink, #221C18)',
+              })}
             >
               Albums
             </Typography>
@@ -67,15 +111,15 @@ export default function AlbumsPage() {
             component={Link}
             href="/create/album"
             sx={{
-              borderRadius: '12px',
+              borderRadius: '4px',
               flexShrink: 0,
               px: 2.5,
               py: 1.25,
               fontSize: '0.85rem',
               fontWeight: 600,
-              borderColor: 'divider',
+              borderColor: GOLD,
               color: 'text.primary',
-              '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+              '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
             }}
           >
             <Plus style={{ width: 16, height: 16, marginRight: 6 }} />
@@ -91,7 +135,8 @@ export default function AlbumsPage() {
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' },
-            gap: 2.5,
+            columnGap: 3,
+            rowGap: 4.5,
           }}
           variants={staggerContainer}
           initial="hidden"
@@ -99,11 +144,7 @@ export default function AlbumsPage() {
         >
           {Array.from({ length: 6 }).map((_, i) => (
             <Box key={i} component={motion.div} variants={staggerItem}>
-              <Skeleton
-                variant="rounded"
-                animation="pulse"
-                sx={{ aspectRatio: '4/3', borderRadius: '16px', width: '100%' }}
-              />
+              <StackSkeleton />
             </Box>
           ))}
         </Box>
@@ -113,9 +154,25 @@ export default function AlbumsPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 1.5, py: 10 }}
+          sx={(theme) => ({
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            gap: 1.5,
+            py: 8,
+            mx: 'auto',
+            maxWidth: 480,
+            border: '1px dashed',
+            borderColor:
+              theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.25)' : 'rgba(34,28,24,0.25)',
+            borderRadius: '6px',
+          })}
         >
-          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
+          <Typography
+            sx={{ fontFamily: 'var(--font-accent)', fontSize: '1.4rem', color: 'text.primary' }}
+          >
             Couldn&apos;t load your albums
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
@@ -125,7 +182,14 @@ export default function AlbumsPage() {
             variant="outlined"
             disableElevation
             onClick={() => refetch()}
-            sx={{ borderRadius: '9999px', mt: 0.5 }}
+            sx={{
+              borderRadius: '4px',
+              mt: 0.5,
+              borderColor: GOLD,
+              color: 'text.primary',
+              fontWeight: 600,
+              '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
+            }}
           >
             Retry
           </Button>
@@ -135,14 +199,21 @@ export default function AlbumsPage() {
           <AlbumGrid albums={albums} />
 
           {hasNextPage && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
               <Button
                 variant="outlined"
                 disableElevation
                 size="large"
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                sx={{ borderRadius: '9999px', px: 4 }}
+                sx={{
+                  borderRadius: '4px',
+                  px: 4,
+                  borderColor: GOLD,
+                  color: 'text.primary',
+                  fontWeight: 600,
+                  '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
+                }}
               >
                 {isFetchingNextPage ? 'Loading...' : 'Load More'}
               </Button>

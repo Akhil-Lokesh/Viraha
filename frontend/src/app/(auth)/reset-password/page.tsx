@@ -161,11 +161,25 @@ function ResetPasswordForm() {
           </Box>
         </Link>
         <Typography
+          sx={{
+            fontFamily: 'var(--font-brand)',
+            fontWeight: 600,
+            fontSize: '0.7rem',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--viraha-gold, #D4A843)',
+            mb: 1,
+          }}
+        >
+          Fresh ink · Recovery
+        </Typography>
+        <Typography
           variant="h4"
           sx={{
-            fontSize: '1.875rem',
-            fontFamily: 'var(--font-heading)',
-            fontWeight: 700,
+            fontSize: '2.25rem',
+            fontFamily: 'var(--font-accent)',
+            fontWeight: 400,
+            lineHeight: 1.15,
             color: 'text.primary',
           }}
         >
@@ -180,10 +194,10 @@ function ResetPasswordForm() {
         <Box
           component={motion.div}
           variants={staggerItem}
+          className="paper-grain"
           sx={{
-            borderRadius: 4,
-            border: 1,
-            borderColor: 'divider',
+            borderRadius: 1,
+            border: '1px solid var(--viraha-hairline, rgba(34,28,24,0.15))',
             bgcolor: 'background.paper',
             p: 4,
             textAlign: 'center',
@@ -195,10 +209,11 @@ function ResetPasswordForm() {
         >
           <Box
             sx={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              bgcolor: 'rgba(16, 185, 129, 0.1)',
+              width: 56,
+              height: 56,
+              borderRadius: 1,
+              border: '1.5px solid #059669',
+              transform: 'rotate(-2deg)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -249,6 +264,7 @@ function ResetPasswordForm() {
         >
           <Box component={motion.div} variants={staggerItem}>
             <TextField
+              className="auth-field"
               label="New Password"
               type={showPassword ? 'text' : 'password'}
               placeholder="At least 8 characters"
@@ -279,7 +295,8 @@ function ResetPasswordForm() {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   height: 48,
-                  borderRadius: 3,
+                  borderRadius: 1,
+                  bgcolor: 'background.paper',
                 },
               }}
             />
@@ -287,6 +304,7 @@ function ResetPasswordForm() {
 
           <Box component={motion.div} variants={staggerItem}>
             <TextField
+              className="auth-field"
               label="Confirm Password"
               type="password"
               placeholder="Confirm new password"
@@ -297,7 +315,8 @@ function ResetPasswordForm() {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   height: 48,
-                  borderRadius: 3,
+                  borderRadius: 1,
+                  bgcolor: 'background.paper',
                 },
               }}
             />
@@ -311,13 +330,15 @@ function ResetPasswordForm() {
               sx={{
                 width: '100%',
                 height: 48,
-                borderRadius: 3,
-                bgcolor: 'warning.main',
-                color: 'warning.contrastText',
+                borderRadius: 1,
+                bgcolor: 'var(--viraha-gold, #D4A843)',
+                color: '#221C18',
                 fontWeight: 600,
                 fontSize: '1rem',
+                letterSpacing: '0.04em',
                 '&:hover': {
                   bgcolor: 'warning.dark',
+                  boxShadow: '2px 2px 0 var(--viraha-hairline, rgba(34,28,24,0.15))',
                 },
               }}
               disabled={loading}
