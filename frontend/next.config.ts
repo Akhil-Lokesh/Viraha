@@ -36,8 +36,9 @@ const cspDirectives = [
   `style-src 'self' 'unsafe-inline' api.mapbox.com`,
   // apiOrigin is included so host-prefixed /uploads avatars/thumbnails served by the
   // backend (non-R2 and dev deploys) load instead of being CSP-blocked.
-  directive('img-src', ["'self'", 'data:', 'blob:', '*.mapbox.com', '*.openfreemap.org', 'images.unsplash.com', 'randomuser.me', apiOrigin, r2Url]),
-  directive('connect-src', ["'self'", apiOrigin, 'api.mapbox.com', 'events.mapbox.com', '*.openfreemap.org', 'maps.googleapis.com', '*.sentry.io', r2Url]),
+  directive('img-src', ["'self'", 'data:', 'blob:', '*.mapbox.com', '*.openfreemap.org', 'basemaps.cartocdn.com', '*.basemaps.cartocdn.com', 'images.unsplash.com', 'randomuser.me', apiOrigin, r2Url]),
+  // Carto dark-matter basemap: style.json on the apex, tiles/glyphs/sprites on a–d subdomains.
+  directive('connect-src', ["'self'", apiOrigin, 'api.mapbox.com', 'events.mapbox.com', '*.openfreemap.org', 'basemaps.cartocdn.com', '*.basemaps.cartocdn.com', 'maps.googleapis.com', '*.sentry.io', r2Url]),
   "worker-src 'self' blob:",
   "object-src 'none'",
   "frame-ancestors 'none'",

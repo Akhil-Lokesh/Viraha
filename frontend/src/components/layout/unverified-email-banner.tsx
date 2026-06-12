@@ -14,7 +14,10 @@ export function UnverifiedEmailBanner() {
   const hydrated = useAuthHydrated();
   const [sending, setSending] = useState(false);
 
-  if (!hydrated || !isAuthenticated || !user || user.emailVerified) return null;
+  // emailVerified is undefined while only the persisted partial user is loaded
+  // (before /me resolves) — show the banner only on an explicit false, never on
+  // unknown, so verified users don't get a flash of the nag on every load.
+  if (!hydrated || !isAuthenticated || !user || user.emailVerified !== false) return null;
 
   async function handleResend() {
     setSending(true);

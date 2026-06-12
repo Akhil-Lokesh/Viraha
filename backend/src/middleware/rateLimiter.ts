@@ -36,8 +36,9 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false,
   store: createStore('rl:api:'),
   passOnStoreError: true,
-  // Disable throttling under the test runner so integration tests are deterministic.
-  skip: () => process.env.NODE_ENV === 'test',
+  // Throttle only in production: tests need determinism, and local browser-driven
+  // smoke/visual runs easily exceed production budgets (covers unset NODE_ENV too).
+  skip: () => process.env.NODE_ENV !== 'production',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Too many requests, please try again later.' },
@@ -52,8 +53,9 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   store: createStore('rl:auth:'),
   passOnStoreError: true,
-  // Disable throttling under the test runner so integration tests are deterministic.
-  skip: () => process.env.NODE_ENV === 'test',
+  // Throttle only in production: tests need determinism, and local browser-driven
+  // smoke/visual runs easily exceed production budgets (covers unset NODE_ENV too).
+  skip: () => process.env.NODE_ENV !== 'production',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Too many authentication attempts, please try again later.' },
@@ -68,8 +70,9 @@ export const searchLimiter = rateLimit({
   legacyHeaders: false,
   store: createStore('rl:search:'),
   passOnStoreError: true,
-  // Disable throttling under the test runner so integration tests are deterministic.
-  skip: () => process.env.NODE_ENV === 'test',
+  // Throttle only in production: tests need determinism, and local browser-driven
+  // smoke/visual runs easily exceed production budgets (covers unset NODE_ENV too).
+  skip: () => process.env.NODE_ENV !== 'production',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Too many search requests, please try again later.' },
@@ -88,8 +91,9 @@ export const sseLimiter = rateLimit({
   legacyHeaders: false,
   store: createStore('rl:sse:'),
   passOnStoreError: true,
-  // Disable throttling under the test runner so integration tests are deterministic.
-  skip: () => process.env.NODE_ENV === 'test',
+  // Throttle only in production: tests need determinism, and local browser-driven
+  // smoke/visual runs easily exceed production budgets (covers unset NODE_ENV too).
+  skip: () => process.env.NODE_ENV !== 'production',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Too many stream connections, please try again later.' },
@@ -104,8 +108,9 @@ export const uploadLimiter = rateLimit({
   legacyHeaders: false,
   store: createStore('rl:upload:'),
   passOnStoreError: true,
-  // Disable throttling under the test runner so integration tests are deterministic.
-  skip: () => process.env.NODE_ENV === 'test',
+  // Throttle only in production: tests need determinism, and local browser-driven
+  // smoke/visual runs easily exceed production budgets (covers unset NODE_ENV too).
+  skip: () => process.env.NODE_ENV !== 'production',
   message: {
     success: false,
     error: { code: 'RATE_LIMITED', message: 'Upload limit reached, please try again later.' },

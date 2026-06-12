@@ -286,6 +286,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
   const [mapInstance, setMapInstance] = useState<MapLibreGL.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStyleLoaded, setIsStyleLoaded] = useState(false);
+  const [initFailed, setInitFailed] = useState(false);
   const currentStyleRef = useRef<MapStyleOption | null>(null);
   const styleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const internalUpdateRef = useRef(false);
@@ -322,16 +323,25 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
     currentStyleRef.current = initialStyle;
 
-    const map = new MapLibreGL.Map({
-      container: containerRef.current,
-      style: initialStyle,
-      renderWorldCopies: false,
-      attributionControl: {
-        compact: true,
-      },
-      ...props,
-      ...viewport,
-    });
+    // WebGL is unavailable in some environments (old GPUs, remote desktops,
+    // headless browsers). MapLibre's constructor throws synchronously in that
+    // case — degrade to a quiet fallback panel instead of crashing the route.
+    let map: MapLibreGL.Map;
+    try {
+      map = new MapLibreGL.Map({
+        container: containerRef.current,
+        style: initialStyle,
+        renderWorldCopies: false,
+        attributionControl: {
+          compact: true,
+        },
+        ...props,
+        ...viewport,
+      });
+    } catch {
+      setInitFailed(true);
+      return;
+    }
 
     const styleDataHandler = () => {
       clearStyleTimeout();
@@ -436,9 +446,39 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
           background: CIN.bg,
         }}
       >
-        {!isLoaded && <DefaultLoader />}
-        {/* SSR-safe: children render only when map is loaded on client */}
-        {mapInstance && children}
+        {initFailed ? (
+          <div
+            role="status"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'grid',
+              placeItems: 'center',
+              textAlign: 'center',
+              padding: 24,
+              color: CIN.textMuted,
+              background: CIN.surface,
+              border: `1px solid ${CIN.hairline}`,
+              borderRadius: 12,
+            }}
+          >
+            <div>
+              <div style={{ color: CIN.text, fontWeight: 600, marginBottom: 6 }}>
+                The map can&apos;t render here
+              </div>
+              <div style={{ fontSize: 14 }}>
+                This device or browser doesn&apos;t support WebGL, which the
+                interactive map needs. Everything else still works.
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {!isLoaded && <DefaultLoader />}
+            {/* SSR-safe: children render only when map is loaded on client */}
+            {mapInstance && children}
+          </>
+        )}
       </div>
     </MapContext.Provider>
   );
