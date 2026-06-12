@@ -13,6 +13,20 @@ export function usePostsFeed() {
   });
 }
 
+/**
+ * Current user's OWN posts. Used by the home hero ("your latest memory") so a
+ * new user never sees a stranger's feed post mislabelled as their own entry.
+ */
+export function useMyPosts(userId: string | undefined) {
+  return useInfiniteQuery({
+    queryKey: ['posts', 'by-user', userId],
+    queryFn: ({ pageParam }) => getPosts(pageParam as string | undefined, userId),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: !!userId,
+  });
+}
+
 export function usePost(id: string) {
   return useQuery({
     queryKey: ['posts', id],

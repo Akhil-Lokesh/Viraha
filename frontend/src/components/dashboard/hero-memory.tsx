@@ -5,7 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { MapPin, Stamp } from 'lucide-react';
-import { usePostsFeed } from '@/lib/hooks/use-posts';
+import { useMyPosts } from '@/lib/hooks/use-posts';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import type { Post } from '@/lib/types';
 import { getJournalTokens, eyebrowSx, displaySerifSx, spreadItem } from './journal-tokens';
 
@@ -33,7 +34,8 @@ function formatCoordinates(lat: number | null, lng: number | null): string | nul
 export function HeroMemory() {
   const theme = useTheme();
   const t = getJournalTokens(theme.palette.mode === 'dark' ? 'dark' : 'light');
-  const { data, isLoading } = usePostsFeed();
+  const userId = useAuthStore((s) => s.user?.id);
+  const { data, isLoading } = useMyPosts(userId);
 
   const latest: Post | undefined = data?.pages[0]?.items[0];
 
