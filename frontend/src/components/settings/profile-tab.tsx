@@ -32,7 +32,13 @@ export function ProfileTab() {
   const { user, setUser } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  // A dead avatar URL must degrade to the person icon, not browser breakage.
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [user?.avatar]);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -129,7 +135,7 @@ export function ProfileTab() {
                   border: `1px solid ${CIN.hairline}`,
                 }}
               >
-                {user?.avatar ? (
+                {user?.avatar && !avatarFailed ? (
                   <img
                     src={
                       user.avatar.startsWith('http')
@@ -137,6 +143,7 @@ export function ProfileTab() {
                         : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${user.avatar}`
                     }
                     alt={user.displayName || user.username}
+                    onError={() => setAvatarFailed(true)}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (

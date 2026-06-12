@@ -22,6 +22,13 @@ interface PhotoTileProps {
   sx?: SxProps<Theme>;
   /** Overlay content (captions, labels) positioned over the photo. */
   children?: React.ReactNode;
+  /**
+   * What to render when the image is missing or fails to load:
+   * 'pattern' (default) — striped placeholder with an icon, reads as "no photo";
+   * 'gradient' — quiet accent-tinted dark wash for decorative surfaces (covers)
+   * where a placeholder icon would read as breakage.
+   */
+  fallback?: 'pattern' | 'gradient';
 }
 
 /**
@@ -35,6 +42,7 @@ export function PhotoTile({
   rounded = 14,
   sx,
   children,
+  fallback = 'pattern',
 }: PhotoTileProps) {
   const [failed, setFailed] = useState(false);
   const resolved = resolve(src);
@@ -61,6 +69,17 @@ export function PhotoTile({
             height: '100%',
             objectFit: 'cover',
             display: 'block',
+          }}
+        />
+      ) : fallback === 'gradient' ? (
+        <Box
+          aria-label={alt}
+          role="img"
+          sx={{
+            width: '100%',
+            height: '100%',
+            minHeight: 160,
+            background: `linear-gradient(135deg, ${CIN.surface2} 0%, rgba(139,124,255,0.12) 55%, ${CIN.surface} 100%)`,
           }}
         />
       ) : (

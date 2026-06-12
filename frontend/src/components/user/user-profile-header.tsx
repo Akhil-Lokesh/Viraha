@@ -215,6 +215,7 @@ export function UserProfileHeader({ user, isOwnProfile = false }: UserProfileHea
             src={user.avatar}
             alt=""
             rounded={0}
+            fallback="gradient"
             sx={{
               height: { xs: 200, md: 280 },
               width: '100%',

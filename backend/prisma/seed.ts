@@ -31,7 +31,7 @@ const PHOTOS = {
     'https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?w=800&q=80',
   ],
   avatars: [
-    'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=200&q=80',
+    'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=200&q=80',
     'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
     'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80',
     'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80',

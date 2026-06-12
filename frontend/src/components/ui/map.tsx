@@ -130,7 +130,10 @@ function getSystemTheme(): Theme {
 
 function useResolvedTheme(themeProp?: "light" | "dark"): "light" | "dark" {
   const [detectedTheme, setDetectedTheme] = useState<"light" | "dark">(
-    () => getDocumentTheme() ?? getSystemTheme()
+    // App defaults to dark (cinematic): when the document hasn't declared a
+    // scheme yet (first paint), assume dark rather than the OS preference so
+    // the map never fetches the light style and immediately switches.
+    () => getDocumentTheme() ?? "dark"
   );
 
   useEffect(() => {

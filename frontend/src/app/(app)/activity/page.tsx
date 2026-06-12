@@ -144,11 +144,14 @@ function ActivityContent() {
       {/* Pending follow requests (private accounts) */}
       <FollowRequestsSection />
 
-      {/* Activity stream */}
+      {/* Activity stream. The list mounts AFTER the page container's entrance
+          animation has finished (data arrives async), so it must own its
+          initial/animate rather than inherit from the already-settled parent —
+          otherwise the rows stay stuck at the hidden variant (opacity 0). */}
       {isLoading ? (
         <ActivitySkeleton />
       ) : activities.length === 0 ? (
-        <Box component={motion.div} variants={staggerItem}>
+        <Box component={motion.div} initial="hidden" animate="visible" variants={staggerItem}>
           <EmptyState
             icon="compass"
             title="No activity yet"
@@ -158,7 +161,9 @@ function ActivityContent() {
       ) : (
         <Box
           component={motion.div}
-          variants={staggerItem}
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
           sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mx: { xs: -2, md: 0 } }}
         >
           {dayGroups.map((group) => (
