@@ -2,9 +2,10 @@
 
 import { Box, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
+import { eyebrowSx } from '@/lib/design/cinema-tokens';
+import { staggerItem } from '@/lib/animations';
 import type { Activity } from '@/lib/types';
 import { ActivityItem } from './activity-item';
-import { KEEPSAKE, eyebrowSx, fadeUpItem } from './keepsake';
 
 export interface ActivityDayGroupData {
   label: string;
@@ -46,65 +47,29 @@ interface ActivityDayGroupProps {
   onMarkRead: (id: string) => void;
 }
 
-// Items use px:2 (16px) and a 28px "sm" avatar, so the avatar column's
-// centerline — where the flight path runs — sits 30px from the left edge.
-const FLIGHT_PATH_LEFT = 30;
-
 /**
- * One day of the logbook: a Posterama eyebrow date label pinned to a dashed
- * gold flight-path connector that runs down through the entries.
+ * One day of the stream: a muted uppercase eyebrow date label above a quiet
+ * dark list of rows separated by hairlines.
  */
 export function ActivityDayGroup({ group, onMarkRead }: ActivityDayGroupProps) {
   return (
-    <Box
-      component={motion.div}
-      variants={fadeUpItem}
-      sx={{
-        position: 'relative',
-        // Dashed gold flight path down the avatar column
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          left: `${FLIGHT_PATH_LEFT}px`,
-          top: 6,
-          bottom: 12,
-          width: 0,
-          borderLeft: '1px dashed',
-          borderColor: KEEPSAKE.gold,
-          opacity: 0.55,
-        },
-      }}
-    >
-      {/* Day eyebrow with waypoint marker on the path */}
+    <Box component={motion.div} variants={staggerItem}>
+      {/* Day labels are locale/now-dependent — SSR and client can disagree. */}
+      <Typography
+        component="h2"
+        suppressHydrationWarning
+        sx={{ ...eyebrowSx, px: 2, py: 1 }}
+      >
+        {group.label}
+      </Typography>
+
       <Box
         sx={{
-          position: 'relative',
-          zIndex: 1,
           display: 'flex',
-          alignItems: 'center',
-          gap: 1.25,
-          pl: `${FLIGHT_PATH_LEFT - 4}px`,
-          py: 1,
+          flexDirection: 'column',
+          borderTop: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
         }}
       >
-        <Box
-          sx={{
-            width: 9,
-            height: 9,
-            borderRadius: '50%',
-            border: '1.5px solid',
-            borderColor: KEEPSAKE.gold,
-            bgcolor: KEEPSAKE.paper,
-            flexShrink: 0,
-          }}
-        />
-        {/* Day labels are locale/now-dependent — SSR and client can disagree. */}
-        <Typography component="h2" suppressHydrationWarning sx={{ ...eyebrowSx, color: KEEPSAKE.gold }}>
-          {group.label}
-        </Typography>
-      </Box>
-
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
         {group.items.map((activity) => (
           <ActivityItem key={activity.id} activity={activity} onMarkRead={onMarkRead} />
         ))}

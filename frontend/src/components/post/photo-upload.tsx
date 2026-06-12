@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, Camera } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
+import { CIN, glowRing, photoVignette } from '@/lib/design/cinema-tokens';
 
 interface PhotoUploadProps {
   files: File[];
@@ -13,6 +14,7 @@ interface PhotoUploadProps {
 
 export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps) {
   const [dragOver, setDragOver] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const addFiles = useCallback(
     (newFiles: FileList | File[]) => {
@@ -29,11 +31,15 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
     onChange(files.filter((_, i) => i !== index));
   };
 
-  // Memoize object URLs to prevent re-creation on every render
+  // Memoize object URLs to prevent re-creation on every render; revoke stale
+  // URLs when the file set changes (and on unmount) to avoid leaking blobs.
   const previewUrls = useMemo(
     () => files.map((file) => URL.createObjectURL(file)),
     [files]
   );
+  useEffect(() => {
+    return () => previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  }, [previewUrls]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -46,17 +52,15 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
             justifyContent: 'center',
             width: '100%',
             height: 192,
-            border: '2px dashed',
-            borderRadius: 16,
+            border: '1px dashed',
+            borderRadius: 14,
             cursor: 'pointer',
-            transition: 'all 0.3s',
-            borderColor: dragOver
-              ? 'var(--mui-palette-primary-main)'
-              : 'rgba(var(--mui-palette-text-secondaryChannel) / 0.2)',
+            transition: 'border-color 0.25s, background-color 0.25s, box-shadow 0.25s',
+            borderColor: dragOver ? 'var(--cin-accent, #8B7CFF)' : 'rgba(255,255,255,0.14)',
             backgroundColor: dragOver
-              ? 'rgba(var(--mui-palette-primary-mainChannel) / 0.05)'
-              : 'transparent',
-            transform: dragOver ? 'scale(1.01)' : 'scale(1)',
+              ? 'rgba(139,124,255,0.08)'
+              : 'var(--cin-surface, #141419)',
+            boxShadow: dragOver ? glowRing(1) : 'none',
           }}
           onDragOver={(e) => {
             e.preventDefault();
@@ -68,15 +72,15 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
             setDragOver(false);
             addFiles(e.dataTransfer.files);
           }}
-          whileHover={{ scale: 1.005 }}
-          whileTap={{ scale: 0.995 }}
+          whileHover={reduceMotion ? undefined : { scale: 1.005 }}
+          whileTap={reduceMotion ? undefined : { scale: 0.995 }}
         >
           <motion.div
-            animate={dragOver ? { scale: 1.1 } : { scale: 1 }}
+            animate={dragOver && !reduceMotion ? { scale: 1.1 } : { scale: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
           >
             <motion.div
-              animate={{ y: [0, -4, 0] }}
+              animate={reduceMotion ? undefined : { y: [0, -4, 0] }}
               transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
             >
               <Camera
@@ -86,8 +90,8 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
                   marginBottom: 12,
                   transition: 'color 0.3s',
                   color: dragOver
-                    ? 'var(--mui-palette-primary-main)'
-                    : 'rgba(var(--mui-palette-text-secondaryChannel) / 0.5)',
+                    ? 'var(--cin-accent, #8B7CFF)'
+                    : 'var(--cin-text-muted, #9A9AA6)',
                 }}
               />
             </motion.div>
@@ -98,7 +102,7 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
               fontSize: '0.875rem',
               fontWeight: 500,
               transition: 'color 0.3s',
-              color: dragOver ? 'primary.main' : 'text.secondary',
+              color: dragOver ? 'var(--cin-accent, #8B7CFF)' : 'var(--cin-text, #F4F4F6)',
             }}
           >
             Drop your travel photos here
@@ -106,7 +110,7 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
           <Typography
             sx={{
               fontSize: '0.75rem',
-              color: 'text.disabled',
+              color: 'var(--cin-text-muted, #9A9AA6)',
               mt: 0.5,
             }}
           >
@@ -120,15 +124,17 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
               px: 1.5,
               py: 0.5,
               borderRadius: '9999px',
+              border: `1px solid ${CIN.hairline}`,
               transition: 'all 0.3s',
               ...(dragOver
                 ? {
-                    bgcolor: 'rgba(var(--mui-palette-primary-mainChannel) / 0.1)',
-                    color: 'primary.main',
+                    bgcolor: 'rgba(139,124,255,0.12)',
+                    color: 'var(--cin-accent, #8B7CFF)',
+                    borderColor: 'rgba(139,124,255,0.4)',
                   }
                 : {
-                    bgcolor: 'action.hover',
-                    color: 'text.secondary',
+                    bgcolor: 'var(--cin-surface-2, #1C1C24)',
+                    color: 'var(--cin-text-muted, #9A9AA6)',
                   }),
             }}
           >
@@ -165,18 +171,23 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
               <motion.div
                 key={`${file.name}-${file.size}-${i}`}
                 layout
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.6, transition: { duration: 0.2 } }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                whileHover={reduceMotion ? undefined : { scale: 1.02 }}
                 style={{
                   position: 'relative',
                   aspectRatio: '1',
                   borderRadius: 12,
                   overflow: 'hidden',
-                  backgroundColor: 'var(--mui-palette-action-hover)',
+                  backgroundColor: 'var(--cin-surface-2, #1C1C24)',
+                  border: `1px solid ${CIN.hairline}`,
                 }}
               >
+                {/* Object URLs (blob:) must not go through PhotoTile's relative
+                    /uploads resolver — render the same cinema tile treatment
+                    (dark surface base + bottom vignette) directly. */}
                 <Box
                   component="img"
                   src={previewUrls[i]}
@@ -185,11 +196,18 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    transition: 'transform 0.3s',
-                    '&:hover': { transform: 'scale(1.05)' },
+                    display: 'block',
                   }}
                 />
-                {/* Hover overlay */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: photoVignette,
+                    pointerEvents: 'none',
+                  }}
+                />
+                {/* Hover overlay with remove action */}
                 <Box
                   sx={{
                     position: 'absolute',
@@ -198,15 +216,16 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    transition: 'background-color 0.2s',
-                    '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' },
-                    '&:hover .remove-btn': { opacity: 1 },
+                    transition: 'background-color 0.2s, box-shadow 0.2s',
+                    '&:hover': { bgcolor: 'rgba(11,11,15,0.4)', boxShadow: `inset ${glowRing(1)}` },
+                    '&:hover .remove-btn, &:focus-within .remove-btn': { opacity: 1 },
                   }}
                 >
                   <motion.button
                     type="button"
                     onClick={() => removeFile(i)}
                     className="remove-btn"
+                    aria-label={`Remove photo ${i + 1}`}
                     style={{
                       opacity: 0,
                       transition: 'opacity 0.2s',
@@ -216,14 +235,13 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
                       width: 32,
                       height: 32,
                       borderRadius: '50%',
-                      backgroundColor: 'rgba(239,68,68,0.9)',
-                      color: '#fff',
+                      backgroundColor: 'rgba(255,107,107,0.92)',
+                      color: '#0B0B0F',
                       border: 'none',
                       cursor: 'pointer',
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                     }}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={reduceMotion ? undefined : { scale: 1.1 }}
+                    whileTap={reduceMotion ? undefined : { scale: 0.9 }}
                   >
                     <X style={{ height: 16, width: 16 }} />
                   </motion.button>
@@ -237,9 +255,10 @@ export function PhotoUpload({ files, onChange, maxFiles = 10 }: PhotoUploadProps
                     px: 0.75,
                     py: 0.25,
                     borderRadius: 1.5,
-                    bgcolor: 'rgba(0,0,0,0.5)',
+                    bgcolor: 'rgba(11,11,15,0.65)',
+                    border: `1px solid ${CIN.hairline}`,
                     fontSize: '10px',
-                    color: '#fff',
+                    color: 'var(--cin-text, #F4F4F6)',
                     fontWeight: 500,
                   }}
                 >

@@ -1,98 +1,131 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Box, Typography, Skeleton } from '@mui/material';
-import Button from '@mui/material/Button';
-import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { motion, animate, useReducedMotion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { useAtlas } from '@/lib/hooks/use-atlas';
 import { EmptyState } from '@/components/shared/empty-state';
-import { grain } from '@/components/post/keepsake';
-import { staggerContainer, staggerItem } from '@/lib/animations';
+import { GlowButton, StatPill, SectionLabel, CinemaCard } from '@/components/cinema';
+import { CIN, eyebrowSx, displaySx } from '@/lib/design/cinema-tokens';
+import { staggerContainer, staggerItem, easeNative } from '@/lib/animations';
 
 const CONTINENTS = ['North America', 'South America', 'Europe', 'Asia', 'Africa', 'Oceania', 'Antarctica'];
 
-const GOLD = 'var(--viraha-gold, #D4A843)';
-
-const eyebrowSx = {
-  fontFamily: 'var(--font-brand)',
-  fontSize: '11px',
-  fontWeight: 600,
-  letterSpacing: '0.16em',
-  textTransform: 'uppercase',
-  color: GOLD,
-} as const;
-
-const inkSx = (theme: { palette: { mode: string } }) =>
-  theme.palette.mode === 'dark'
-    ? 'var(--viraha-ink-dark, #F2EAD9)'
-    : 'var(--viraha-ink, #221C18)';
+const SKELETON_SX = { bgcolor: 'var(--cin-surface-2, #1C1C24)' } as const;
 
 function AtlasSkeleton() {
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, md: 3 }, py: 4 }}>
-      <Skeleton variant="text" width={120} height={18} />
-      <Skeleton variant="text" width={240} height={48} sx={{ mb: 3 }} />
-      <Skeleton variant="rounded" height={140} sx={{ borderRadius: '4px', mb: 3 }} />
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 4 }}>
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} variant="rounded" height={90} sx={{ borderRadius: '4px' }} />
+      <Skeleton variant="text" animation="pulse" sx={{ ...SKELETON_SX, width: 120, height: 18 }} />
+      <Skeleton variant="text" animation="pulse" sx={{ ...SKELETON_SX, width: 240, height: 48, mb: 3 }} />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 4 }}>
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} variant="rounded" animation="pulse" sx={{ ...SKELETON_SX, height: 110, borderRadius: '14px' }} />
         ))}
       </Box>
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <Skeleton key={i} variant="rounded" height={40} sx={{ borderRadius: '4px', mb: 1.5 }} />
+        <Skeleton key={i} variant="rounded" animation="pulse" sx={{ ...SKELETON_SX, height: 40, borderRadius: '10px', mb: 1.5 }} />
       ))}
     </Box>
   );
 }
 
-/** Passport stamp: visited = gold stamp, unvisited = faint dashed outline. */
-function ContinentStamp({ visited }: { visited: boolean }) {
-  if (visited) {
-    return (
-      <Box
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.5,
-          transform: 'rotate(-2deg)',
-          border: `1.5px solid ${GOLD}`,
-          color: GOLD,
-          borderRadius: '4px',
-          px: 1.25,
-          py: 0.4,
-          fontFamily: 'var(--font-brand)',
-          fontSize: '10px',
-          fontWeight: 700,
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          bgcolor: 'rgba(212,168,67,0.08)',
-        }}
-      >
-        <Check style={{ width: 11, height: 11 }} />
-        Stamped
-      </Box>
-    );
-  }
+/** Oversized stat that counts up from 0 on first view; respects reduced motion. */
+function CountUpNumber({ value }: { value: number }) {
+  const reducedMotion = useReducedMotion();
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setDisplay(value);
+      return undefined;
+    }
+    const controls = animate(0, value, {
+      duration: 0.8,
+      ease: 'easeOut',
+      onUpdate: (latest) => setDisplay(Math.round(latest)),
+    });
+    return () => controls.stop();
+  }, [value, reducedMotion]);
+
+  return <>{display}</>;
+}
+
+/** Continent row: dark track bar, accent fill animating to width on load. */
+function ContinentBar({
+  continent,
+  visited,
+  count,
+  pct,
+  index,
+}: {
+  continent: string;
+  visited: boolean;
+  count: number;
+  pct: number;
+  index: number;
+}) {
+  const reducedMotion = useReducedMotion();
+
   return (
     <Box
-      sx={(theme) => ({
-        display: 'inline-flex',
+      component={motion.div}
+      whileHover={{ x: 2 }}
+      sx={{
+        display: 'flex',
         alignItems: 'center',
-        transform: 'rotate(1.5deg)',
-        border: '1px dashed',
-        borderColor: theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.25)' : 'rgba(34,28,24,0.25)',
-        color: 'text.disabled',
-        borderRadius: '4px',
-        px: 1.25,
-        py: 0.4,
-        fontFamily: 'var(--font-brand)',
-        fontSize: '10px',
-        fontWeight: 600,
-        letterSpacing: '0.14em',
-        textTransform: 'uppercase',
-      })}
+        gap: 2,
+        py: 1.25,
+        px: 1,
+        borderRadius: '8px',
+        transition: 'background-color 0.2s ease',
+        '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
+      }}
     >
-      Not yet
+      <Typography
+        sx={{
+          ...eyebrowSx,
+          fontSize: 12,
+          color: visited ? 'var(--cin-text, #F4F4F6)' : 'var(--cin-text-muted, #9A9AA6)',
+          minWidth: { xs: 110, md: 150 },
+        }}
+      >
+        {continent}
+      </Typography>
+      <Box
+        sx={{
+          flex: 1,
+          height: 6,
+          borderRadius: '999px',
+          bgcolor: 'var(--cin-surface-2, #1C1C24)',
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          component={motion.div}
+          initial={reducedMotion ? false : { width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, ease: easeNative, delay: 0.2 + index * 0.06 }}
+          sx={{
+            height: '100%',
+            borderRadius: '999px',
+            bgcolor: 'var(--cin-accent, #8B7CFF)',
+            boxShadow: visited ? '0 0 12px var(--cin-accent-glow, rgba(139,124,255,0.35))' : 'none',
+          }}
+        />
+      </Box>
+      <Typography
+        sx={{
+          fontSize: 12,
+          fontWeight: 600,
+          minWidth: 88,
+          textAlign: 'right',
+          color: visited ? 'var(--cin-text, #F4F4F6)' : 'var(--cin-text-muted, #9A9AA6)',
+        }}
+      >
+        {visited ? `${count} ${count === 1 ? 'country' : 'countries'}` : 'Not yet'}
+      </Typography>
     </Box>
   );
 }
@@ -112,21 +145,10 @@ export default function AtlasPage() {
           title="Could not load your atlas"
           description="Something went wrong loading your travel data. Please try again."
         />
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: -4 }}>
-          <Button
-            variant="outlined"
-            disableElevation
-            onClick={() => refetch()}
-            sx={{
-              borderRadius: '4px',
-              borderColor: GOLD,
-              color: 'text.primary',
-              fontWeight: 600,
-              '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
-            }}
-          >
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: -6 }}>
+          <GlowButton variant="ghost" onClick={() => refetch()}>
             Try Again
-          </Button>
+          </GlowButton>
         </Box>
       </Box>
     );
@@ -134,12 +156,19 @@ export default function AtlasPage() {
 
   const { stats, countries, cities, travelStyle } = atlas;
 
-  const bigStats = [
+  const heroStats = [
     { label: 'Countries', value: stats.totalCountries },
     { label: 'Cities', value: stats.totalCities },
-    { label: 'Posts', value: stats.totalPosts },
-    { label: 'Journals', value: stats.totalJournals },
+    { label: 'Continents', value: stats.totalContinents },
   ];
+
+  const countryCountByContinent = countries.reduce<Record<string, number>>(
+    (acc, c) => ({ ...acc, [c.continent]: (acc[c.continent] ?? 0) + 1 }),
+    {}
+  );
+  const maxContinentCount = Math.max(1, ...Object.values(countryCountByContinent));
+
+  const topCities = cities.slice(0, 10);
 
   return (
     <Box
@@ -151,234 +180,189 @@ export default function AtlasPage() {
     >
       {/* Header */}
       <Box component={motion.div} variants={staggerItem} sx={{ mb: 4 }}>
-        <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>Passport — Travel DNA</Typography>
-        <Typography
-          component="h1"
-          sx={(theme) => ({
-            fontFamily: 'var(--font-accent)',
-            fontSize: { xs: '2.25rem', md: '3rem' },
-            lineHeight: 1.05,
-            color: inkSx(theme),
-          })}
-        >
+        <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>Travel DNA</Typography>
+        <Typography component="h1" sx={{ ...displaySx, fontSize: { xs: 36, md: 48 } }}>
           The Atlas
         </Typography>
-        <Typography sx={{ color: 'text.secondary', fontSize: '14px', mt: 1 }}>
-          Every place you have been, pressed into one page.
+        <Typography sx={{ color: 'var(--cin-text-muted, #9A9AA6)', fontSize: 14, mt: 1 }}>
+          Every place you have been, in one dark room.
         </Typography>
       </Box>
 
-      {/* Travel Style — grand stamp */}
-      <Box component={motion.div} variants={staggerItem} sx={{ mb: 5, display: 'flex', justifyContent: 'center' }}>
-        <Box
-          sx={(theme) => ({
-            transform: 'rotate(-1.5deg)',
-            border: `2px solid ${GOLD}`,
-            borderRadius: '6px',
-            px: { xs: 3, md: 6 },
-            py: 2.5,
-            textAlign: 'center',
-            position: 'relative',
-            backgroundImage: grain(theme.palette.mode === 'dark'),
-            bgcolor:
-              theme.palette.mode === 'dark'
-                ? 'rgba(212,168,67,0.06)'
-                : 'rgba(212,168,67,0.07)',
-            // inner tooling line, like a double-struck stamp
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              inset: 5,
-              border: `1px solid ${GOLD}`,
-              borderRadius: '4px',
-              opacity: 0.55,
-              pointerEvents: 'none',
-            },
-          })}
-        >
-          <Typography sx={{ ...eyebrowSx, fontSize: '10px' }}>Travel Style</Typography>
-          <Typography
-            sx={(theme) => ({
-              mt: 0.5,
-              fontFamily: 'var(--font-accent)',
-              fontSize: { xs: '1.6rem', md: '2rem' },
-              lineHeight: 1.15,
-              color: inkSx(theme),
-            })}
-          >
-            {travelStyle}
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* Stats strip — oversized numbers with ticket-stub dividers */}
+      {/* Hero count-up numbers */}
       <Box
         component={motion.div}
         variants={staggerItem}
-        sx={(theme) => ({
+        sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-          mb: 5,
-          borderTop: '1px solid',
-          borderBottom: '1px solid',
-          borderColor:
-            theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.14)' : 'rgba(34,28,24,0.14)',
-        })}
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+          gap: { xs: 3, sm: 2 },
+          mb: 4,
+          py: 3,
+          borderTop: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+          borderBottom: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+        }}
       >
-        {bigStats.map(({ label, value }, i) => (
-          <Box
-            key={label}
-            sx={(theme) => ({
-              py: 2.5,
-              px: 1,
-              textAlign: 'center',
-              // perforation divider between stats
-              borderLeft: i > 0 ? '1px dashed' : 'none',
-              borderColor:
-                theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.18)' : 'rgba(34,28,24,0.18)',
-              ...(i === 2 ? { borderLeft: { xs: 'none', md: '1px dashed' } } : {}),
-            })}
-          >
-            <Typography
-              sx={(theme) => ({
-                fontFamily: 'var(--font-accent)',
-                fontSize: { xs: '2.5rem', md: '3.25rem' },
-                lineHeight: 1,
-                color: inkSx(theme),
-              })}
-            >
-              {value}
+        {heroStats.map(({ label, value }) => (
+          <Box key={label} sx={{ textAlign: 'center' }}>
+            <Typography sx={{ ...displaySx, fontSize: { xs: 56, md: 72 } }}>
+              <CountUpNumber value={value} />
             </Typography>
-            <Typography sx={{ ...eyebrowSx, mt: 0.75 }}>{label}</Typography>
+            <Typography sx={{ ...eyebrowSx, mt: 1 }}>{label}</Typography>
           </Box>
         ))}
       </Box>
 
-      {/* Continent Progress — stamped passport rows */}
+      {/* Travel style — glowing accent chip + secondary stats */}
+      <Box
+        component={motion.div}
+        variants={staggerItem}
+        sx={{
+          mb: 5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
+        <Box>
+          <SectionLabel>Travel Style</SectionLabel>
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 1,
+              px: 2.5,
+              py: 1.25,
+              borderRadius: '999px',
+              border: '1px solid var(--cin-accent, #8B7CFF)',
+              bgcolor: 'rgba(139,124,255,0.10)',
+              boxShadow: '0 0 24px var(--cin-accent-glow, rgba(139,124,255,0.35))',
+            }}
+          >
+            <Sparkles size={14} color={CIN.accent} />
+            <Typography
+              sx={{
+                fontFamily: 'Posterama, var(--font-body)',
+                fontWeight: 700,
+                fontSize: 14,
+                letterSpacing: '0.04em',
+                color: 'var(--cin-accent, #8B7CFF)',
+              }}
+            >
+              {travelStyle}
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <StatPill value={stats.totalPosts} label="Posts" />
+          <StatPill value={stats.totalJournals} label="Journals" />
+        </Box>
+      </Box>
+
+      {/* Continent progress — dark tracks, accent fill */}
       <Box component={motion.div} variants={staggerItem} sx={{ mb: 5 }}>
-        <Typography sx={{ ...eyebrowSx, mb: 2 }}>Continents</Typography>
+        <SectionLabel>Continents</SectionLabel>
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          {CONTINENTS.filter((c) => c !== 'Antarctica').map((continent) => {
+          {CONTINENTS.filter((c) => c !== 'Antarctica').map((continent, i) => {
             const visited = stats.continentsVisited.includes(continent);
+            const count = countryCountByContinent[continent] ?? 0;
+            const pct = visited ? Math.max((count / maxContinentCount) * 100, 10) : 0;
             return (
-              <Box
+              <ContinentBar
                 key={continent}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 2,
-                  py: 1.5,
-                }}
-              >
-                <Typography
-                  sx={(theme) => ({
-                    fontFamily: 'var(--font-brand)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    color: visited ? inkSx(theme) : 'text.disabled',
-                    minWidth: { xs: 120, md: 150 },
-                  })}
-                >
-                  {continent}
-                </Typography>
-                {/* flight-path leader line */}
-                <Box
-                  sx={{
-                    flex: 1,
-                    height: 0,
-                    borderBottom: `1px dashed ${visited ? GOLD : 'rgba(136,136,136,0.3)'}`,
-                  }}
-                />
-                <ContinentStamp visited={visited} />
-              </Box>
+                continent={continent}
+                visited={visited}
+                count={count}
+                pct={pct}
+                index={i}
+              />
             );
           })}
         </Box>
       </Box>
 
-      {/* Countries — passport stamp wall */}
+      {/* Countries — quiet dark chips */}
       <Box component={motion.div} variants={staggerItem} sx={{ mb: 5 }}>
-        <Typography sx={{ ...eyebrowSx, mb: 2 }}>Countries · {countries.length}</Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
-          {countries.map((c, i) => (
+        <SectionLabel>Countries · {countries.length}</SectionLabel>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {countries.map((c) => (
             <Box
+              component={motion.div}
+              whileHover={{ y: -2 }}
               key={c.country}
-              sx={(theme) => ({
-                transform: `rotate(${i % 2 === 0 ? -1.5 : 1.5}deg)`,
-                border: '1.5px solid',
-                borderColor: i % 3 === 0 ? GOLD : theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.35)' : 'rgba(34,28,24,0.35)',
-                borderRadius: '4px',
-                px: 1.25,
-                py: 0.6,
-                fontFamily: 'var(--font-brand)',
-                fontSize: '10.5px',
+              sx={{
+                px: 1.5,
+                py: 0.75,
+                borderRadius: '999px',
+                bgcolor: 'var(--cin-surface, #141419)',
+                border: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+                fontSize: 12.5,
                 fontWeight: 600,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: 'text.primary',
-                backgroundImage: grain(theme.palette.mode === 'dark'),
-              })}
+                color: 'var(--cin-text, #F4F4F6)',
+                transition: 'border-color 0.2s ease, background-color 0.2s ease',
+                '&:hover': {
+                  borderColor: 'var(--cin-accent, #8B7CFF)',
+                  bgcolor: 'rgba(139,124,255,0.08)',
+                },
+              }}
             >
-              {c.country} · {c.cityCount} {c.cityCount === 1 ? 'city' : 'cities'}
+              {c.country}
+              <Box component="span" sx={{ color: 'var(--cin-text-muted, #9A9AA6)', ml: 0.75, fontWeight: 400 }}>
+                {c.cityCount} {c.cityCount === 1 ? 'city' : 'cities'}
+              </Box>
             </Box>
           ))}
         </Box>
       </Box>
 
-      {/* Top Cities — ledger rows with display-serif numbers */}
+      {/* Top cities — dark ranked list */}
       <Box component={motion.div} variants={staggerItem}>
-        <Typography sx={{ ...eyebrowSx, mb: 2 }}>Most Visited Cities</Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          {cities.slice(0, 10).map((c, i) => (
+        <SectionLabel>Most Visited Cities</SectionLabel>
+        <CinemaCard hover={false}>
+          {topCities.map((c, i) => (
             <Box
+              component={motion.div}
+              whileHover={{ x: 2 }}
               key={`${c.city}-${c.country}`}
-              sx={(theme) => ({
+              sx={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 2,
-                py: 1.25,
-                px: 1,
-                borderBottom: '1px dashed',
-                borderColor:
-                  theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.12)' : 'rgba(34,28,24,0.12)',
-                transition: 'background-color 0.2s',
-                '&:hover': { bgcolor: 'rgba(212,168,67,0.06)' },
-              })}
+                py: 1.5,
+                px: 2,
+                borderBottom:
+                  i < topCities.length - 1
+                    ? '1px solid var(--cin-hairline, rgba(255,255,255,0.08))'
+                    : 'none',
+                transition: 'background-color 0.2s ease',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
+              }}
             >
               <Typography
                 sx={{
-                  fontFamily: 'var(--font-accent)',
-                  fontSize: '1.4rem',
-                  lineHeight: 1,
-                  color: GOLD,
+                  ...displaySx,
+                  fontSize: 20,
                   width: 32,
                   textAlign: 'center',
+                  color: i === 0 ? 'var(--cin-accent, #8B7CFF)' : 'var(--cin-text-muted, #9A9AA6)',
                 }}
               >
                 {i + 1}
               </Typography>
               <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontSize: '14px', fontWeight: 600 }}>{c.city}</Typography>
-                <Typography
-                  sx={{
-                    fontFamily: 'var(--font-brand)',
-                    fontSize: '10px',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    color: 'text.secondary',
-                  }}
-                >
-                  {c.country}
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'var(--cin-text, #F4F4F6)' }}>
+                  {c.city}
                 </Typography>
+                <Typography sx={{ ...eyebrowSx, fontSize: 10 }}>{c.country}</Typography>
               </Box>
-              <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'text.secondary' }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--cin-text-muted, #9A9AA6)' }}>
                 {c.postCount} {c.postCount === 1 ? 'post' : 'posts'}
               </Typography>
             </Box>
           ))}
-        </Box>
+        </CinemaCard>
       </Box>
     </Box>
   );

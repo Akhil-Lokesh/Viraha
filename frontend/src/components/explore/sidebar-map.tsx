@@ -6,37 +6,51 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Box, Typography, useTheme, GlobalStyles } from '@mui/material';
+import { Box, Typography, GlobalStyles } from '@mui/material';
 import { Maximize2 } from 'lucide-react';
 import { useMapMarkers } from '@/lib/hooks/use-map';
-import { GOLD, hairline, hardShadow, EYEBROW_SX } from '@/components/post/keepsake';
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
 
-// ─── Map custom styles ───────────────────────────────
+// ─── Map custom styles — dark-room chrome ────────────
 const mapStyles = (
   <GlobalStyles
     styles={{
-      // Hide default MapLibre controls styling, restyle them
       '.maplibregl-ctrl-group': {
-        background: 'rgba(0,0,0,0.5) !important',
+        background: 'rgba(20,20,25,0.72) !important',
         backdropFilter: 'blur(12px)',
-        borderRadius: '6px !important',
-        border: 'none !important',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2) !important',
+        borderRadius: '10px !important',
+        border: '1px solid rgba(255,255,255,0.08) !important',
+        boxShadow: 'none !important',
         overflow: 'hidden',
       },
       '.maplibregl-ctrl-group button': {
         width: '32px !important',
         height: '32px !important',
-        borderColor: 'rgba(255,255,255,0.1) !important',
+        borderColor: 'rgba(255,255,255,0.08) !important',
       },
       '.maplibregl-ctrl-group button .maplibregl-ctrl-icon': {
         filter: 'invert(1)',
       },
       '.maplibregl-popup-content': {
-        borderRadius: '6px !important',
+        background: '#1C1C24 !important',
+        color: '#F4F4F6 !important',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '10px !important',
         padding: '8px 12px !important',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.2) !important',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.5) !important',
         fontSize: '13px',
+      },
+      '.maplibregl-popup-anchor-bottom .maplibregl-popup-tip': {
+        borderTopColor: '#1C1C24 !important',
+      },
+      '.maplibregl-popup-anchor-top .maplibregl-popup-tip': {
+        borderBottomColor: '#1C1C24 !important',
+      },
+      '.maplibregl-popup-anchor-left .maplibregl-popup-tip': {
+        borderRightColor: '#1C1C24 !important',
+      },
+      '.maplibregl-popup-anchor-right .maplibregl-popup-tip': {
+        borderLeftColor: '#1C1C24 !important',
       },
     }}
   />
@@ -44,11 +58,9 @@ const mapStyles = (
 
 // ─── Side-rail Map ───────────────────────────────────
 export default function SidebarMap() {
-  const theme = useTheme();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<unknown>(null);
   const markersRef = useRef<import('maplibre-gl').Marker[]>([]);
-  const isDark = theme.palette.mode === 'dark';
 
   const { data: markers } = useMapMarkers({
     swLat: -90,
@@ -65,13 +77,10 @@ export default function SidebarMap() {
 
       const maplibregl = (await import('maplibre-gl')).default;
 
-      const style = isDark
-        ? 'https://tiles.openfreemap.org/styles/dark'
-        : 'https://tiles.openfreemap.org/styles/positron';
-
       map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style,
+        // App is pinned to dark mode — always the dark basemap.
+        style: 'https://tiles.openfreemap.org/styles/dark',
         center: [20, 20],
         zoom: 1.4,
         interactive: true,
@@ -96,8 +105,7 @@ export default function SidebarMap() {
         mapInstanceRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDark]);
+  }, []);
 
   // Add markers when data loads
   useEffect(() => {
@@ -109,23 +117,23 @@ export default function SidebarMap() {
 
       markers!.forEach((m) => {
         const el = document.createElement('div');
-        const color = m.type === 'post' ? '#D4A843' : '#A594F9';
+        const color = m.type === 'post' ? CIN.accent : CIN.text;
         el.style.cssText = `
           width: 14px; height: 14px;
           background: ${color};
           border-radius: 50%;
-          border: 2.5px solid white;
-          box-shadow: 0 0 0 2px ${color}40, 0 2px 8px rgba(0,0,0,0.3);
+          border: 2px solid ${CIN.bg};
+          box-shadow: 0 0 0 2px ${color}40, 0 2px 8px rgba(0,0,0,0.5);
           cursor: pointer;
           transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         `;
         el.addEventListener('mouseenter', () => {
           el.style.transform = 'scale(1.5)';
-          el.style.boxShadow = `0 0 0 4px ${color}30, 0 4px 12px rgba(0,0,0,0.4)`;
+          el.style.boxShadow = `0 0 0 4px ${color}30, 0 4px 12px rgba(0,0,0,0.6)`;
         });
         el.addEventListener('mouseleave', () => {
           el.style.transform = 'scale(1)';
-          el.style.boxShadow = `0 0 0 2px ${color}40, 0 2px 8px rgba(0,0,0,0.3)`;
+          el.style.boxShadow = `0 0 0 2px ${color}40, 0 2px 8px rgba(0,0,0,0.5)`;
         });
 
         const popup = new maplibregl.Popup({
@@ -165,13 +173,10 @@ export default function SidebarMap() {
   return (
     <Box
       sx={{
-        borderRadius: '6px',
-        overflow: 'hidden',
         position: 'relative',
         height: '100%',
         minHeight: 220,
-        border: `1px solid ${hairline(isDark)}`,
-        boxShadow: hardShadow(isDark),
+        bgcolor: 'var(--cin-surface)',
       }}
     >
       {mapStyles}
@@ -185,7 +190,7 @@ export default function SidebarMap() {
           left: 0,
           right: 0,
           height: 60,
-          background: 'linear-gradient(to bottom, rgba(22,18,31,0.35), transparent)',
+          background: 'linear-gradient(to bottom, rgba(11,11,15,0.5), transparent)',
           pointerEvents: 'none',
           zIndex: 1,
         }}
@@ -200,21 +205,24 @@ export default function SidebarMap() {
             left: 12,
             px: 1.5,
             py: 0.75,
-            borderRadius: '4px',
-            bgcolor: 'rgba(22,18,31,0.6)',
+            borderRadius: '10px',
+            bgcolor: 'rgba(11,11,15,0.65)',
             backdropFilter: 'blur(12px)',
-            border: `1px solid rgba(212,168,67,0.4)`,
+            border: `1px solid ${CIN.hairline}`,
             display: 'flex',
             alignItems: 'center',
             gap: 0.75,
             cursor: 'pointer',
             zIndex: 2,
-            transition: 'all 0.2s',
-            '&:hover': { bgcolor: 'rgba(22,18,31,0.8)', transform: 'scale(1.02)' },
+            transition: 'border-color 0.2s, background-color 0.2s',
+            '&:hover': {
+              bgcolor: 'rgba(11,11,15,0.85)',
+              borderColor: 'var(--cin-accent)',
+            },
           }}
         >
-          <Maximize2 style={{ width: 13, height: 13, color: GOLD }} />
-          <Typography sx={{ ...EYEBROW_SX, fontSize: '0.625rem', color: '#FAF6EE' }}>
+          <Maximize2 style={{ width: 13, height: 13, color: CIN.accent }} />
+          <Typography sx={{ ...eyebrowSx, fontSize: 10, color: CIN.text }}>
             Explore Map
           </Typography>
         </Box>
@@ -229,12 +237,13 @@ export default function SidebarMap() {
             right: 12,
             px: 1.25,
             py: 0.5,
-            borderRadius: '4px',
-            bgcolor: 'rgba(22,18,31,0.6)',
+            borderRadius: '10px',
+            bgcolor: 'rgba(11,11,15,0.65)',
             backdropFilter: 'blur(12px)',
+            border: `1px solid ${CIN.hairline}`,
             display: 'flex',
             alignItems: 'center',
-            gap: 0.5,
+            gap: 0.75,
             zIndex: 2,
           }}
         >
@@ -243,11 +252,11 @@ export default function SidebarMap() {
               width: 6,
               height: 6,
               borderRadius: '50%',
-              bgcolor: GOLD,
-              boxShadow: `0 0 4px ${GOLD}`,
+              bgcolor: 'var(--cin-accent)',
+              boxShadow: `0 0 6px ${CIN.accentGlow}`,
             }}
           />
-          <Typography sx={{ ...EYEBROW_SX, fontSize: '0.625rem', color: '#FAF6EE' }}>
+          <Typography sx={{ ...eyebrowSx, fontSize: 10, color: CIN.text }}>
             {markers.length} places
           </Typography>
         </Box>

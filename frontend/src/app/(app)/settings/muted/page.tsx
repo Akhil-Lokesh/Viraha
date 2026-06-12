@@ -1,15 +1,17 @@
 'use client';
 
 import { Box, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Loader2, ArrowLeft, VolumeX } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { MutedUser } from '@/lib/types';
 import { useMutedUsers, useUnmuteUser } from '@/lib/hooks/use-mutes';
 import { UserAvatar } from '@/components/shared/user-avatar';
-import { SectionEyebrow } from '@/components/settings/section-eyebrow';
-import { paperPanelSx } from '@/components/settings/paper-panel';
+import { CinemaCard, GlowButton, SectionLabel } from '@/components/cinema';
+import { CIN, displaySx } from '@/lib/design/cinema-tokens';
+import { easeNative } from '@/lib/animations';
+import { rowHoverSx } from '@/components/settings/cinema-settings';
 
 function MutedRow({ user }: { user: MutedUser }) {
   const unmute = useUnmuteUser();
@@ -21,7 +23,10 @@ function MutedRow({ user }: { user: MutedUser }) {
         alignItems: 'center',
         gap: 2,
         py: 1.75,
-        '& + &': { borderTop: '1px dashed', borderTopColor: 'divider' },
+        px: 1,
+        mx: -1,
+        '& + &': { borderTop: `1px solid ${CIN.hairline}` },
+        ...rowHoverSx,
       }}
     >
       <UserAvatar
@@ -31,16 +36,16 @@ function MutedRow({ user }: { user: MutedUser }) {
         size="md"
       />
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
+        <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: CIN.text }}>
           {user.displayName || user.username}
         </Typography>
-        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+        <Typography sx={{ fontSize: '0.8125rem', color: CIN.textMuted }}>
           @{user.username}
         </Typography>
       </Box>
-      <Button
+      <GlowButton
+        variant="ghost"
         size="small"
-        variant="outlined"
         onClick={() =>
           unmute.mutate(user.username, {
             onSuccess: () => toast.success(`Unmuted @${user.username}`),
@@ -48,19 +53,26 @@ function MutedRow({ user }: { user: MutedUser }) {
           })
         }
         disabled={unmute.isPending}
-        sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
+        sx={{ flexShrink: 0, px: 1.5, py: 0.5, fontSize: '0.8125rem' }}
       >
         Unmute
-      </Button>
+      </GlowButton>
     </Box>
   );
 }
 
 export default function MutedUsersPage() {
   const { data: muted, isLoading } = useMutedUsers();
+  const reduceMotion = useReducedMotion();
 
   return (
-    <Box sx={{ maxWidth: 640, mx: 'auto', py: { xs: 2, md: 4 } }}>
+    <Box
+      component={motion.div}
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: easeNative }}
+      sx={{ maxWidth: 640, mx: 'auto', py: { xs: 2, md: 4 } }}
+    >
       <Box
         component={Link}
         href="/settings?tab=privacy"
@@ -69,27 +81,26 @@ export default function MutedUsersPage() {
           alignItems: 'center',
           gap: 0.75,
           fontSize: '0.875rem',
-          color: 'text.secondary',
+          color: CIN.textMuted,
           textDecoration: 'none',
           mb: 2,
-          '&:hover': { color: 'text.primary' },
+          transition: 'color .2s ease',
+          '&:hover': { color: CIN.text },
         }}
       >
         <ArrowLeft size={16} />
         Back to settings
       </Box>
-      <SectionEyebrow gold>Privacy</SectionEyebrow>
-      <Typography
-        sx={{ fontFamily: 'var(--font-accent, serif)', fontSize: '1.75rem', fontWeight: 700, mb: 0.5 }}
-      >
+      <SectionLabel>Privacy</SectionLabel>
+      <Typography component="h1" sx={{ ...displaySx, fontSize: '1.75rem', mb: 0.5 }}>
         Muted accounts
       </Typography>
-      <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 3 }}>
+      <Typography sx={{ fontSize: '0.875rem', color: CIN.textMuted, mb: 3 }}>
         Muted users won&apos;t appear in your feed or explore. They aren&apos;t notified, can still
         see your content, and can still follow you.
       </Typography>
 
-      <Box sx={paperPanelSx}>
+      <CinemaCard hover={false} sx={{ p: 2.5 }}>
         {isLoading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 6 }}>
             <Loader2
@@ -97,12 +108,12 @@ export default function MutedUsersPage() {
                 height: 20,
                 width: 20,
                 animation: 'spin 1s linear infinite',
-                color: 'var(--mui-palette-text-secondary)',
+                color: CIN.textMuted,
               }}
             />
           </Box>
         ) : !muted || muted.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
+          <Box sx={{ textAlign: 'center', py: 6, color: CIN.textMuted }}>
             <VolumeX size={32} style={{ marginInline: 'auto', opacity: 0.5 }} />
             <Typography sx={{ mt: 1.5, fontSize: '0.9rem' }}>
               You haven&apos;t muted anyone — your feed is unfiltered.
@@ -115,7 +126,7 @@ export default function MutedUsersPage() {
             ))}
           </Box>
         )}
-      </Box>
+      </CinemaCard>
     </Box>
   );
 }

@@ -4,17 +4,17 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Box, Typography, InputBase, Skeleton } from '@mui/material';
-import Button from '@mui/material/Button';
-import { motion } from 'framer-motion';
+import { Box, Typography, InputBase, Skeleton, CircularProgress } from '@mui/material';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { ColorPicker } from '@/components/journal/color-picker';
+import { GlowButton } from '@/components/cinema';
+import { displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { useCreateJournal, useCreateEntry } from '@/lib/hooks/use-journals';
 import { useJournalColorsStore, DEFAULT_COLOR } from '@/lib/stores/journal-colors-store';
 import { sanitizeHtml } from '@/lib/utils/sanitize-html';
-import { fadeInUp } from '@/lib/animations';
 
 // Tiptap (~180KB) loads only on the client, keeping it out of the initial
 // bundle. The editor module is referenced solely through this dynamic import.
@@ -23,7 +23,11 @@ const RichTextEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <Skeleton variant="rounded" animation="pulse" sx={{ height: 320, width: '100%', borderRadius: '12px' }} />
+      <Skeleton
+        variant="rounded"
+        animation="pulse"
+        sx={{ height: 320, width: '100%', borderRadius: '12px', bgcolor: 'var(--cin-surface-2, #1C1C24)' }}
+      />
     ),
   },
 );
@@ -40,6 +44,7 @@ function getPlainTextExcerpt(html: string, maxLength = 200): string {
 
 export default function CreateJournalPage() {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const [title, setTitle] = useState('');
   const [html, setHtml] = useState('');
   const [colorKey, setColorKey] = useState(DEFAULT_COLOR);
@@ -85,9 +90,9 @@ export default function CreateJournalPage() {
   return (
     <Box
       component={motion.div}
-      variants={fadeInUp}
-      initial="hidden"
-      animate="visible"
+      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
       sx={{ maxWidth: 720, mx: 'auto', pb: 6 }}
     >
       {/* Top bar */}
@@ -102,13 +107,15 @@ export default function CreateJournalPage() {
       >
         <Link href="/journals" style={{ textDecoration: 'none', color: 'inherit' }}>
           <Box
+            component={motion.span}
+            whileHover={reduceMotion ? undefined : { x: -2 }}
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 0.75,
               fontSize: '0.875rem',
-              color: 'text.secondary',
-              '&:hover': { color: 'text.primary' },
+              color: 'var(--cin-text-muted, #9A9AA6)',
+              '&:hover': { color: 'var(--cin-text, #F4F4F6)' },
               transition: 'color 0.2s',
             }}
           >
@@ -116,21 +123,17 @@ export default function CreateJournalPage() {
             Journals
           </Box>
         </Link>
-        <Button
-          variant="contained"
-          disableElevation
+        <GlowButton
           onClick={handleSave}
           disabled={saving}
-          sx={{
-            borderRadius: '9999px',
-            bgcolor: 'secondary.main',
-            color: 'white',
-            '&:hover': { bgcolor: 'secondary.dark' },
-          }}
+          startIcon={saving ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : undefined}
         >
           {saving ? 'Saving...' : 'Save'}
-        </Button>
+        </GlowButton>
       </Box>
+
+      {/* Eyebrow */}
+      <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>New Journal</Typography>
 
       {/* Title */}
       <InputBase
@@ -140,17 +143,18 @@ export default function CreateJournalPage() {
         fullWidth
         autoFocus
         sx={{
+          ...displaySx,
           fontSize: '2.25rem',
-          fontWeight: 700,
-          fontFamily: 'var(--font-heading)',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.2,
-          '& input::placeholder': { color: 'text.disabled' },
+          '& input': { color: 'var(--cin-text, #F4F4F6)' },
+          '& input::placeholder': { color: 'var(--cin-text-muted, #9A9AA6)', opacity: 0.6 },
         }}
       />
 
       {/* Date */}
-      <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', mt: 0.5, mb: 2 }}>
+      <Typography
+        suppressHydrationWarning
+        sx={{ color: 'var(--cin-text-muted, #9A9AA6)', fontSize: '0.875rem', mt: 0.5, mb: 2 }}
+      >
         {format(new Date(), 'MMM d, yyyy')}
       </Typography>
 

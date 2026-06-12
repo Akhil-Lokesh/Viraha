@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import FormLabel from '@mui/material/FormLabel';
 import { useCreateAlbum } from '@/lib/hooks/use-albums';
+import { GlowButton } from '@/components/cinema';
+import { CIN } from '@/lib/design/cinema-tokens';
+import { darkFieldSx, fieldLabelSx } from './album-field-sx';
 import { fadeInUp } from '@/lib/animations';
 
 export function CreateAlbumForm() {
@@ -46,7 +48,7 @@ export function CreateAlbumForm() {
     >
       {/* Title */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <FormLabel htmlFor="title" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Title</FormLabel>
+        <FormLabel htmlFor="title" sx={fieldLabelSx}>Title</FormLabel>
         <TextField
           id="title"
           placeholder="e.g. Summer in Japan"
@@ -57,13 +59,13 @@ export function CreateAlbumForm() {
           size="small"
           fullWidth
           slotProps={{ htmlInput: { maxLength: 100 } }}
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+          sx={darkFieldSx}
         />
       </Box>
 
       {/* Description */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <FormLabel htmlFor="description" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Description (optional)</FormLabel>
+        <FormLabel htmlFor="description" sx={fieldLabelSx}>Description (optional)</FormLabel>
         <TextField
           id="description"
           placeholder="What is this album about?"
@@ -75,20 +77,21 @@ export function CreateAlbumForm() {
           size="small"
           fullWidth
           slotProps={{ htmlInput: { maxLength: 500 } }}
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+          sx={darkFieldSx}
         />
       </Box>
 
       {/* Privacy */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <FormLabel htmlFor="privacy" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Privacy</FormLabel>
+        <FormLabel htmlFor="privacy" sx={fieldLabelSx}>Privacy</FormLabel>
         <TextField
           select
+          id="privacy"
           value={privacy}
           onChange={(e) => setPrivacy(e.target.value)}
           size="small"
           fullWidth
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+          sx={darkFieldSx}
         >
           <MenuItem value="public">Public</MenuItem>
           <MenuItem value="followers">Followers only</MenuItem>
@@ -98,17 +101,16 @@ export function CreateAlbumForm() {
 
       {/* Error */}
       {createAlbum.isError && (
-        <Typography sx={{ fontSize: '0.875rem', color: 'error.main' }}>
+        <Typography role="alert" sx={{ fontSize: '0.875rem', color: CIN.danger }}>
           Failed to create album. Please try again.
         </Typography>
       )}
 
       {/* Submit */}
-      <Button
+      <GlowButton
         type="submit"
-        variant="contained"
-        disableElevation
-        sx={{ width: '100%', borderRadius: '9999px' }}
+        variant="solid"
+        sx={{ width: '100%' }}
         size="large"
         disabled={!title.trim() || createAlbum.isPending}
       >
@@ -120,7 +122,7 @@ export function CreateAlbumForm() {
         ) : (
           'Create Album'
         )}
-      </Button>
+      </GlowButton>
     </motion.form>
   );
 }

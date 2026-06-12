@@ -3,8 +3,11 @@
 import { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import * as Sentry from '@sentry/nextjs';
-import Button from '@mui/material/Button';
+import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
+import { GlowButton } from '@/components/cinema';
+import { eyebrowSx, displaySx } from '@/lib/design/cinema-tokens';
+import { fadeInUp } from '@/lib/animations';
 
 export default function ErrorPage({
   error,
@@ -19,6 +22,10 @@ export default function ErrorPage({
 
   return (
     <Box
+      component={motion.div}
+      variants={fadeInUp}
+      initial="hidden"
+      animate="visible"
       sx={{
         display: 'flex',
         flexDirection: 'column',
@@ -29,60 +36,34 @@ export default function ErrorPage({
         gap: 3,
       }}
     >
-      {/* Warning stamp */}
+      {/* Danger halo */}
       <Box
         sx={{
           width: 88,
           height: 88,
-          borderRadius: 1,
-          border: '1.5px solid var(--mui-palette-error-main)',
-          bgcolor: 'background.paper',
-          transform: 'rotate(-3deg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          borderRadius: '50%',
+          display: 'grid',
+          placeItems: 'center',
+          color: 'var(--cin-danger, #FF6B6B)',
+          bgcolor: 'var(--cin-surface, #141419)',
+          border: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+          boxShadow: '0 0 60px rgba(255,107,107,0.25)',
         }}
       >
-        <AlertTriangle style={{ width: 44, height: 44, color: 'var(--mui-palette-error-main)' }} />
+        <AlertTriangle style={{ width: 36, height: 36, color: 'inherit' }} />
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontWeight: 600,
-            fontSize: '0.65rem',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--viraha-gold, #D4A843)',
-          }}
-        >
-          Turbulence · Unexpected error
-        </Typography>
-        <Typography variant="h4" sx={{ fontFamily: 'var(--font-accent)', fontWeight: 400 }}>
+        <Typography sx={eyebrowSx}>Turbulence · Unexpected error</Typography>
+        <Typography component="h1" sx={{ ...displaySx, fontSize: { xs: 28, md: 34 } }}>
           Something went wrong
         </Typography>
-        <Typography sx={{ color: 'text.secondary', maxWidth: 448 }}>
+        <Typography sx={{ color: 'var(--cin-text-muted, #9A9AA6)', maxWidth: 448 }}>
           An unexpected error occurred. Don&rsquo;t worry, your memories are safe.
         </Typography>
       </Box>
-      <Button
-        variant="contained"
-        disableElevation
-        onClick={reset}
-        size="large"
-        sx={{
-          bgcolor: 'var(--viraha-gold, #D4A843)',
-          color: '#221C18',
-          borderRadius: 1,
-          fontWeight: 600,
-          '&:hover': {
-            bgcolor: 'warning.dark',
-            boxShadow: '2px 2px 0 var(--viraha-hairline, rgba(34,28,24,0.15))',
-          },
-        }}
-      >
+      <GlowButton onClick={reset} size="large">
         Try Again
-      </Button>
+      </GlowButton>
     </Box>
   );
 }

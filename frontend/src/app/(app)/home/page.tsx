@@ -2,21 +2,23 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Box, Skeleton, useTheme } from '@mui/material';
-import { motion } from 'framer-motion';
+import { Box, Skeleton } from '@mui/material';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Pencil } from 'lucide-react';
 import { useDashboardStore, useDashboardHydrated } from '@/lib/stores/dashboard-store';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardGrid } from '@/components/dashboard/dashboard-grid';
 import { WidgetCatalogDrawer } from '@/components/dashboard/widget-catalog-drawer';
 import { HeroMemory } from '@/components/dashboard/hero-memory';
-import { StampStrip } from '@/components/dashboard/stamp-strip';
-import { EditorialSpread } from '@/components/dashboard/editorial-spread';
-import { getJournalTokens, spreadContainer, spreadItem } from '@/components/dashboard/journal-tokens';
+import { StatsStrip } from '@/components/dashboard/stats-strip';
+import { RecentPosts } from '@/components/dashboard/recent-posts';
+import { WidgetPanels } from '@/components/dashboard/widget-panels';
+import { staggerContainer, staggerItem } from '@/lib/animations';
+
+const SKELETON_BG = 'var(--cin-surface-2, #1C1C24)';
 
 export default function HomePage() {
-  const theme = useTheme();
-  const t = getJournalTokens(theme.palette.mode === 'dark' ? 'dark' : 'light');
+  const reduceMotion = useReducedMotion();
 
   const hydrated = useDashboardHydrated();
   const widgets = useDashboardStore((s) => s.widgets);
@@ -31,27 +33,27 @@ export default function HomePage() {
 
   const [catalogOpen, setCatalogOpen] = useState(false);
 
-  // While the persisted dashboard layout rehydrates, show a journal-shaped
-  // skeleton spread instead of a blank page so there is no visible flash.
+  // While the persisted dashboard layout rehydrates, show a page-shaped
+  // skeleton instead of a blank screen so there is no visible flash.
   if (!hydrated) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: { md: 'calc(100vh - 48px)' } }}>
-        <Skeleton variant="text" animation="pulse" sx={{ width: 140, height: 18, bgcolor: t.inkHairline }} />
-        <Skeleton variant="text" animation="pulse" sx={{ width: 320, height: 56, mt: 0.5, mb: 3, bgcolor: t.inkHairline }} />
-        {/* Hero postcard */}
+        <Skeleton variant="text" animation="pulse" sx={{ width: 140, height: 18, bgcolor: SKELETON_BG }} />
+        <Skeleton variant="text" animation="pulse" sx={{ width: 320, height: 56, mt: 0.5, mb: 3, bgcolor: SKELETON_BG }} />
+        {/* Hero frame */}
         <Skeleton
           variant="rectangular"
           animation="pulse"
-          sx={{ width: '100%', height: { xs: 280, md: 440 }, borderRadius: '4px', bgcolor: t.inkHairline }}
+          sx={{ width: '100%', height: { xs: 260, md: 440 }, borderRadius: '16px', bgcolor: SKELETON_BG }}
         />
-        {/* Stamp strip */}
+        {/* Stat pills */}
         <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
-          {[-1.5, 1, -0.5].map((rot) => (
+          {[0, 1, 2].map((i) => (
             <Skeleton
-              key={rot}
+              key={i}
               variant="rectangular"
               animation="pulse"
-              sx={{ width: 128, height: 72, borderRadius: '4px', transform: `rotate(${rot}deg)`, bgcolor: t.inkHairline }}
+              sx={{ width: 110, height: 66, borderRadius: '12px', bgcolor: SKELETON_BG }}
             />
           ))}
         </Box>
@@ -61,9 +63,9 @@ export default function HomePage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: { md: 'calc(100vh - 48px)' } }}>
-      {/* One orchestrated staggered reveal for the whole spread */}
-      <motion.div variants={spreadContainer} initial="hidden" animate="visible">
-        <motion.div variants={spreadItem}>
+      {/* One orchestrated staggered reveal for the whole page */}
+      <motion.div variants={staggerContainer} initial="hidden" animate="visible">
+        <motion.div variants={staggerItem}>
           <DashboardHeader
             isEditMode={isEditMode}
             onToggleEdit={() => setEditMode(!isEditMode)}
@@ -75,47 +77,25 @@ export default function HomePage() {
         <HeroMemory />
 
         <Box sx={{ mt: 3 }}>
-          <StampStrip />
+          <StatsStrip />
         </Box>
 
-        {/* Ticket-stub divider */}
-        <motion.div variants={spreadItem}>
-          <Box sx={{ position: 'relative', my: { xs: 4, md: 5 } }} aria-hidden="true">
-            <Box
-              sx={{
-                borderTop: '2px dotted',
-                borderColor: t.goldHairline,
-                mx: 2,
-              }}
-            />
-            <Box
-              sx={{
-                position: 'absolute',
-                left: 0,
-                top: '50%',
-                transform: 'translateY(-50%) rotate(45deg)',
-                width: 8,
-                height: 8,
-                border: '1.5px solid',
-                borderColor: t.goldHairline,
-              }}
-            />
-            <Box
-              sx={{
-                position: 'absolute',
-                right: 0,
-                top: '50%',
-                transform: 'translateY(-50%) rotate(45deg)',
-                width: 8,
-                height: 8,
-                border: '1.5px solid',
-                borderColor: t.goldHairline,
-              }}
-            />
-          </Box>
+        <Box sx={{ mt: { xs: 4, md: 5 } }}>
+          <RecentPosts />
+        </Box>
+
+        {/* Hairline divider */}
+        <motion.div variants={staggerItem}>
+          <Box
+            aria-hidden="true"
+            sx={{
+              my: { xs: 4, md: 5 },
+              borderTop: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+            }}
+          />
         </motion.div>
 
-        {/* View mode: calm editorial spread. Edit mode: the original draggable
+        {/* View mode: cinematic panels. Edit mode: the original draggable
             grid — fully functional, intentionally utilitarian. */}
         {isEditMode ? (
           <DashboardGrid
@@ -127,7 +107,7 @@ export default function HomePage() {
             onChangeColor={changeWidgetColor}
           />
         ) : (
-          <EditorialSpread widgets={widgets} />
+          <WidgetPanels widgets={widgets} />
         )}
       </motion.div>
 
@@ -138,26 +118,26 @@ export default function HomePage() {
         onAdd={addWidget}
       />
 
-      {/* FAB — Create new entry */}
+      {/* FAB — Create new memory */}
       <Link href="/create/post" aria-label="Create new post" style={{ textDecoration: 'none', color: 'inherit' }}>
         <Box
+          component={motion.div}
+          whileHover={reduceMotion ? undefined : { scale: 1.06 }}
+          whileTap={reduceMotion ? undefined : { scale: 0.96 }}
           sx={{
             position: 'fixed',
             bottom: 32,
             right: 32,
             width: 56,
             height: 56,
-            bgcolor: 'text.primary',
-            color: 'background.default',
-            border: '1.5px solid',
-            borderColor: t.gold,
+            bgcolor: 'var(--cin-accent, #8B7CFF)',
+            color: '#0B0B0F',
             borderRadius: '50%',
-            boxShadow: '3px 3px 0 rgba(34,28,24,0.18)',
+            boxShadow: '0 8px 40px var(--cin-accent-glow, rgba(139,124,255,0.35))',
             display: { xs: 'none', md: 'flex' },
             alignItems: 'center',
             justifyContent: 'center',
-            '&:hover': { opacity: 0.9 },
-            transition: 'opacity 0.2s',
+            cursor: 'pointer',
             zIndex: 50,
           }}
         >

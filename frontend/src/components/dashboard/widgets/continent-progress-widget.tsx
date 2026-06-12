@@ -5,7 +5,7 @@ import { alpha } from '@mui/material/styles';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
-const DEFAULT_COLOR = '#D4A843';
+const DEFAULT_COLOR = '#8B7CFF';
 
 // Realistic continent silhouettes — simplified Mercator projection (viewBox: 0 0 1010 700)
 const CONTINENT_PATHS: Record<string, string> = {

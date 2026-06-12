@@ -1,18 +1,20 @@
 'use client';
 
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box } from '@mui/material';
 import { motion } from 'framer-motion';
 import type { WidgetInstance, WidgetType, WidgetGridSize } from '@/lib/types/dashboard';
 import { WIDGET_COMPONENTS } from './widgets';
-import { getJournalTokens, eyebrowSx, spreadItem } from './journal-tokens';
+import { CinemaCard, SectionLabel } from '@/components/cinema';
+import { CIN } from '@/lib/design/cinema-tokens';
+import { staggerItem } from '@/lib/animations';
 
 /**
- * View-mode "journal spread" layout: a wide main column of large, photographic
- * widgets and a narrow margin column of field notes. Replaces the uniform
- * 4-column grid in view mode; edit mode keeps the original draggable grid.
+ * View-mode layout: a wide main column of large photographic widgets and a
+ * narrow rail of compact at-a-glance cards, all on CinemaCard surfaces.
+ * Edit mode keeps the original draggable grid.
  *
  * Consolidations (data still reachable):
- * - stats_countries / stats_cities are folded into the StampStrip (same
+ * - stats_countries / stats_cities are folded into the StatsStrip (same
  *   useAtlas data), so they are not repeated here.
  */
 
@@ -21,7 +23,7 @@ const CONSOLIDATED_TYPES: ReadonlySet<WidgetType> = new Set<WidgetType>([
   'stats_cities',
 ]);
 
-const MARGIN_TYPES: ReadonlySet<WidgetType> = new Set<WidgetType>([
+const RAIL_TYPES: ReadonlySet<WidgetType> = new Set<WidgetType>([
   'quote',
   'continent_progress',
   'want_to_go',
@@ -32,17 +34,17 @@ const MARGIN_TYPES: ReadonlySet<WidgetType> = new Set<WidgetType>([
   'dream_count',
 ]);
 
-interface SpreadSlot {
+interface PanelSlot {
   size: WidgetGridSize;
   height: number;
 }
 
-function getMainSlot(type: WidgetType): SpreadSlot {
+function getMainSlot(type: WidgetType): PanelSlot {
   if (type === 'album_carousel') return { size: { cols: 4, rows: 1 }, height: 176 };
   return { size: { cols: 4, rows: 2 }, height: 336 };
 }
 
-function getMarginSlot(type: WidgetType): SpreadSlot {
+function getRailSlot(type: WidgetType): PanelSlot {
   if (type === 'streak' || type === 'next_capsule' || type === 'dream_count') {
     return { size: { cols: 2, rows: 1 }, height: 120 };
   }
@@ -56,21 +58,18 @@ function byGridPosition(a: WidgetInstance, b: WidgetInstance): number {
   return a.position.row - b.position.row || a.position.col - b.position.col;
 }
 
-const JOURNAL_DEFAULT_COLOR = '#D4A843';
+const PANEL_DEFAULT_COLOR = CIN.accent;
 
-interface EditorialSpreadProps {
+interface WidgetPanelsProps {
   widgets: WidgetInstance[];
 }
 
-export function EditorialSpread({ widgets }: EditorialSpreadProps) {
-  const theme = useTheme();
-  const t = getJournalTokens(theme.palette.mode === 'dark' ? 'dark' : 'light');
-
+export function WidgetPanels({ widgets }: WidgetPanelsProps) {
   const visible = widgets.filter((w) => !CONSOLIDATED_TYPES.has(w.type));
-  const mainWidgets = visible.filter((w) => !MARGIN_TYPES.has(w.type)).sort(byGridPosition);
-  const marginWidgets = visible.filter((w) => MARGIN_TYPES.has(w.type)).sort(byGridPosition);
+  const mainWidgets = visible.filter((w) => !RAIL_TYPES.has(w.type)).sort(byGridPosition);
+  const railWidgets = visible.filter((w) => RAIL_TYPES.has(w.type)).sort(byGridPosition);
 
-  if (mainWidgets.length === 0 && marginWidgets.length === 0) return null;
+  if (mainWidgets.length === 0 && railWidgets.length === 0) return null;
 
   return (
     <Box
@@ -81,21 +80,21 @@ export function EditorialSpread({ widgets }: EditorialSpreadProps) {
         alignItems: 'start',
       }}
     >
-      {/* Main column — the spread's large pages */}
+      {/* Main column — large photographic panels */}
       {mainWidgets.length > 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-          <motion.div variants={spreadItem}>
-            <Typography component="p" sx={{ ...eyebrowSx, color: t.inkSoft }}>
-              Recent pages
-            </Typography>
+          <motion.div variants={staggerItem}>
+            <SectionLabel>Collections</SectionLabel>
           </motion.div>
           {mainWidgets.map((widget) => {
             const slot = getMainSlot(widget.type);
             const Component = WIDGET_COMPONENTS[widget.type];
             return (
-              <motion.div key={widget.id} variants={spreadItem}>
+              <motion.div key={widget.id} variants={staggerItem}>
                 <Box sx={{ height: slot.height }}>
-                  <Component size={slot.size} color={widget.color ?? JOURNAL_DEFAULT_COLOR} albumId={widget.albumId} />
+                  <CinemaCard sx={{ height: '100%' }}>
+                    <Component size={slot.size} color={widget.color ?? PANEL_DEFAULT_COLOR} albumId={widget.albumId} />
+                  </CinemaCard>
                 </Box>
               </motion.div>
             );
@@ -103,8 +102,8 @@ export function EditorialSpread({ widgets }: EditorialSpreadProps) {
         </Box>
       )}
 
-      {/* Margin column — field notes with a flight-path connector */}
-      {marginWidgets.length > 0 && (
+      {/* Rail — compact at-a-glance cards behind a hairline divider */}
+      {railWidgets.length > 0 && (
         <Box
           sx={{
             display: 'flex',
@@ -112,22 +111,21 @@ export function EditorialSpread({ widgets }: EditorialSpreadProps) {
             gap: 3,
             minWidth: 0,
             pl: { xs: 0, lg: 3 },
-            borderLeft: { xs: 'none', lg: '1px dashed' },
-            borderLeftColor: { lg: t.goldHairline },
+            borderLeft: { xs: 'none', lg: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))' },
           }}
         >
-          <motion.div variants={spreadItem}>
-            <Typography component="p" sx={{ ...eyebrowSx, color: t.inkSoft }}>
-              Field notes
-            </Typography>
+          <motion.div variants={staggerItem}>
+            <SectionLabel>At a glance</SectionLabel>
           </motion.div>
-          {marginWidgets.map((widget) => {
-            const slot = getMarginSlot(widget.type);
+          {railWidgets.map((widget) => {
+            const slot = getRailSlot(widget.type);
             const Component = WIDGET_COMPONENTS[widget.type];
             return (
-              <motion.div key={widget.id} variants={spreadItem}>
+              <motion.div key={widget.id} variants={staggerItem}>
                 <Box sx={{ height: slot.height }}>
-                  <Component size={slot.size} color={widget.color ?? JOURNAL_DEFAULT_COLOR} albumId={widget.albumId} />
+                  <CinemaCard sx={{ height: '100%' }}>
+                    <Component size={slot.size} color={widget.color ?? PANEL_DEFAULT_COLOR} albumId={widget.albumId} />
+                  </CinemaCard>
                 </Box>
               </motion.div>
             );

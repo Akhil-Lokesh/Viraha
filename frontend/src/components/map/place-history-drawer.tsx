@@ -2,22 +2,14 @@
 
 import { useState, useCallback } from 'react';
 import { Box, Typography, Drawer, IconButton, Skeleton, TextField } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import Image from 'next/image';
+import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { X, MapPin, BookOpen, Camera, Calendar, Heart, Edit3, Check } from 'lucide-react';
 import { usePlaceHistory, useUpsertPlaceNote } from '@/lib/hooks/use-viraha';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
-
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
+import { PhotoTile } from '@/components/cinema';
 
 interface PlaceHistoryDrawerProps {
   open: boolean;
@@ -25,6 +17,53 @@ interface PlaceHistoryDrawerProps {
   lat: number | null;
   lng: number | null;
   locationName: string | null;
+}
+
+const sectionLabelSx = { ...eyebrowSx, fontWeight: 700 } as const;
+
+function HistoryRow({
+  href,
+  image,
+  imageAlt,
+  children,
+}: {
+  href: string;
+  image: string | null;
+  imageAlt: string;
+  children: React.ReactNode;
+}) {
+  const reduceMotion = useReducedMotion();
+  return (
+    <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
+      <motion.div whileHover={reduceMotion ? undefined : { x: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1.5,
+            p: 1,
+            borderRadius: '10px',
+            border: '1px solid transparent',
+            transition: 'background-color 0.2s ease, border-color 0.2s ease',
+            '&:hover': {
+              bgcolor: 'rgba(255,255,255,0.04)',
+              borderColor: CIN.hairline,
+            },
+          }}
+        >
+          {image && (
+            <PhotoTile
+              src={image}
+              alt={imageAlt}
+              rounded={8}
+              vignette={false}
+              sx={{ width: 64, height: 64, flexShrink: 0 }}
+            />
+          )}
+          <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
+        </Box>
+      </motion.div>
+    </Link>
+  );
 }
 
 export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: PlaceHistoryDrawerProps) {
@@ -66,20 +105,31 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
         sx: {
           width: { xs: '100%', md: 400 },
           maxWidth: '100vw',
-          bgcolor: 'background.default',
+          bgcolor: CIN.bg,
+          backgroundImage: 'none',
+          borderLeft: `1px solid ${CIN.hairline}`,
         },
       }}
     >
       {/* Header */}
-      <Box sx={{ p: 2.5, borderBottom: 1, borderColor: 'divider' }}>
+      <Box sx={{ p: 2.5, borderBottom: `1px solid ${CIN.hairline}` }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <MapPin style={{ width: 18, height: 18 }} />
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+            <MapPin style={{ width: 18, height: 18, color: CIN.accent, flexShrink: 0 }} />
+            <Typography
+              variant="h6"
+              noWrap
+              sx={{ fontWeight: 700, fontSize: '1.1rem', color: CIN.text }}
+            >
               {locationName || 'This Place'}
             </Typography>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton
+            onClick={onClose}
+            size="small"
+            aria-label="Close place history"
+            sx={{ color: CIN.textMuted, '&:hover': { color: CIN.text, bgcolor: 'rgba(255,255,255,0.06)' } }}
+          >
             <X style={{ width: 18, height: 18 }} />
           </IconButton>
         </Box>
@@ -89,16 +139,19 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
           <Box sx={{ display: 'flex', gap: 2, mt: 1.5 }}>
             {history.stats.firstVisit && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Calendar style={{ width: 12, height: 12, opacity: 0.5 }} />
-                <Typography sx={{ fontSize: '11px', color: 'text.secondary' }}>
+                <Calendar style={{ width: 12, height: 12, color: CIN.accent, opacity: 0.8 }} />
+                <Typography suppressHydrationWarning sx={{ fontSize: '11px', color: CIN.textMuted }}>
                   First visit: {format(new Date(history.stats.firstVisit), 'MMM d, yyyy')}
                 </Typography>
               </Box>
             )}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Heart style={{ width: 12, height: 12, opacity: 0.5 }} />
-              <Typography sx={{ fontSize: '11px', color: 'text.secondary' }}>
-                {history.stats.totalVisits} {history.stats.totalVisits === 1 ? 'memory' : 'memories'}
+              <Heart style={{ width: 12, height: 12, color: CIN.accent, opacity: 0.8 }} />
+              <Typography sx={{ fontSize: '11px', color: CIN.textMuted }}>
+                <Box component="span" sx={{ color: CIN.accent, fontWeight: 700 }}>
+                  {history.stats.totalVisits}
+                </Box>{' '}
+                {history.stats.totalVisits === 1 ? 'memory' : 'memories'}
               </Typography>
             </Box>
           </Box>
@@ -107,20 +160,30 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
 
       {isLoading ? (
         <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Skeleton variant="rectangular" height={120} sx={{ borderRadius: '12px' }} />
-          <Skeleton variant="rectangular" height={80} sx={{ borderRadius: '12px' }} />
-          <Skeleton variant="rectangular" height={80} sx={{ borderRadius: '12px' }} />
+          <Skeleton variant="rectangular" height={120} sx={{ borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.06)' }} />
+          <Skeleton variant="rectangular" height={80} sx={{ borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.06)' }} />
+          <Skeleton variant="rectangular" height={80} sx={{ borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.06)' }} />
         </Box>
       ) : (
         <Box sx={{ flex: 1, overflow: 'auto', p: 2.5 }}>
           {/* Private Place Note */}
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography sx={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary' }}>
+              <Typography sx={sectionLabelSx}>
                 Private Note
               </Typography>
               {!editingNote && (
-                <IconButton size="small" onClick={handleEditNote} sx={{ width: 24, height: 24 }}>
+                <IconButton
+                  size="small"
+                  onClick={handleEditNote}
+                  aria-label="Edit private note"
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    color: CIN.textMuted,
+                    '&:hover': { color: CIN.accent, bgcolor: 'rgba(139,124,255,0.12)' },
+                  }}
+                >
                   <Edit3 style={{ width: 12, height: 12 }} />
                 </IconButton>
               )}
@@ -134,14 +197,34 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
                   rows={2}
                   fullWidth
                   placeholder="What does this place mean to you?"
-                  sx={{ '& .MuiInputBase-root': { fontSize: '13px' } }}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      fontSize: '13px',
+                      bgcolor: CIN.surface,
+                      color: CIN.text,
+                    },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: CIN.hairline },
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(139,124,255,0.45)' },
+                    '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: CIN.accent },
+                  }}
                 />
-                <IconButton size="small" onClick={handleSaveNote} disabled={upsertNote.isPending} color="primary" sx={{ alignSelf: 'flex-end' }} aria-label="Save note">
+                <IconButton
+                  size="small"
+                  onClick={handleSaveNote}
+                  disabled={upsertNote.isPending}
+                  sx={{
+                    alignSelf: 'flex-end',
+                    color: CIN.accent,
+                    '&:hover': { bgcolor: 'rgba(139,124,255,0.12)' },
+                    '&.Mui-disabled': { color: 'rgba(255,255,255,0.18)' },
+                  }}
+                  aria-label="Save note"
+                >
                   <Check style={{ width: 16, height: 16 }} />
                 </IconButton>
               </Box>
             ) : history?.placeNote ? (
-              <Typography sx={{ fontSize: '13px', color: 'text.primary', fontStyle: 'italic', lineHeight: 1.5 }}>
+              <Typography sx={{ fontSize: '13px', color: CIN.text, fontStyle: 'italic', lineHeight: 1.5 }}>
                 &ldquo;{history.placeNote.note}&rdquo;
               </Typography>
             ) : (
@@ -150,12 +233,13 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
                 onClick={handleEditNote}
                 sx={{
                   fontSize: '12px',
-                  color: 'text.disabled',
+                  color: CIN.textMuted,
                   cursor: 'pointer',
                   border: 'none',
                   bgcolor: 'transparent',
                   p: 0,
-                  '&:hover': { color: 'text.secondary' },
+                  transition: 'color 0.15s ease',
+                  '&:hover': { color: CIN.accent },
                 }}
               >
                 Write what this place means to you...
@@ -167,43 +251,30 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
           {history && history.posts.length > 0 && (
             <Box sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
-                <Camera style={{ width: 14, height: 14, opacity: 0.6 }} />
-                <Typography sx={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary' }}>
+                <Camera style={{ width: 14, height: 14, color: CIN.accent, opacity: 0.8 }} />
+                <Typography sx={sectionLabelSx}>
                   Posts ({history.posts.length})
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {history.posts.map((post) => {
-                  const image = post.mediaThumbnails[0] || post.mediaUrls[0];
+                  const image = post.mediaThumbnails[0] || post.mediaUrls[0] || null;
                   return (
-                    <Link key={post.id} href={`/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          gap: 1.5,
-                          p: 1,
-                          borderRadius: '10px',
-                          transition: 'background 0.2s',
-                          '&:hover': { bgcolor: 'action.hover' },
-                        }}
-                      >
-                        {image && (
-                          <Box sx={{ width: 64, height: 64, borderRadius: '8px', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                            <Image src={resolveImageUrl(image)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
-                          </Box>
-                        )}
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          {post.caption && (
-                            <Typography sx={{ fontSize: '13px', fontWeight: 500, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                              {post.caption}
-                            </Typography>
-                          )}
-                          <Typography sx={{ fontSize: '11px', color: 'text.secondary', mt: 0.5 }}>
-                            {format(new Date(post.postedAt), 'MMM d, yyyy')}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Link>
+                    <HistoryRow
+                      key={post.id}
+                      href={`/post/${post.id}`}
+                      image={image}
+                      imageAlt={post.caption || 'Post photo'}
+                    >
+                      {post.caption && (
+                        <Typography sx={{ fontSize: '13px', fontWeight: 500, color: CIN.text, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {post.caption}
+                        </Typography>
+                      )}
+                      <Typography suppressHydrationWarning sx={{ fontSize: '11px', color: CIN.textMuted, mt: 0.5 }}>
+                        {format(new Date(post.postedAt), 'MMM d, yyyy')}
+                      </Typography>
+                    </HistoryRow>
                   );
                 })}
               </Box>
@@ -214,63 +285,58 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
           {history && history.journalEntries.length > 0 && (
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
-                <BookOpen style={{ width: 14, height: 14, opacity: 0.6 }} />
-                <Typography sx={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary' }}>
+                <BookOpen style={{ width: 14, height: 14, color: CIN.accent, opacity: 0.8 }} />
+                <Typography sx={sectionLabelSx}>
                   Journal Entries ({history.journalEntries.length})
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {history.journalEntries.map((entry) => {
-                  const image = entry.mediaUrls[0];
+                  const image = entry.mediaUrls[0] || null;
                   return (
-                    <Link key={entry.id} href={`/journals/${entry.journalId}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          gap: 1.5,
-                          p: 1,
-                          borderRadius: '10px',
-                          transition: 'background 0.2s',
-                          '&:hover': { bgcolor: 'action.hover' },
-                        }}
-                      >
-                        {image && (
-                          <Box sx={{ width: 64, height: 64, borderRadius: '8px', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                            <Image src={resolveImageUrl(image)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
-                          </Box>
-                        )}
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#8B5CF6' }} />
-                            <Typography sx={{ fontSize: '10px', fontWeight: 600, color: '#8B5CF6', textTransform: 'uppercase' }}>
-                              Journal
-                            </Typography>
-                          </Box>
-                          {entry.title && (
-                            <Typography sx={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.3 }}>
-                              {entry.title}
-                            </Typography>
-                          )}
-                          {entry.contentPreview && (
-                            <Typography sx={{ fontSize: '12px', color: 'text.secondary', lineHeight: 1.4, mt: 0.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                              {entry.contentPreview}
-                            </Typography>
-                          )}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                            {entry.date && (
-                              <Typography sx={{ fontSize: '11px', color: 'text.disabled' }}>
-                                {format(new Date(entry.date), 'MMM d, yyyy')}
-                              </Typography>
-                            )}
-                            {entry.mood && (
-                              <Typography sx={{ fontSize: '11px' }}>
-                                {entry.mood}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
+                    <HistoryRow
+                      key={entry.id}
+                      href={`/journals/${entry.journalId}`}
+                      image={image}
+                      imageAlt={entry.title || 'Journal entry photo'}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
+                        <Box
+                          sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            bgcolor: CIN.accent,
+                            boxShadow: `0 0 6px ${CIN.accentGlow}`,
+                          }}
+                        />
+                        <Typography sx={{ ...eyebrowSx, fontSize: 10, fontWeight: 700, color: CIN.accent }}>
+                          Journal
+                        </Typography>
                       </Box>
-                    </Link>
+                      {entry.title && (
+                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: CIN.text, lineHeight: 1.3 }}>
+                          {entry.title}
+                        </Typography>
+                      )}
+                      {entry.contentPreview && (
+                        <Typography sx={{ fontSize: '12px', color: CIN.textMuted, lineHeight: 1.4, mt: 0.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {entry.contentPreview}
+                        </Typography>
+                      )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                        {entry.date && (
+                          <Typography suppressHydrationWarning sx={{ fontSize: '11px', color: CIN.textMuted }}>
+                            {format(new Date(entry.date), 'MMM d, yyyy')}
+                          </Typography>
+                        )}
+                        {entry.mood && (
+                          <Typography sx={{ fontSize: '11px', color: CIN.text }}>
+                            {entry.mood}
+                          </Typography>
+                        )}
+                      </Box>
+                    </HistoryRow>
                   );
                 })}
               </Box>
@@ -279,8 +345,8 @@ export function PlaceHistoryDrawer({ open, onClose, lat, lng, locationName }: Pl
 
           {/* Empty state */}
           {history && history.stats.totalVisits === 0 && (
-            <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-              <MapPin style={{ width: 32, height: 32, opacity: 0.3, margin: '0 auto' }} />
+            <Box sx={{ textAlign: 'center', py: 4, color: CIN.textMuted }}>
+              <MapPin style={{ width: 32, height: 32, opacity: 0.35, margin: '0 auto' }} />
               <Typography sx={{ mt: 1, fontSize: '13px' }}>
                 No memories here yet
               </Typography>

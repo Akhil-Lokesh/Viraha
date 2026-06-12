@@ -16,6 +16,7 @@ import type { WidgetInstance, GridPosition, WidgetGridSize } from '@/lib/types/d
 import { WIDGET_REGISTRY, getEffectiveSize, isInBounds, getSizeLabel } from '@/lib/dashboard/widget-registry';
 import { WIDGET_COMPONENTS } from './widgets';
 import { WidgetWrapper } from './widget-wrapper';
+import { glowRing } from '@/lib/design/cinema-tokens';
 
 const ROW_HEIGHT = 160;
 const GAP = 16;
@@ -419,7 +420,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
               sx={{
                 width: cols * cellWidth + (cols - 1) * GAP,
                 height: rows * ROW_HEIGHT + (rows - 1) * GAP,
-                boxShadow: 8,
+                boxShadow: glowRing(1),
                 borderRadius: '16px',
                 overflow: 'hidden',
                 opacity: 0.9,

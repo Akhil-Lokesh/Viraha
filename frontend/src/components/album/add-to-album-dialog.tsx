@@ -6,7 +6,8 @@ import { Loader2, Plus, Check, Images } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import { useAlbums, useAddPostToAlbum, useRemovePostFromAlbum } from '@/lib/hooks/use-albums';
 import type { Album } from '@/lib/types';
-import Button from '@mui/material/Button';
+import { GlowButton } from '@/components/cinema';
+import { CIN } from '@/lib/design/cinema-tokens';
 import MuiDialog from '@mui/material/Dialog';
 import MuiDialogContent from '@mui/material/DialogContent';
 
@@ -67,18 +68,37 @@ export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialo
   };
 
   return (
-    <MuiDialog open={open} onClose={() => onOpenChange(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+    <MuiDialog
+      open={open}
+      onClose={() => onOpenChange(false)}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: '16px',
+          bgcolor: CIN.surface,
+          backgroundImage: 'none',
+          border: `1px solid ${CIN.hairline}`,
+        },
+      }}
+    >
       <MuiDialogContent sx={{ pt: 2 }}>
         <Box sx={{ px: 3, pt: 3, pb: 1 }}>
-          <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>Add to Album</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ fontFamily: 'Posterama, var(--font-body)', fontWeight: 700, color: CIN.text }}
+          >
+            Add to Album
+          </Typography>
+          <Typography variant="body2" sx={{ color: CIN.textMuted, mt: 0.5 }}>
             Select an album to add this post to.
           </Typography>
         </Box>
 
         {actionError && (
           <Box sx={{ px: 3, pb: 1 }}>
-            <Typography role="alert" variant="body2" sx={{ color: 'error.main', fontSize: '0.8125rem' }}>
+            <Typography role="alert" variant="body2" sx={{ color: CIN.danger, fontSize: '0.8125rem' }}>
               {actionError}
             </Typography>
           </Box>
@@ -87,17 +107,16 @@ export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialo
         <Box sx={{ mt: 1, maxHeight: 300, overflowY: 'auto' }}>
           {isLoading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
-              <Loader2 style={{ width: 20, height: 20, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }} />
+              <Loader2 style={{ width: 20, height: 20, animation: 'spin 1s linear infinite', color: CIN.textMuted }} />
             </Box>
           ) : albums.length === 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 4, textAlign: 'center' }}>
-              <Images style={{ width: 40, height: 40, color: 'var(--mui-palette-text-secondary)', marginBottom: 12 }} />
-              <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mb: 1.5 }}>
+              <Images style={{ width: 40, height: 40, color: CIN.textMuted, marginBottom: 12 }} />
+              <Typography sx={{ fontSize: '0.875rem', color: CIN.textMuted, mb: 1.5 }}>
                 You have no albums yet.
               </Typography>
-              <Button
-                variant="outlined"
-                disableElevation
+              <GlowButton
+                variant="ghost"
                 size="small"
                 onClick={() => {
                   onOpenChange(false);
@@ -106,7 +125,7 @@ export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialo
               >
                 <Plus style={{ width: 16, height: 16, marginRight: 4 }} />
                 Create Album
-              </Button>
+              </GlowButton>
             </Box>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -127,16 +146,19 @@ export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialo
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: 1.5,
-                      borderRadius: 2,
+                      borderRadius: '10px',
                       px: 1.5,
                       py: 1.25,
                       textAlign: 'left',
                       bgcolor: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
-                      transition: 'background-color 0.2s',
-                      '&:hover': { bgcolor: 'action.hover' },
+                      transition: 'background-color 0.2s, transform 0.2s',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', transform: 'translateX(2px)' },
                       '&:disabled': { opacity: 0.5 },
+                      '@media (prefers-reduced-motion: reduce)': {
+                        '&:hover': { transform: 'none' },
+                      },
                     }}
                   >
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -147,40 +169,40 @@ export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialo
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                          color: 'text.primary',
+                          color: CIN.text,
                         }}
                       >
                         {album.title}
                       </Typography>
-                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                      <Typography sx={{ fontSize: '0.75rem', color: CIN.textMuted }}>
                         {album.postCount} {album.postCount === 1 ? 'post' : 'posts'}
                       </Typography>
                     </Box>
                     <Box sx={{ flexShrink: 0 }}>
                       {isPending ? (
-                        <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }} />
+                        <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite', color: CIN.textMuted }} />
                       ) : inAlbum ? (
                         <Box
                           sx={{
                             width: 20,
                             height: 20,
-                            borderRadius: 1,
-                            bgcolor: 'primary.main',
+                            borderRadius: '6px',
+                            bgcolor: CIN.accent,
+                            boxShadow: `0 0 12px ${CIN.accentGlow}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}
                         >
-                          <Check style={{ width: 14, height: 14, color: 'var(--mui-palette-primary-contrastText)' }} />
+                          <Check style={{ width: 14, height: 14, color: '#0B0B0F' }} />
                         </Box>
                       ) : (
                         <Box
                           sx={{
                             width: 20,
                             height: 20,
-                            borderRadius: 1,
-                            border: '1px solid',
-                            borderColor: 'divider',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.2)',
                           }}
                         />
                       )}

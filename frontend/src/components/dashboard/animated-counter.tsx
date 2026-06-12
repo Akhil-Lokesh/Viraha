@@ -17,6 +17,10 @@ export function AnimatedCounter({
 
   useEffect(() => {
     if (!isInView) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCount(value);
+      return;
+    }
     const duration = 1200;
     const steps = 30;
     const increment = value / steps;

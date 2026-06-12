@@ -1,8 +1,8 @@
 'use client';
 
 import { Box, Typography } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { Check } from 'lucide-react';
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { JOURNAL_COLORS, type JournalColor } from '@/lib/stores/journal-colors-store';
 
 interface ColorPickerProps {
@@ -10,71 +10,50 @@ interface ColorPickerProps {
   onChange: (colorKey: string) => void;
 }
 
+/** Cover-color swatches: dark chips with the journal spine color, accent ring on selection. */
 export function ColorPicker({ selected, onChange }: ColorPickerProps) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-
   return (
     <Box>
-      <Typography
-        sx={{
-          fontFamily: 'var(--font-brand)',
-          fontSize: '11px',
-          fontWeight: 600,
-          color: 'var(--viraha-gold, #D4A843)',
-          letterSpacing: '0.16em',
-          textTransform: 'uppercase',
-          mb: 1,
-        }}
-      >
-        Cover Color
-      </Typography>
+      <Typography sx={{ ...eyebrowSx, mb: 1 }}>Cover Color</Typography>
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         {JOURNAL_COLORS.map((c: JournalColor) => {
           const isSelected = c.key === selected;
-          const bg = isDark ? c.bgDark : c.bg;
-          const accent = isDark ? c.accentDark : c.accent;
           return (
             <Box
               key={c.key}
               component="button"
+              type="button"
               onClick={() => onChange(c.key)}
               aria-label={c.label}
+              aria-pressed={isSelected}
               sx={{
-                width: 30,
-                height: 38,
-                // tiny book: tight spine edge, rounded fore-edge
-                borderRadius: '2px 6px 6px 2px',
-                bgcolor: bg,
-                // spine band rendered as an inset edge
-                boxShadow: `inset 5px 0 0 ${accent}55`,
-                border: isSelected ? '2px solid' : '1px solid',
-                borderColor: isSelected ? 'var(--viraha-gold, #D4A843)' : `${accent}44`,
+                width: 36,
+                height: 36,
+                borderRadius: '10px',
+                bgcolor: c.bgDark,
+                // spine sliver in the journal's accent color
+                boxShadow: isSelected
+                  ? `inset 3px 0 0 ${c.accentDark}, 0 0 0 2px ${CIN.accent}, 0 4px 20px ${CIN.accentGlow}`
+                  : `inset 3px 0 0 ${c.accentDark}`,
+                border: `1px solid ${CIN.hairline}`,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.2s',
+                transition: 'box-shadow 0.2s ease, transform 0.2s ease',
                 p: 0,
                 outline: 'none',
                 '&:hover': {
-                  transform: 'translateY(-2px) rotate(-2deg)',
+                  transform: 'translateY(-2px)',
                 },
                 '&:focus-visible': {
-                  outline: '2px solid',
-                  outlineColor: 'primary.main',
+                  outline: `2px solid ${CIN.accent}`,
                   outlineOffset: 2,
                 },
               }}
             >
               {isSelected && (
-                <Check
-                  style={{
-                    width: 14,
-                    height: 14,
-                    color: accent,
-                  }}
-                />
+                <Check style={{ width: 14, height: 14, color: c.accentDark }} />
               )}
             </Box>
           );

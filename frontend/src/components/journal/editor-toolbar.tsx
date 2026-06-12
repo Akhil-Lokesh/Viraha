@@ -52,11 +52,13 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   const btnSx = (isActive: boolean) => ({
     width: 34,
     height: 34,
-    borderRadius: '4px',
-    color: isActive ? 'var(--viraha-gold, #D4A843)' : 'text.secondary',
-    bgcolor: isActive ? 'rgba(212,168,67,0.12)' : 'transparent',
-    border: isActive ? '1px solid rgba(212,168,67,0.5)' : '1px solid transparent',
-    '&:hover': { bgcolor: 'rgba(212,168,67,0.08)' },
+    borderRadius: '8px',
+    color: isActive ? 'var(--cin-accent, #8B7CFF)' : 'var(--cin-text-muted, #9A9AA6)',
+    bgcolor: isActive ? 'rgba(139,124,255,0.12)' : 'transparent',
+    border: isActive ? '1px solid rgba(139,124,255,0.5)' : '1px solid transparent',
+    transition: 'color .15s ease, background-color .15s ease',
+    '&:hover': { bgcolor: 'rgba(139,124,255,0.08)', color: 'var(--cin-text, #F4F4F6)' },
+    '&.Mui-disabled': { color: 'rgba(154,154,166,0.35)' },
   });
 
   const iconSize = { width: 18, height: 18 };
@@ -73,8 +75,8 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         position: 'sticky',
         top: 0,
         zIndex: 10,
-        bgcolor: 'background.paper',
-        borderBottom: '1px dashed rgba(212,168,67,0.6)',
+        bgcolor: 'var(--cin-bg, #0B0B0F)',
+        borderBottom: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
       }}
     >
       {/* Text formatting */}
@@ -91,7 +93,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         <Strikethrough style={iconSize} />
       </IconButton>
 
-      <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+      <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: 'var(--cin-hairline, rgba(255,255,255,0.08))' }} />
 
       {/* Headings */}
       <IconButton size="small" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} sx={btnSx(editor.isActive('heading', { level: 1 }))}>
@@ -104,7 +106,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         <Heading3 style={iconSize} />
       </IconButton>
 
-      <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+      <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: 'var(--cin-hairline, rgba(255,255,255,0.08))' }} />
 
       {/* Lists */}
       <IconButton size="small" onClick={() => editor.chain().focus().toggleBulletList().run()} sx={btnSx(editor.isActive('bulletList'))}>
@@ -114,7 +116,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         <ListOrdered style={iconSize} />
       </IconButton>
 
-      <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+      <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: 'var(--cin-hairline, rgba(255,255,255,0.08))' }} />
 
       {/* Image */}
       <IconButton size="small" onClick={() => fileInputRef.current?.click()} sx={btnSx(false)}>
@@ -129,7 +131,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         style={{ display: 'none' }}
       />
 
-      <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+      <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: 'var(--cin-hairline, rgba(255,255,255,0.08))' }} />
 
       {/* Undo / Redo */}
       <IconButton size="small" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} sx={btnSx(false)}>

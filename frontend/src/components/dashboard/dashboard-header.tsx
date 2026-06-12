@@ -1,10 +1,10 @@
 'use client';
 
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { Settings2, Check, RotateCcw, Plus } from 'lucide-react';
 import { useTravelStore } from '@/lib/stores/travel-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { getJournalTokens, eyebrowSx, displaySerifSx } from './journal-tokens';
+import { eyebrowSx, displaySx } from '@/lib/design/cinema-tokens';
 
 interface DashboardHeaderProps {
   isEditMode: boolean;
@@ -14,35 +14,50 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ isEditMode, onToggleEdit, onReset, onOpenCatalog }: DashboardHeaderProps) {
-  const theme = useTheme();
-  const t = getJournalTokens(theme.palette.mode === 'dark' ? 'dark' : 'light');
   const mode = useTravelStore((s) => s.mode);
   const user = useAuthStore((s) => s.user);
 
   const firstName = user?.displayName?.trim().split(/\s+/)[0] || 'traveler';
-  const today = new Date()
-    .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-    .toUpperCase();
-  const modeLabel = mode === 'traveling' ? 'EN ROUTE' : 'HOME BASE';
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  const modeLabel = mode === 'traveling' ? 'En route' : 'Home base';
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2, mb: { xs: 3, md: 4 }, flexShrink: 0 }}>
       <Box sx={{ minWidth: 0 }}>
-        {/* Posterama eyebrow — date + travel mode */}
-        <Typography component="p" sx={{ ...eyebrowSx, color: t.gold, mb: 1 }}>
+        {/* Eyebrow — date + travel mode */}
+        <Typography component="p" suppressHydrationWarning sx={{ ...eyebrowSx, mb: 1 }}>
           {today}
-          <Box component="span" sx={{ mx: 1.25, color: t.inkSoft }}>
+          <Box component="span" sx={{ mx: 1.25 }} aria-hidden="true">
             &middot;
           </Box>
-          <Box component="span" sx={{ color: t.inkSoft }}>{modeLabel}</Box>
+          {mode === 'traveling' && (
+            <Box
+              component="span"
+              aria-hidden="true"
+              sx={{
+                display: 'inline-block',
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                bgcolor: 'var(--cin-accent, #8B7CFF)',
+                boxShadow: '0 0 8px var(--cin-accent-glow, rgba(139,124,255,0.35))',
+                mr: 0.75,
+                verticalAlign: 'middle',
+              }}
+            />
+          )}
+          <Box component="span">{modeLabel}</Box>
         </Typography>
 
-        {/* ResotYc greeting */}
+        {/* Display greeting */}
         <Typography
           component="h1"
           sx={{
-            ...displaySerifSx,
-            color: t.ink,
+            ...displaySx,
             fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
           }}
         >
@@ -54,10 +69,10 @@ export function DashboardHeader({ isEditMode, onToggleEdit, onReset, onOpenCatal
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, pb: 0.5, flexShrink: 0 }}>
         {isEditMode && (
           <>
-            <QuietIconButton onClick={onOpenCatalog} title="Add Widget" gold={t.gold} ink={t.inkSoft} hairline={t.inkHairline}>
+            <QuietIconButton onClick={onOpenCatalog} title="Add Widget">
               <Plus style={{ width: 15, height: 15 }} />
             </QuietIconButton>
-            <QuietIconButton onClick={onReset} title="Reset to Default" gold={t.gold} ink={t.inkSoft} hairline={t.inkHairline}>
+            <QuietIconButton onClick={onReset} title="Reset to Default">
               <RotateCcw style={{ width: 14, height: 14 }} />
             </QuietIconButton>
           </>
@@ -66,9 +81,6 @@ export function DashboardHeader({ isEditMode, onToggleEdit, onReset, onOpenCatal
         <QuietIconButton
           onClick={onToggleEdit}
           title={isEditMode ? 'Done' : 'Edit Dashboard'}
-          gold={t.gold}
-          ink={t.inkSoft}
-          hairline={t.inkHairline}
           active={isEditMode}
         >
           {isEditMode ? <Check style={{ width: 15, height: 15 }} /> : <Settings2 style={{ width: 15, height: 15 }} />}
@@ -81,14 +93,11 @@ export function DashboardHeader({ isEditMode, onToggleEdit, onReset, onOpenCatal
 interface QuietIconButtonProps {
   onClick: () => void;
   title: string;
-  gold: string;
-  ink: string;
-  hairline: string;
   active?: boolean;
   children: React.ReactNode;
 }
 
-function QuietIconButton({ onClick, title, gold, ink, hairline, active = false, children }: QuietIconButtonProps) {
+function QuietIconButton({ onClick, title, active = false, children }: QuietIconButtonProps) {
   return (
     <Box
       component="button"
@@ -99,16 +108,19 @@ function QuietIconButton({ onClick, title, gold, ink, hairline, active = false, 
         width: 34,
         height: 34,
         borderRadius: '50%',
-        bgcolor: 'transparent',
+        bgcolor: active ? 'rgba(139,124,255,0.12)' : 'transparent',
         border: '1px solid',
-        borderColor: active ? gold : hairline,
+        borderColor: active ? 'var(--cin-accent, #8B7CFF)' : 'var(--cin-hairline, rgba(255,255,255,0.08))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
-        color: active ? gold : ink,
-        '&:hover': { borderColor: gold, color: gold },
-        transition: 'color 0.2s, border-color 0.2s',
+        color: active ? 'var(--cin-accent, #8B7CFF)' : 'var(--cin-text-muted, #9A9AA6)',
+        '&:hover': {
+          borderColor: 'var(--cin-accent, #8B7CFF)',
+          color: 'var(--cin-accent, #8B7CFF)',
+        },
+        transition: 'color 0.2s, border-color 0.2s, background-color 0.2s',
         p: 0,
       }}
     >

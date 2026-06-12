@@ -1,22 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { format } from 'date-fns';
 import { MapPin, Calendar, Pencil } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
 import type { JournalEntry } from '@/lib/types';
+import { PhotoTile } from '@/components/cinema';
+import { CIN, eyebrowSx, glowRing } from '@/lib/design/cinema-tokens';
 import { MoodBadge } from './mood-selector';
 import { fadeInUp } from '@/lib/animations';
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
-
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 interface Props {
   entry: JournalEntry;
@@ -24,6 +17,7 @@ interface Props {
 }
 
 export function JournalEntryCard({ entry, journalId }: Props) {
+  const reducedMotion = useReducedMotion();
   const hasPhotos = entry.mediaUrls && entry.mediaUrls.length > 0;
   const hasLocation = entry.locationName || entry.locationCity || entry.locationCountry;
   const locationText = [entry.locationName, entry.locationCity, entry.locationCountry]
@@ -38,11 +32,9 @@ export function JournalEntryCard({ entry, journalId }: Props) {
       viewport={{ once: true, margin: '-50px' }}
       style={{
         position: 'relative',
-        borderRadius: 4,
-        border: '1px solid var(--mui-palette-divider)',
-        borderLeft: '2px dashed var(--viraha-gold, #D4A843)',
-        backgroundColor: 'var(--mui-palette-background-paper)',
-        boxShadow: '3px 3px 0 rgba(34,28,24,0.08)',
+        borderRadius: 16,
+        border: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+        backgroundColor: 'var(--cin-surface, #141419)',
         overflow: 'hidden',
       }}
     >
@@ -50,22 +42,19 @@ export function JournalEntryCard({ entry, journalId }: Props) {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, pt: 2.5, pb: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           {entry.date && (
-            <Box
+            <Typography
+              component="span"
+              suppressHydrationWarning
               sx={{
+                ...eyebrowSx,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 0.75,
-                fontFamily: 'var(--font-brand)',
-                fontSize: '0.68rem',
-                fontWeight: 600,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                color: 'var(--viraha-gold, #D4A843)',
               }}
             >
               <Calendar style={{ width: 12, height: 12 }} />
               {format(new Date(entry.date), 'MMM d, yyyy')}
-            </Box>
+            </Typography>
           )}
           {entry.mood && <MoodBadge mood={entry.mood} />}
         </Box>
@@ -80,14 +69,14 @@ export function JournalEntryCard({ entry, journalId }: Props) {
               alignItems: 'center',
               gap: 0.75,
               fontSize: '0.75rem',
-              color: 'text.secondary',
+              color: CIN.textMuted,
               borderRadius: '9999px',
               px: 1.25,
               py: 0.5,
               transition: 'all 0.2s',
               '&:hover': {
-                color: 'secondary.main',
-                bgcolor: 'rgba(var(--mui-palette-secondary-mainChannel) / 0.05)',
+                color: CIN.accent,
+                bgcolor: 'rgba(139,124,255,0.08)',
               },
             }}
           >
@@ -99,7 +88,7 @@ export function JournalEntryCard({ entry, journalId }: Props) {
 
       {/* Title */}
       {entry.title && (
-        <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, px: 3, pt: 1.5 }}>
+        <Typography sx={{ fontSize: '1.125rem', fontWeight: 600, color: CIN.text, px: 3, pt: 1.5 }}>
           {entry.title}
         </Typography>
       )}
@@ -108,10 +97,10 @@ export function JournalEntryCard({ entry, journalId }: Props) {
       {entry.content && (
         <Typography
           sx={{
-            fontSize: '0.875rem',
-            color: 'text.primary',
-            opacity: 0.8,
-            lineHeight: 1.625,
+            fontSize: '0.95rem',
+            color: CIN.text,
+            opacity: 0.85,
+            lineHeight: 1.7,
             px: 3,
             pt: 1,
             whiteSpace: 'pre-line',
@@ -137,23 +126,21 @@ export function JournalEntryCard({ entry, journalId }: Props) {
             }}
           >
             {entry.mediaUrls.map((url, i) => (
-              <Box
+              <motion.div
                 key={i}
-                sx={{
-                  position: 'relative',
-                  aspectRatio: '4/3',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  bgcolor: 'action.hover',
-                }}
+                whileHover={
+                  reducedMotion ? undefined : { scale: 1.02, boxShadow: glowRing(1) }
+                }
+                transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                style={{ borderRadius: 12 }}
               >
-                <Box
-                  component="img"
-                  src={resolveImageUrl(url)}
+                <PhotoTile
+                  src={url}
                   alt={`${entry.title || 'Entry'} photo ${i + 1}`}
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  rounded={12}
+                  sx={{ aspectRatio: '4/3' }}
                 />
-              </Box>
+              </motion.div>
             ))}
           </Box>
         </Box>
@@ -168,7 +155,7 @@ export function JournalEntryCard({ entry, journalId }: Props) {
               alignItems: 'center',
               gap: 0.75,
               fontSize: '0.75rem',
-              color: 'text.secondary',
+              color: CIN.textMuted,
             }}
           >
             <MapPin style={{ width: 12, height: 12 }} />

@@ -6,13 +6,15 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import FormLabel from '@mui/material/FormLabel';
 import Skeleton from '@mui/material/Skeleton';
 import { useAlbum, useUpdateAlbum } from '@/lib/hooks/use-albums';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { GlowButton } from '@/components/cinema';
+import { CIN, displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
+import { darkFieldSx, fieldLabelSx } from '@/components/album/album-field-sx';
 import { fadeInUp } from '@/lib/animations';
 import type { UpdateAlbumInput } from '@/lib/types';
 
@@ -29,13 +31,13 @@ function getSubmitError(error: unknown): string {
 function EditAlbumSkeleton() {
   return (
     <Box sx={{ maxWidth: 576, mx: 'auto', pb: 6, pt: { xs: 2, md: 4 } }}>
-      <Skeleton variant="rounded" animation="pulse" sx={{ height: 36, width: 240, mb: 1 }} />
-      <Skeleton variant="rounded" animation="pulse" sx={{ height: 20, width: 320, mb: 4 }} />
+      <Skeleton variant="rounded" animation="pulse" sx={{ height: 36, width: 240, mb: 1, bgcolor: CIN.surface2 }} />
+      <Skeleton variant="rounded" animation="pulse" sx={{ height: 20, width: 320, mb: 4, bgcolor: CIN.surface2 }} />
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {Array.from({ length: 4 }).map((_, i) => (
           <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Skeleton variant="rounded" animation="pulse" sx={{ height: 16, width: 96 }} />
-            <Skeleton variant="rounded" animation="pulse" sx={{ height: 40, width: '100%', borderRadius: 3 }} />
+            <Skeleton variant="rounded" animation="pulse" sx={{ height: 16, width: 96, bgcolor: CIN.surface2 }} />
+            <Skeleton variant="rounded" animation="pulse" sx={{ height: 40, width: '100%', borderRadius: '10px', bgcolor: CIN.surface2 }} />
           </Box>
         ))}
       </Box>
@@ -78,14 +80,18 @@ export default function EditAlbumPage({
   if (isError || !album) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-        <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>Album not found</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'center' }}>
+          <Typography
+            sx={{ fontFamily: 'Posterama, var(--font-body)', fontWeight: 700, fontSize: '1.25rem', color: CIN.text }}
+          >
+            Album not found
+          </Typography>
+          <Typography variant="body2" sx={{ color: CIN.textMuted }}>
             The album you are trying to edit does not exist or has been removed.
           </Typography>
-          <Button variant="outlined" disableElevation onClick={() => router.push('/albums')}>
+          <GlowButton variant="ghost" onClick={() => router.push('/albums')}>
             Back to Albums
-          </Button>
+          </GlowButton>
         </Box>
       </Box>
     );
@@ -96,14 +102,18 @@ export default function EditAlbumPage({
   if (!isOwner) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-        <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>You cannot edit this album</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'center' }}>
+          <Typography
+            sx={{ fontFamily: 'Posterama, var(--font-body)', fontWeight: 700, fontSize: '1.25rem', color: CIN.text }}
+          >
+            You cannot edit this album
+          </Typography>
+          <Typography variant="body2" sx={{ color: CIN.textMuted }}>
             Only the owner can change an album&apos;s details.
           </Typography>
-          <Button variant="outlined" disableElevation onClick={() => router.push(`/albums/${album.id}`)}>
+          <GlowButton variant="ghost" onClick={() => router.push(`/albums/${album.id}`)}>
             Back to Album
-          </Button>
+          </GlowButton>
         </Box>
       </Box>
     );
@@ -144,44 +154,22 @@ export default function EditAlbumPage({
         initial="hidden"
         animate="visible"
       >
-        <Button
-          variant="text"
-          disableElevation
+        <GlowButton
+          variant="ghost"
           onClick={() => router.push(`/albums/${album.id}`)}
-          sx={{ mb: 2, minWidth: 'auto', px: 1, color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+          sx={{ mb: 2, minWidth: 'auto', px: 1.5, py: 0.5, color: CIN.textMuted, '&:hover': { color: CIN.text } }}
         >
           <ArrowLeft style={{ width: 16, height: 16, marginRight: 6 }} />
           Back to Album
-        </Button>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: '11px',
-            fontWeight: 600,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            color: 'var(--viraha-gold, #D4A843)',
-            mb: 0.75,
-          }}
-        >
-          The Shelf — Collections
-        </Typography>
+        </GlowButton>
+        <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>Collections</Typography>
         <Typography
           component="h1"
-          sx={(theme) => ({
-            fontFamily: 'var(--font-accent)',
-            fontSize: { xs: '1.875rem', md: '2.5rem' },
-            lineHeight: 1.1,
-            color:
-              theme.palette.mode === 'dark'
-                ? 'var(--viraha-ink-dark, #F2EAD9)'
-                : 'var(--viraha-ink, #221C18)',
-            mb: 1,
-          })}
+          sx={{ ...displaySx, fontSize: { xs: '1.875rem', md: '2.5rem' }, mb: 1 }}
         >
           Edit Album
         </Typography>
-        <Typography sx={{ color: 'text.secondary', fontSize: '1rem' }}>
+        <Typography sx={{ color: CIN.textMuted, fontSize: '1rem' }}>
           Update the details of your collection.
         </Typography>
       </Box>
@@ -195,7 +183,7 @@ export default function EditAlbumPage({
       >
         {/* Title */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <FormLabel htmlFor="title" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Title</FormLabel>
+          <FormLabel htmlFor="title" sx={fieldLabelSx}>Title</FormLabel>
           <TextField
             id="title"
             placeholder="e.g. Summer in Japan"
@@ -206,13 +194,13 @@ export default function EditAlbumPage({
             size="small"
             fullWidth
             slotProps={{ htmlInput: { maxLength: 100 } }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+            sx={darkFieldSx}
           />
         </Box>
 
         {/* Description */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <FormLabel htmlFor="description" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Description (optional)</FormLabel>
+          <FormLabel htmlFor="description" sx={fieldLabelSx}>Description (optional)</FormLabel>
           <TextField
             id="description"
             placeholder="What is this album about?"
@@ -224,13 +212,13 @@ export default function EditAlbumPage({
             size="small"
             fullWidth
             slotProps={{ htmlInput: { maxLength: 500 } }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+            sx={darkFieldSx}
           />
         </Box>
 
         {/* Cover image */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <FormLabel htmlFor="coverImage" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Cover image URL (optional)</FormLabel>
+          <FormLabel htmlFor="coverImage" sx={fieldLabelSx}>Cover image URL (optional)</FormLabel>
           <TextField
             id="coverImage"
             placeholder="https://… or /uploads/…"
@@ -240,13 +228,13 @@ export default function EditAlbumPage({
             size="small"
             fullWidth
             slotProps={{ htmlInput: { maxLength: 2048 } }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+            sx={darkFieldSx}
           />
         </Box>
 
         {/* Privacy */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <FormLabel htmlFor="privacy" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Privacy</FormLabel>
+          <FormLabel htmlFor="privacy" sx={fieldLabelSx}>Privacy</FormLabel>
           <TextField
             select
             id="privacy"
@@ -254,7 +242,7 @@ export default function EditAlbumPage({
             onChange={(e) => setPrivacy(e.target.value)}
             size="small"
             fullWidth
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            sx={darkFieldSx}
           >
             <MenuItem value="public">Public</MenuItem>
             <MenuItem value="followers">Followers only</MenuItem>
@@ -264,36 +252,27 @@ export default function EditAlbumPage({
 
         {/* Error */}
         {submitError && (
-          <Typography role="alert" sx={{ fontSize: '0.875rem', color: 'error.main' }}>
+          <Typography role="alert" sx={{ fontSize: '0.875rem', color: CIN.danger }}>
             {submitError}
           </Typography>
         )}
 
         {/* Actions */}
         <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button
+          <GlowButton
             type="button"
-            variant="outlined"
-            disableElevation
+            variant="ghost"
             onClick={() => router.push(`/albums/${album.id}`)}
             disabled={updateAlbum.isPending}
-            sx={{ borderRadius: '4px', flex: 1, borderColor: 'divider', color: 'text.secondary' }}
+            sx={{ flex: 1 }}
             size="large"
           >
             Cancel
-          </Button>
-          <Button
+          </GlowButton>
+          <GlowButton
             type="submit"
-            variant="contained"
-            disableElevation
-            sx={{
-              borderRadius: '4px',
-              flex: 1,
-              bgcolor: 'var(--viraha-gold, #D4A843)',
-              color: 'var(--viraha-ink, #221C18)',
-              fontWeight: 700,
-              '&:hover': { bgcolor: '#C09934' },
-            }}
+            variant="solid"
+            sx={{ flex: 1 }}
             size="large"
             disabled={!title.trim() || updateAlbum.isPending}
           >
@@ -305,7 +284,7 @@ export default function EditAlbumPage({
             ) : (
               'Save Changes'
             )}
-          </Button>
+          </GlowButton>
         </Box>
       </motion.form>
     </Box>

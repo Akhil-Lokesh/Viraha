@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Bell,
   UserPlus,
@@ -12,17 +12,9 @@ import {
   CheckCheck,
 } from 'lucide-react';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import { PhotoTile } from '@/components/cinema';
+import { CIN, glowRing } from '@/lib/design/cinema-tokens';
 import type { Activity } from '@/lib/types';
-import { KEEPSAKE, fadeUpItem } from './keepsake';
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
-
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 const activityIcons = {
   follow: UserPlus,
@@ -65,41 +57,77 @@ function timeAgo(dateStr: string): string {
   return `${weeks}w`;
 }
 
+/** Accent unread dot with a soft expanding pulse (still dot when motion is reduced). */
+function UnreadDot({ reducedMotion }: { reducedMotion: boolean }) {
+  return (
+    <Box
+      aria-hidden
+      sx={{ position: 'relative', width: 8, height: 8, flexShrink: 0 }}
+    >
+      {!reducedMotion && (
+        <Box
+          component={motion.span}
+          animate={{ scale: [1, 2.4], opacity: [0.5, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            display: 'block',
+            borderRadius: '50%',
+            bgcolor: CIN.accent,
+          }}
+        />
+      )}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '50%',
+          bgcolor: CIN.accent,
+          boxShadow: `0 0 8px ${CIN.accentGlow}`,
+        }}
+      />
+    </Box>
+  );
+}
+
 interface ActivityItemProps {
   activity: Activity;
   onMarkRead: (id: string) => void;
 }
 
 /**
- * A single logbook entry. Sits on the flight-path connector rendered by the
- * day group; the avatar acts as the waypoint node on the dashed gold line.
+ * A quiet dark list row: actor avatar + type badge, message, relative time,
+ * optional post thumbnail, and a pulsing accent dot while unread.
  */
 export function ActivityItem({ activity, onMarkRead }: ActivityItemProps) {
+  const reducedMotion = useReducedMotion() ?? false;
   const Icon = activityIcons[activity.type] ?? Bell;
   const thumb = activity.post?.mediaThumbnails?.[0] || activity.post?.mediaUrls?.[0];
 
   return (
     <Box
       component={motion.div}
-      variants={fadeUpItem}
+      whileHover={reducedMotion ? undefined : { x: 2 }}
       sx={{
-        position: 'relative',
-        zIndex: 1,
         display: 'flex',
         alignItems: 'flex-start',
         gap: 1.5,
         px: 2,
         py: 1.5,
-        bgcolor: !activity.read ? KEEPSAKE.goldSoft : 'transparent',
-        borderBottom: '1px dashed',
-        borderColor: KEEPSAKE.hairline,
-        transition: 'background-color 0.2s',
-        cursor: !activity.read ? 'pointer' : 'default',
-        ...(activity.read && { '&:hover': { bgcolor: 'action.hover' } }),
+        bgcolor: activity.read ? 'transparent' : 'rgba(139,124,255,0.06)',
+        borderBottom: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+        transition: 'background-color 0.2s ease',
+        cursor: activity.read ? 'default' : 'pointer',
+        '&:hover': {
+          bgcolor: activity.read
+            ? 'rgba(255,255,255,0.03)'
+            : 'rgba(139,124,255,0.1)',
+        },
       }}
       onClick={() => !activity.read && onMarkRead(activity.id)}
     >
-      {/* Actor avatar — waypoint node on the flight path */}
+      {/* Actor avatar with activity-type badge */}
       <Box sx={{ position: 'relative', flexShrink: 0 }}>
         {activity.actor && (
           <UserAvatar
@@ -121,10 +149,9 @@ export function ActivityItem({ activity, onMarkRead }: ActivityItemProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: KEEPSAKE.paper,
-            border: '1px solid',
-            borderColor: KEEPSAKE.gold,
-            color: KEEPSAKE.gold,
+            bgcolor: 'var(--cin-surface-2, #1C1C24)',
+            border: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+            color: CIN.accent,
           }}
         >
           <Icon style={{ height: 9, width: 9 }} />
@@ -133,7 +160,7 @@ export function ActivityItem({ activity, onMarkRead }: ActivityItemProps) {
 
       {/* Content */}
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2">
+        <Typography variant="body2" sx={{ color: 'var(--cin-text, #F4F4F6)' }}>
           <Link
             href={`/profile/${activity.actor?.username}`}
             style={{ textDecoration: 'none', color: 'inherit' }}
@@ -142,15 +169,14 @@ export function ActivityItem({ activity, onMarkRead }: ActivityItemProps) {
               component="span"
               sx={{
                 fontWeight: 600,
-                color: 'text.primary',
-                textDecoration: 'none',
+                color: 'var(--cin-text, #F4F4F6)',
                 '&:hover': { textDecoration: 'underline' },
               }}
             >
               {activity.actor?.displayName || activity.actor?.username}
             </Box>
           </Link>{' '}
-          <Box component="span" sx={{ color: 'text.secondary' }}>
+          <Box component="span" sx={{ color: 'var(--cin-text-muted, #9A9AA6)' }}>
             {activityMessage(activity)}
           </Box>
         </Typography>
@@ -158,7 +184,7 @@ export function ActivityItem({ activity, onMarkRead }: ActivityItemProps) {
           <Typography
             variant="body2"
             sx={{
-              color: 'text.secondary',
+              color: 'var(--cin-text-muted, #9A9AA6)',
               fontStyle: 'italic',
               mt: 0.25,
               display: '-webkit-box',
@@ -170,56 +196,53 @@ export function ActivityItem({ activity, onMarkRead }: ActivityItemProps) {
             &ldquo;{activity.comment.text}&rdquo;
           </Typography>
         )}
+        {/* Relative time depends on Date.now() — SSR and client can disagree. */}
         <Typography
           variant="caption"
-          sx={{ color: 'text.secondary', opacity: 0.7, mt: 0.5, display: 'block' }}
+          suppressHydrationWarning
+          sx={{
+            color: 'var(--cin-text-muted, #9A9AA6)',
+            opacity: 0.8,
+            mt: 0.5,
+            display: 'block',
+          }}
         >
           {timeAgo(activity.createdAt)}
         </Typography>
       </Box>
 
-      {/* Post thumbnail — tiny polaroid */}
+      {/* Post thumbnail */}
       {thumb && activity.postId && (
         <Link
           href={`/post/${activity.postId}`}
           aria-label="View post"
-          style={{ textDecoration: 'none', color: 'inherit' }}
+          style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0 }}
         >
-          <Box sx={{ flexShrink: 0, transform: 'rotate(1.5deg)' }}>
-            <Box
-              sx={{
-                width: 44,
-                height: 48,
-                overflow: 'hidden',
-                border: '1px solid',
-                borderColor: KEEPSAKE.hairline,
-                bgcolor: KEEPSAKE.paper,
-                p: '3px',
-                pb: '7px',
-                boxShadow: '2px 2px 0 rgba(34, 28, 24, 0.12)',
-              }}
-            >
-              <img
-                src={resolveImageUrl(thumb)}
-                alt="View post"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </Box>
+          <Box
+            component={motion.div}
+            whileHover={reducedMotion ? undefined : { scale: 1.03 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+            sx={{
+              borderRadius: '8px',
+              '&:hover': { boxShadow: glowRing(1) },
+              transition: 'box-shadow 0.2s ease',
+            }}
+          >
+            <PhotoTile
+              src={thumb}
+              alt="View post"
+              vignette={false}
+              rounded={8}
+              sx={{ width: 44, height: 44 }}
+            />
           </Box>
         </Link>
       )}
 
-      {/* Unread indicator — gold dot */}
+      {/* Unread indicator — pulsing accent dot */}
       {!activity.read && (
         <Box sx={{ flexShrink: 0, mt: 1 }}>
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: KEEPSAKE.gold,
-            }}
-          />
+          <UnreadDot reducedMotion={reducedMotion} />
         </Box>
       )}
     </Box>

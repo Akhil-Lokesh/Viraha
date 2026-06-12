@@ -17,11 +17,100 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2 } from "lucide-react";
+import { CIN } from "@/lib/design/cinema-tokens";
 
 // Simple className joiner (replaces cn from tailwind-merge)
 function cn(...classes: (string | undefined | false | null)[]) {
   return classes.filter(Boolean).join(' ');
 }
+
+// Component-level chrome for map UI (popups, tooltips, controls). Injected as a
+// <style> tag from the Map component so hover/disabled states work without a
+// utility-CSS framework and without touching globals.css.
+const MAP_CHROME_CSS = `
+.vmap-popup {
+  position: relative;
+  background: ${CIN.surface};
+  border: 1px solid ${CIN.hairline};
+  border-radius: 12px;
+  padding: 12px;
+  color: ${CIN.text};
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+.vmap-popup-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: ${CIN.textMuted};
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.vmap-popup-close:hover {
+  color: ${CIN.text};
+  background: rgba(255, 255, 255, 0.06);
+}
+.vmap-tooltip {
+  background: ${CIN.surface2};
+  border: 1px solid ${CIN.hairline};
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: ${CIN.text};
+}
+.vmap-ctrl-group {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid ${CIN.hairline};
+  border-radius: 10px;
+  background: rgba(20, 20, 25, 0.92);
+  backdrop-filter: blur(12px);
+}
+.vmap-ctrl-group > button:not(:last-child) {
+  border-bottom: 1px solid ${CIN.hairline};
+}
+.vmap-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: ${CIN.text};
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.vmap-ctrl-btn:hover {
+  background: rgba(139, 124, 255, 0.16);
+  color: ${CIN.accent};
+}
+.vmap-ctrl-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+.vmap-loader-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: ${CIN.accent};
+  animation: vmap-pulse 1.2s ease-in-out infinite;
+}
+@keyframes vmap-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+`;
 
 // Check document class for theme (works with next-themes, etc.)
 function getDocumentTheme(): Theme | null {
@@ -103,9 +192,15 @@ function useMap() {
   return context;
 }
 
+// Dark-cinematic basemap (Carto Dark Matter — free, no key). The app is pinned
+// to dark mode, so both theme slots resolve to the dark style: every map in
+// the app renders as a dark surface regardless of OS-level color scheme.
+const DARK_BASEMAP_STYLE =
+  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+
 const defaultStyles = {
-  dark: "https://tiles.openfreemap.org/styles/dark",
-  light: "https://tiles.openfreemap.org/styles/positron",
+  dark: DARK_BASEMAP_STYLE,
+  light: DARK_BASEMAP_STYLE,
 };
 
 type MapStyleOption = string | MapLibreGL.StyleSpecification;
@@ -156,11 +251,20 @@ type MapProps = {
 type MapRef = MapLibreGL.Map;
 
 const DefaultLoader = () => (
-  <div className="absolute inset-0 flex items-center justify-center">
-    <div className="flex gap-1">
-      <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse" />
-      <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:150ms]" />
-      <span className="size-1.5 rounded-full bg-muted-foreground/60 animate-pulse [animation-delay:300ms]" />
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: CIN.bg,
+    }}
+  >
+    <div style={{ display: "flex", gap: 5 }}>
+      <span className="vmap-loader-dot" />
+      <span className="vmap-loader-dot" style={{ animationDelay: "150ms" }} />
+      <span className="vmap-loader-dot" style={{ animationDelay: "300ms" }} />
     </div>
   </div>
 );
@@ -321,10 +425,16 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
 
   return (
     <MapContext.Provider value={contextValue}>
+      <style>{MAP_CHROME_CSS}</style>
       <div
         ref={containerRef}
         className={cn("relative w-full h-full", className)}
-        style={{ position: 'relative', width: '100%', height: '100%' }}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          background: CIN.bg,
+        }}
       >
         {!isLoaded && <DefaultLoader />}
         {/* SSR-safe: children render only when map is loaded on client */}
@@ -504,7 +614,10 @@ function MarkerContent({ children, className }: MarkerContentProps) {
   const { marker } = useMarkerContext();
 
   return createPortal(
-    <div className={cn("relative cursor-pointer", className)}>
+    <div
+      className={cn("relative cursor-pointer", className)}
+      style={{ position: "relative", cursor: "pointer" }}
+    >
       {children || <DefaultMarkerIcon />}
     </div>,
     marker.getElement()
@@ -513,7 +626,17 @@ function MarkerContent({ children, className }: MarkerContentProps) {
 
 function DefaultMarkerIcon() {
   return (
-    <div className="relative h-4 w-4 rounded-full border-2 border-white bg-blue-500 shadow-lg" />
+    <div
+      style={{
+        position: "relative",
+        width: 14,
+        height: 14,
+        borderRadius: "50%",
+        background: CIN.accent,
+        border: `2px solid ${CIN.bg}`,
+        boxShadow: `0 0 0 1px ${CIN.hairline}, 0 0 12px ${CIN.accentGlow}`,
+      }}
+    />
   );
 }
 
@@ -577,21 +700,15 @@ function MarkerPopup({
   const handleClose = () => popup.remove();
 
   return createPortal(
-    <div
-      className={cn(
-        "relative rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
-        className
-      )}
-    >
+    <div className={cn("vmap-popup", className)}>
       {closeButton && (
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-1 right-1 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="vmap-popup-close"
           aria-label="Close popup"
         >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
+          <X style={{ width: 14, height: 14 }} />
         </button>
       )}
       {children}
@@ -663,14 +780,7 @@ function MarkerTooltip({
   }
 
   return createPortal(
-    <div
-      className={cn(
-        "rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md animate-in fade-in-0 zoom-in-95",
-        className
-      )}
-    >
-      {children}
-    </div>,
+    <div className={cn("vmap-tooltip", className)}>{children}</div>,
     container
   );
 }
@@ -689,19 +799,25 @@ function MarkerLabel({
   className,
   position = "top",
 }: MarkerLabelProps) {
-  const positionClasses = {
-    top: "bottom-full mb-1",
-    bottom: "top-full mt-1",
+  const positionStyles: Record<"top" | "bottom", React.CSSProperties> = {
+    top: { bottom: "100%", marginBottom: 4 },
+    bottom: { top: "100%", marginTop: 4 },
   };
 
   return (
     <div
-      className={cn(
-        "absolute left-1/2 -translate-x-1/2 whitespace-nowrap",
-        "text-[10px] font-medium text-foreground",
-        positionClasses[position],
-        className
-      )}
+      className={className}
+      style={{
+        position: "absolute",
+        left: "50%",
+        transform: "translateX(-50%)",
+        whiteSpace: "nowrap",
+        fontSize: 10,
+        fontWeight: 500,
+        color: CIN.text,
+        textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+        ...positionStyles[position],
+      }}
     >
       {children}
     </div>
@@ -725,19 +841,18 @@ type MapControlsProps = {
   onLocate?: (coords: { longitude: number; latitude: number }) => void;
 };
 
-const positionClasses = {
-  "top-left": "top-2 left-2",
-  "top-right": "top-2 right-2",
-  "bottom-left": "bottom-2 left-2",
-  "bottom-right": "bottom-10 right-2",
+const controlPositionStyles: Record<
+  "top-left" | "top-right" | "bottom-left" | "bottom-right",
+  React.CSSProperties
+> = {
+  "top-left": { top: 8, left: 8 },
+  "top-right": { top: 8, right: 8 },
+  "bottom-left": { bottom: 8, left: 8 },
+  "bottom-right": { bottom: 40, right: 8 },
 };
 
 function ControlGroup({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col rounded-md border border-border bg-background shadow-sm overflow-hidden [&>button:not(:last-child)]:border-b [&>button:not(:last-child)]:border-border">
-      {children}
-    </div>
-  );
+  return <div className="vmap-ctrl-group">{children}</div>;
 }
 
 function ControlButton({
@@ -756,10 +871,7 @@ function ControlButton({
       onClick={onClick}
       aria-label={label}
       type="button"
-      className={cn(
-        "flex items-center justify-center size-8 hover:bg-accent dark:hover:bg-accent/40 transition-colors",
-        disabled && "opacity-50 pointer-events-none cursor-not-allowed"
-      )}
+      className="vmap-ctrl-btn"
       disabled={disabled}
     >
       {children}
@@ -828,19 +940,23 @@ function MapControls({
 
   return (
     <div
-      className={cn(
-        "absolute z-10 flex flex-col gap-1.5",
-        positionClasses[position],
-        className
-      )}
+      className={className}
+      style={{
+        position: "absolute",
+        zIndex: 10,
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        ...controlPositionStyles[position],
+      }}
     >
       {showZoom && (
         <ControlGroup>
           <ControlButton onClick={handleZoomIn} label="Zoom in">
-            <Plus className="size-4" />
+            <Plus style={{ width: 16, height: 16 }} />
           </ControlButton>
           <ControlButton onClick={handleZoomOut} label="Zoom out">
-            <Minus className="size-4" />
+            <Minus style={{ width: 16, height: 16 }} />
           </ControlButton>
         </ControlGroup>
       )}
@@ -857,9 +973,15 @@ function MapControls({
             disabled={waitingForLocation}
           >
             {waitingForLocation ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2
+                style={{
+                  width: 16,
+                  height: 16,
+                  animation: "spin 1s linear infinite",
+                }}
+              />
             ) : (
-              <Locate className="size-4" />
+              <Locate style={{ width: 16, height: 16 }} />
             )}
           </ControlButton>
         </ControlGroup>
@@ -867,7 +989,7 @@ function MapControls({
       {showFullscreen && (
         <ControlGroup>
           <ControlButton onClick={handleFullscreen} label="Toggle fullscreen">
-            <Maximize className="size-4" />
+            <Maximize style={{ width: 16, height: 16 }} />
           </ControlButton>
         </ControlGroup>
       )}
@@ -905,13 +1027,17 @@ function CompassButton({ onClick }: { onClick: () => void }) {
       <svg
         ref={compassRef}
         viewBox="0 0 24 24"
-        className="size-5 transition-transform duration-200"
-        style={{ transformStyle: "preserve-3d" }}
+        style={{
+          width: 20,
+          height: 20,
+          transformStyle: "preserve-3d",
+          transition: "transform 0.2s ease",
+        }}
       >
-        <path d="M12 2L16 12H12V2Z" className="fill-red-500" />
-        <path d="M12 2L8 12H12V2Z" className="fill-red-300" />
-        <path d="M12 22L16 12H12V22Z" className="fill-muted-foreground/60" />
-        <path d="M12 22L8 12H12V22Z" className="fill-muted-foreground/30" />
+        <path d="M12 2L16 12H12V2Z" fill={CIN.accent} />
+        <path d="M12 2L8 12H12V2Z" fill="rgba(139,124,255,0.55)" />
+        <path d="M12 22L16 12H12V22Z" fill="rgba(255,255,255,0.45)" />
+        <path d="M12 22L8 12H12V22Z" fill="rgba(255,255,255,0.22)" />
       </svg>
     </ControlButton>
   );
@@ -1003,21 +1129,15 @@ function MapPopup({
   };
 
   return createPortal(
-    <div
-      className={cn(
-        "relative rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
-        className
-      )}
-    >
+    <div className={cn("vmap-popup", className)}>
       {closeButton && (
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-1 right-1 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="vmap-popup-close"
           aria-label="Close popup"
         >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
+          <X style={{ width: 14, height: 14 }} />
         </button>
       )}
       {children}
@@ -1031,7 +1151,7 @@ type MapRouteProps = {
   id?: string;
   /** Array of [longitude, latitude] coordinate pairs defining the route */
   coordinates: [number, number][];
-  /** Line color as CSS color value (default: "#4285F4") */
+  /** Line color as CSS color value (default: accent violet) */
   color?: string;
   /** Line width in pixels (default: 3) */
   width?: number;
@@ -1052,7 +1172,7 @@ type MapRouteProps = {
 function MapRoute({
   id: propId,
   coordinates,
-  color = "#4285F4",
+  color = CIN.accent,
   width = 3,
   opacity = 0.8,
   dashArray,
@@ -1176,11 +1296,11 @@ type MapClusterLayerProps<
   clusterMaxZoom?: number;
   /** Radius of each cluster when clustering points in pixels (default: 50) */
   clusterRadius?: number;
-  /** Colors for cluster circles: [small, medium, large] based on point count (default: ["#22c55e", "#eab308", "#ef4444"]) */
+  /** Colors for cluster circles: [small, medium, large] based on point count (default: dark surfaces) */
   clusterColors?: [string, string, string];
   /** Point count thresholds for color/size steps: [medium, large] (default: [100, 750]) */
   clusterThresholds?: [number, number];
-  /** Color for unclustered individual points (default: "#3b82f6") */
+  /** Color for unclustered individual points (default: accent violet) */
   pointColor?: string;
   /** Callback when an unclustered point is clicked */
   onPointClick?: (
@@ -1201,9 +1321,9 @@ function MapClusterLayer<
   data,
   clusterMaxZoom = 14,
   clusterRadius = 50,
-  clusterColors = ["#22c55e", "#eab308", "#ef4444"],
+  clusterColors = [CIN.surface2, "#2A2A38", "#343444"],
   clusterThresholds = [100, 750],
-  pointColor = "#3b82f6",
+  pointColor = CIN.accent,
   onPointClick,
   onClusterClick,
 }: MapClusterLayerProps<P>) {
@@ -1258,13 +1378,13 @@ function MapClusterLayer<
           clusterThresholds[1],
           40,
         ],
-        "circle-stroke-width": 1,
-        "circle-stroke-color": "#fff",
-        "circle-opacity": 0.85,
+        "circle-stroke-width": 1.5,
+        "circle-stroke-color": CIN.accent,
+        "circle-opacity": 0.92,
       },
     });
 
-    // Add cluster count text layer
+    // Add cluster count text layer — accent count on the dark surface
     map.addLayer({
       id: clusterCountLayerId,
       type: "symbol",
@@ -1275,7 +1395,7 @@ function MapClusterLayer<
         "text-size": 12,
       },
       paint: {
-        "text-color": "#fff",
+        "text-color": CIN.accent,
       },
     });
 
@@ -1289,7 +1409,7 @@ function MapClusterLayer<
         "circle-color": pointColor,
         "circle-radius": 5,
         "circle-stroke-width": 2,
-        "circle-stroke-color": "#fff",
+        "circle-stroke-color": CIN.bg,
       },
     });
 

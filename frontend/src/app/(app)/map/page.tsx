@@ -4,7 +4,8 @@ import { useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
-import { MapPin, Loader2, BookOpen, Navigation, X } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { MapPin, Loader2, BookOpen, Navigation, X, Pin, Sparkles } from 'lucide-react';
 import { useMapMarkers } from '@/lib/hooks/use-map';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { usePlaceResonance } from '@/lib/hooks/use-viraha';
@@ -15,6 +16,8 @@ import { LocationBadge } from '@/components/shared/location-badge';
 import { TimelineScrubber } from '@/components/map/timeline-scrubber';
 import { PlaceHistoryDrawer } from '@/components/map/place-history-drawer';
 import { ResonancePin } from '@/components/map/resonance-pin';
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
+import { GlowButton, PhotoTile } from '@/components/cinema';
 import type { MapMarkerData, Post } from '@/lib/types';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -28,12 +31,23 @@ function resolveImageUrl(url: string): string {
   return `${API_BASE}${url}`;
 }
 
+// The app is pinned to dark mode — when a Mapbox token is configured, both
+// theme slots resolve to the dark basemap. Without a token, ui/map falls back
+// to the default Carto Dark Matter style (free, no key).
 const mapboxStyleUrls = MAPBOX_TOKEN
   ? {
-      light: `https://api.mapbox.com/styles/v1/mapbox/light-v11?access_token=${MAPBOX_TOKEN}`,
+      light: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${MAPBOX_TOKEN}`,
       dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${MAPBOX_TOKEN}`,
     }
   : undefined;
+
+// Floating chrome shares one frosted dark-surface treatment.
+const chromeSurfaceSx = {
+  bgcolor: 'rgba(20,20,25,0.92)',
+  backdropFilter: 'blur(16px)',
+  borderRadius: '10px',
+  border: `1px solid ${CIN.hairline}`,
+} as const;
 
 // ─── Dynamic map components ──────────────────────────
 // MapLibre (~350KB) is loaded only on the client, keeping it out of the
@@ -49,12 +63,12 @@ function MapSkeleton() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'rgba(0,0,0,0.05)',
+        bgcolor: CIN.bg,
       }}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
-        <Loader2 style={{ height: 32, width: 32, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }} />
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading map...</Typography>
+        <Loader2 style={{ height: 32, width: 32, animation: 'spin 1s linear infinite', color: CIN.accent }} />
+        <Typography variant="body2" sx={{ color: CIN.textMuted }}>Loading map...</Typography>
       </Box>
     </Box>
   );
@@ -74,7 +88,88 @@ const MapControls = dynamic(() => import('@/components/ui/map').then((m) => m.Ma
 type TypeFilter = 'all' | 'post' | 'journal';
 type ScopeFilter = 'everyone' | 'mine';
 
+// ─── Filter pills (animated accent pill via layoutId) ─
+
+function FilterPillGroup<T extends string>({
+  options,
+  value,
+  onChange,
+  layoutId,
+}: {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+  layoutId: string;
+}) {
+  return (
+    <Box
+      sx={{
+        ...chromeSurfaceSx,
+        p: 0.5,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.25,
+      }}
+    >
+      {options.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <Box
+            key={opt.value}
+            component="button"
+            type="button"
+            onClick={() => onChange(opt.value)}
+            aria-pressed={active}
+            sx={{
+              position: 'relative',
+              px: 1.5,
+              py: 0.75,
+              borderRadius: '8px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              bgcolor: 'transparent',
+              color: active ? CIN.bg : CIN.textMuted,
+              transition: 'color 0.2s ease',
+              '&:hover': { color: active ? CIN.bg : CIN.text },
+            }}
+          >
+            {active && (
+              <motion.span
+                layoutId={layoutId}
+                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: 8,
+                  background: CIN.accent,
+                  boxShadow: `0 0 14px ${CIN.accentGlow}`,
+                }}
+              />
+            )}
+            <Box component="span" sx={{ position: 'relative', zIndex: 1 }}>
+              {opt.label}
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
 // ─── Filter bar ──────────────────────────────────────
+
+const TYPE_OPTIONS: readonly { value: TypeFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'post', label: 'Posts' },
+  { value: 'journal', label: 'Journals' },
+];
+
+const SCOPE_OPTIONS: readonly { value: ScopeFilter; label: string }[] = [
+  { value: 'everyone', label: 'Everyone' },
+  { value: 'mine', label: 'My Content' },
+];
 
 function FilterBar({
   typeFilter,
@@ -87,19 +182,13 @@ function FilterBar({
   scopeFilter: ScopeFilter;
   onScopeChange: (s: ScopeFilter) => void;
 }) {
-  const typeOptions: { value: TypeFilter; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'post', label: 'Posts' },
-    { value: 'journal', label: 'Journals' },
-  ];
-
-  const scopeOptions: { value: ScopeFilter; label: string }[] = [
-    { value: 'everyone', label: 'Everyone' },
-    { value: 'mine', label: 'My Content' },
-  ];
-
+  const reduceMotion = useReducedMotion();
   return (
     <Box
+      component={motion.div}
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
       sx={{
         position: 'absolute',
         top: 16,
@@ -111,89 +200,18 @@ function FilterBar({
         flexWrap: 'wrap',
       }}
     >
-      {/* Type filter pills */}
-      <Box
-        sx={{
-          bgcolor: (theme) =>
-            theme.palette.mode === 'dark'
-              ? 'rgba(31,21,48,0.9)'
-              : 'rgba(255,255,255,0.9)',
-          backdropFilter: 'blur(16px)',
-          borderRadius: '8px',
-          border: 1,
-          borderColor: 'divider',
-          boxShadow: 1,
-          p: 0.5,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.25,
-        }}
-      >
-        {typeOptions.map((opt) => (
-          <Box
-            key={opt.value}
-            component="button"
-            onClick={() => onTypeChange(opt.value)}
-            sx={{
-              px: 1.5,
-              py: 0.75,
-              borderRadius: '8px',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              transition: 'all 0.2s',
-              border: 'none',
-              cursor: 'pointer',
-              ...(typeFilter === opt.value
-                ? { bgcolor: 'primary.main', color: 'white', boxShadow: 1 }
-                : { bgcolor: 'transparent', color: 'text.secondary', '&:hover': { color: 'text.primary', bgcolor: 'action.hover' } }),
-            }}
-          >
-            {opt.label}
-          </Box>
-        ))}
-      </Box>
-
-      {/* Scope filter pills */}
-      <Box
-        sx={{
-          bgcolor: (theme) =>
-            theme.palette.mode === 'dark'
-              ? 'rgba(31,21,48,0.9)'
-              : 'rgba(255,255,255,0.9)',
-          backdropFilter: 'blur(16px)',
-          borderRadius: '8px',
-          border: 1,
-          borderColor: 'divider',
-          boxShadow: 1,
-          p: 0.5,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.25,
-        }}
-      >
-        {scopeOptions.map((opt) => (
-          <Box
-            key={opt.value}
-            component="button"
-            onClick={() => onScopeChange(opt.value)}
-            sx={{
-              px: 1.5,
-              py: 0.75,
-              borderRadius: '8px',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              transition: 'all 0.2s',
-              border: 'none',
-              cursor: 'pointer',
-              ...(scopeFilter === opt.value
-                ? { bgcolor: 'primary.main', color: 'white', boxShadow: 1 }
-                : { bgcolor: 'transparent', color: 'text.secondary', '&:hover': { color: 'text.primary', bgcolor: 'action.hover' } }),
-            }}
-          >
-            {opt.label}
-          </Box>
-        ))}
-      </Box>
+      <FilterPillGroup
+        options={TYPE_OPTIONS}
+        value={typeFilter}
+        onChange={onTypeChange}
+        layoutId="map-type-pill"
+      />
+      <FilterPillGroup
+        options={SCOPE_OPTIONS}
+        value={scopeFilter}
+        onChange={onScopeChange}
+        layoutId="map-scope-pill"
+      />
     </Box>
   );
 }
@@ -205,7 +223,15 @@ function MarkerPin({ marker }: { marker: MapMarkerData }) {
   const isJournal = marker.type === 'journal';
 
   return (
-    <Box sx={{ position: 'relative', '&:hover .pin-img': { transform: 'scale(1.1)' } }}>
+    <Box
+      sx={{
+        position: 'relative',
+        '&:hover .pin-img': {
+          transform: 'scale(1.08)',
+          boxShadow: `0 0 0 1px ${CIN.accent}, 0 0 22px ${CIN.accentGlow}`,
+        },
+      }}
+    >
       <Box
         component="span"
         sx={{
@@ -214,9 +240,7 @@ function MarkerPin({ marker }: { marker: MapMarkerData }) {
           borderRadius: '50%',
           animation: 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
           pointerEvents: 'none',
-          bgcolor: isJournal
-            ? 'rgba(168,85,247,0.2)'
-            : 'rgba(var(--mui-palette-primary-mainChannel) / 0.2)',
+          bgcolor: CIN.accentGlow,
         }}
       />
       <Box
@@ -226,11 +250,11 @@ function MarkerPin({ marker }: { marker: MapMarkerData }) {
           width: 40,
           height: 40,
           borderRadius: '50%',
-          border: 2,
-          borderColor: isJournal ? '#A78BFA' : 'white',
-          boxShadow: 3,
+          border: `2px solid ${CIN.accent}`,
+          boxShadow: `0 0 14px ${CIN.accentGlow}`,
           overflow: 'hidden',
-          transition: 'transform 0.2s',
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          bgcolor: CIN.surface2,
         }}
       >
         {resolved ? (
@@ -247,13 +271,14 @@ function MarkerPin({ marker }: { marker: MapMarkerData }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: isJournal ? '#8B5CF6' : 'primary.main',
+              bgcolor: CIN.surface2,
+              color: CIN.accent,
             }}
           >
             {isJournal ? (
-              <BookOpen style={{ height: 16, width: 16, color: 'white' }} />
+              <BookOpen style={{ height: 16, width: 16 }} />
             ) : (
-              <MapPin style={{ height: 16, width: 16, color: 'var(--mui-palette-primary-contrastText)' }} />
+              <MapPin style={{ height: 16, width: 16 }} />
             )}
           </Box>
         )}
@@ -266,8 +291,7 @@ function MarkerPin({ marker }: { marker: MapMarkerData }) {
           transform: 'translateX(-50%) rotate(45deg)',
           width: 8,
           height: 8,
-          boxShadow: 1,
-          bgcolor: isJournal ? '#A78BFA' : 'white',
+          bgcolor: CIN.accent,
         }}
       />
     </Box>
@@ -283,10 +307,6 @@ function MarkerPopupContent({
   marker: MapMarkerData;
   onViewPlaceHistory: (marker: MapMarkerData) => void;
 }) {
-  const imageUrl = marker.thumbnail
-    ? resolveImageUrl(marker.thumbnail)
-    : null;
-
   const isJournal = marker.type === 'journal';
   const href = isJournal
     ? `/journals/${marker.journalId}`
@@ -294,30 +314,24 @@ function MarkerPopupContent({
 
   return (
     <Box sx={{ width: 256 }}>
-      {imageUrl && (
+      {marker.thumbnail && (
         <Link href={href}>
-          <Box sx={{ position: 'relative', aspectRatio: '16/10', borderRadius: '6px', overflow: 'hidden', mb: 1 }}>
-            <img
-              src={imageUrl}
-              alt={marker.title || 'Travel photo'}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transition: 'transform 0.3s',
-              }}
-            />
+          <PhotoTile
+            src={marker.thumbnail}
+            alt={marker.title || 'Travel photo'}
+            rounded={8}
+            sx={{ aspectRatio: '16/10', mb: 1 }}
+          >
             {isJournal && (
               <Box
                 sx={{
                   position: 'absolute',
                   top: 6,
                   left: 6,
-                  bgcolor: 'rgba(139,92,246,0.9)',
-                  backdropFilter: 'blur(4px)',
-                  color: 'white',
+                  bgcolor: CIN.accent,
+                  color: CIN.bg,
                   fontSize: '10px',
-                  fontWeight: 500,
+                  fontWeight: 700,
                   px: 0.75,
                   py: 0.25,
                   borderRadius: '6px',
@@ -330,7 +344,7 @@ function MarkerPopupContent({
                 Journal
               </Box>
             )}
-          </Box>
+          </PhotoTile>
         </Link>
       )}
 
@@ -339,7 +353,7 @@ function MarkerPopupContent({
           variant="body2"
           sx={{
             fontWeight: 500,
-            color: 'text.primary',
+            color: CIN.text,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -361,8 +375,8 @@ function MarkerPopupContent({
             sx={{
               display: 'block',
               fontSize: '0.75rem',
-              color: 'secondary.main',
-              fontWeight: 500,
+              color: CIN.accent,
+              fontWeight: 600,
               '&:hover': { textDecoration: 'underline' },
             }}
           >
@@ -381,9 +395,10 @@ function MarkerPopupContent({
             p: 0,
             cursor: 'pointer',
             fontSize: '0.75rem',
-            color: 'text.secondary',
+            color: CIN.textMuted,
             fontWeight: 500,
-            '&:hover': { color: 'text.primary', textDecoration: 'underline' },
+            transition: 'color 0.15s ease',
+            '&:hover': { color: CIN.accent, textDecoration: 'underline' },
           }}
         >
           View place history
@@ -398,8 +413,8 @@ function MarkerPopupContent({
 const NEARBY_RADIUS_KM = 50;
 
 function NearbyPostRow({ post }: { post: Post }) {
+  const reduceMotion = useReducedMotion();
   const thumbnail = post.mediaThumbnails[0] || post.mediaUrls[0] || null;
-  const resolved = thumbnail ? resolveImageUrl(thumbnail) : null;
   const place =
     post.locationName ||
     [post.locationCity, post.locationCountry].filter(Boolean).join(', ') ||
@@ -407,65 +422,70 @@ function NearbyPostRow({ post }: { post: Post }) {
 
   return (
     <Link href={`/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1.5,
-          p: 1,
-          borderRadius: '10px',
-          transition: 'background-color 0.2s',
-          '&:hover': { bgcolor: 'action.hover' },
-        }}
-      >
+      <motion.div whileHover={reduceMotion ? undefined : { x: 2 }}>
         <Box
           sx={{
-            width: 56,
-            height: 56,
-            flexShrink: 0,
-            borderRadius: '8px',
-            overflow: 'hidden',
-            bgcolor: 'action.hover',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            gap: 1.5,
+            p: 1,
+            borderRadius: '10px',
+            transition: 'background-color 0.2s',
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
           }}
         >
-          {resolved ? (
-            <img
-              src={resolved}
+          {thumbnail ? (
+            <PhotoTile
+              src={thumbnail}
               alt={post.caption || place}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              rounded={8}
+              vignette={false}
+              sx={{ width: 56, height: 56, flexShrink: 0 }}
             />
           ) : (
-            <MapPin style={{ height: 18, width: 18, color: 'var(--mui-palette-text-secondary)' }} />
-          )}
-        </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          {post.caption && (
-            <Typography
-              variant="body2"
+            <Box
               sx={{
-                fontWeight: 500,
-                color: 'text.primary',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
+                width: 56,
+                height: 56,
+                flexShrink: 0,
+                borderRadius: '8px',
+                bgcolor: CIN.surface2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: CIN.textMuted,
               }}
             >
-              {post.caption}
-            </Typography>
+              <MapPin style={{ height: 18, width: 18 }} />
+            </Box>
           )}
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
-            {place}
-          </Typography>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            {post.caption && (
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 500,
+                  color: CIN.text,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {post.caption}
+              </Typography>
+            )}
+            <Typography variant="caption" sx={{ color: CIN.textMuted, display: 'block', mt: 0.25 }}>
+              {place}
+            </Typography>
+          </Box>
         </Box>
-      </Box>
+      </motion.div>
     </Link>
   );
 }
 
 function NearbyPanel({ onClose }: { onClose: () => void }) {
+  const reduceMotion = useReducedMotion();
   const currentLat = useTravelStore((s) => s.currentLat);
   const currentLng = useTravelStore((s) => s.currentLng);
 
@@ -487,6 +507,10 @@ function NearbyPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <Box
+      component={motion.div}
+      initial={reduceMotion ? false : { x: 32, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 36 }}
       sx={{
         position: 'absolute',
         top: 0,
@@ -496,14 +520,9 @@ function NearbyPanel({ onClose }: { onClose: () => void }) {
         zIndex: 30,
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: (theme) =>
-          theme.palette.mode === 'dark'
-            ? 'rgba(20,14,33,0.97)'
-            : 'rgba(255,255,255,0.97)',
+        bgcolor: 'rgba(17,17,22,0.97)',
         backdropFilter: 'blur(16px)',
-        borderLeft: 1,
-        borderColor: 'divider',
-        boxShadow: 6,
+        borderLeft: `1px solid ${CIN.hairline}`,
       }}
     >
       <Box
@@ -513,13 +532,12 @@ function NearbyPanel({ onClose }: { onClose: () => void }) {
           justifyContent: 'space-between',
           px: 2,
           py: 1.5,
-          borderBottom: 1,
-          borderColor: 'divider',
+          borderBottom: `1px solid ${CIN.hairline}`,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Navigation style={{ height: 16, width: 16, color: 'var(--mui-palette-primary-main)' }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          <Navigation style={{ height: 14, width: 14, color: CIN.accent }} />
+          <Typography sx={{ ...eyebrowSx, fontWeight: 700 }}>
             Nearby
           </Typography>
         </Box>
@@ -537,8 +555,9 @@ function NearbyPanel({ onClose }: { onClose: () => void }) {
             cursor: 'pointer',
             p: 0.5,
             borderRadius: '8px',
-            color: 'text.secondary',
-            '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
+            color: CIN.textMuted,
+            transition: 'color 0.15s ease, background-color 0.15s ease',
+            '&:hover': { color: CIN.text, bgcolor: 'rgba(255,255,255,0.06)' },
           }}
         >
           <X style={{ height: 16, width: 16 }} />
@@ -548,54 +567,37 @@ function NearbyPanel({ onClose }: { onClose: () => void }) {
       <Box sx={{ flex: 1, overflowY: 'auto', px: 1, py: 1 }}>
         {!hasCoords ? (
           <Box sx={{ textAlign: 'center', px: 2, py: 4 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: CIN.text, mb: 0.5 }}>
               Location unavailable
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography variant="caption" sx={{ color: CIN.textMuted }}>
               Set your travel location to discover posts around you.
             </Typography>
           </Box>
         ) : isLoading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 4 }}>
             <Loader2
-              style={{ height: 24, width: 24, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }}
+              style={{ height: 24, width: 24, animation: 'spin 1s linear infinite', color: CIN.accent }}
             />
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography variant="caption" sx={{ color: CIN.textMuted }}>
               Finding posts nearby...
             </Typography>
           </Box>
         ) : isError ? (
           <Box sx={{ textAlign: 'center', px: 2, py: 4 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: CIN.text, mb: 1 }}>
               Couldn&apos;t load nearby posts.
             </Typography>
-            <Box
-              component="button"
-              type="button"
-              onClick={() => refetch()}
-              sx={{
-                px: 2,
-                py: 0.75,
-                borderRadius: '8px',
-                border: 1,
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-                color: 'text.primary',
-                fontSize: '0.8125rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                '&:hover': { bgcolor: 'action.hover' },
-              }}
-            >
+            <GlowButton variant="ghost" size="small" onClick={() => refetch()}>
               Retry
-            </Box>
+            </GlowButton>
           </Box>
         ) : posts.length === 0 ? (
           <Box sx={{ textAlign: 'center', px: 2, py: 4 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: CIN.text, mb: 0.5 }}>
               Nothing nearby yet.
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography variant="caption" sx={{ color: CIN.textMuted }}>
               No posts within {NEARBY_RADIUS_KM}km of your location.
             </Typography>
           </Box>
@@ -605,30 +607,15 @@ function NearbyPanel({ onClose }: { onClose: () => void }) {
               <NearbyPostRow key={post.id} post={post} />
             ))}
             {hasNextPage && (
-              <Box
-                component="button"
-                type="button"
+              <GlowButton
+                variant="ghost"
+                size="small"
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                sx={{
-                  mt: 1,
-                  mx: 1,
-                  px: 2,
-                  py: 1,
-                  borderRadius: '8px',
-                  border: 1,
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  color: 'text.primary',
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                  cursor: isFetchingNextPage ? 'default' : 'pointer',
-                  opacity: isFetchingNextPage ? 0.6 : 1,
-                  '&:hover': { bgcolor: isFetchingNextPage ? 'background.paper' : 'action.hover' },
-                }}
+                sx={{ mt: 1, mx: 1 }}
               >
                 {isFetchingNextPage ? 'Loading...' : 'Load more'}
-              </Box>
+              </GlowButton>
             )}
           </Box>
         )}
@@ -699,6 +686,7 @@ const GLOBAL_BOUNDS = {
 
 export default function MapPage() {
   const { user } = useAuth();
+  const reduceMotion = useReducedMotion();
 
   // Filter state
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -788,25 +776,12 @@ export default function MapPage() {
         bottom: { xs: 64, md: 0 },
         left: { xs: 0, md: '96px' },
         zIndex: 10,
+        bgcolor: CIN.bg,
       }}
     >
       <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
         {isLoading ? (
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'rgba(0,0,0,0.05)',
-            }}
-          >
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
-              <Loader2 style={{ height: 32, width: 32, animation: 'spin 1s linear infinite', color: 'var(--mui-palette-text-secondary)' }} />
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading map...</Typography>
-            </Box>
-          </Box>
+          <MapSkeleton />
         ) : isError ? (
           <Box
             sx={{
@@ -815,33 +790,16 @@ export default function MapPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: 'rgba(0,0,0,0.05)',
+              bgcolor: CIN.bg,
             }}
           >
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, maxWidth: 320, textAlign: 'center', px: 3 }}>
-              <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
+              <Typography variant="body2" sx={{ color: CIN.text, fontWeight: 500 }}>
                 Couldn&apos;t load map data.
               </Typography>
-              <Box
-                component="button"
-                type="button"
-                onClick={() => refetch()}
-                sx={{
-                  px: 2,
-                  py: 0.75,
-                  borderRadius: '8px',
-                  border: 1,
-                  borderColor: 'divider',
-                  bgcolor: 'background.paper',
-                  color: 'text.primary',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
+              <GlowButton variant="ghost" size="small" onClick={() => refetch()}>
                 Retry
-              </Box>
+              </GlowButton>
             </Box>
           </Box>
         ) : (
@@ -892,30 +850,38 @@ export default function MapPage() {
                         width: 32,
                         height: 32,
                         borderRadius: '50%',
-                        bgcolor: item.status === 'planned' ? '#3B82F6' : '#E11D48',
-                        border: '2px dashed white',
-                        boxShadow: 2,
+                        bgcolor: 'rgba(20,20,25,0.92)',
+                        border: `2px dashed ${CIN.accent}`,
+                        boxShadow: `0 0 12px ${CIN.accentGlow}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        color: CIN.accent,
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                        '&:hover': {
+                          transform: 'scale(1.08)',
+                          boxShadow: `0 0 20px ${CIN.accentGlow}`,
+                        },
                       }}
                     >
-                      <Typography sx={{ fontSize: '14px' }}>
-                        {item.status === 'planned' ? '📌' : '✨'}
-                      </Typography>
+                      {item.status === 'planned' ? (
+                        <Pin style={{ width: 14, height: 14 }} />
+                      ) : (
+                        <Sparkles style={{ width: 14, height: 14 }} />
+                      )}
                     </Box>
                   </Box>
                 </MarkerContent>
                 <MarkerPopup closeButton>
                   <Box sx={{ width: 200, p: 0.5 }}>
-                    <Typography sx={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: '#E11D48', mb: 0.5 }}>
-                      Want to Go
+                    <Typography sx={{ ...eyebrowSx, fontSize: 10, fontWeight: 700, color: CIN.accent, mb: 0.5 }}>
+                      {item.status === 'planned' ? 'Planned' : 'Want to Go'}
                     </Typography>
-                    <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 600, color: CIN.text }}>
                       {item.locationName || item.locationCity || 'Unnamed place'}
                     </Typography>
                     {item.notes && (
-                      <Typography sx={{ fontSize: '12px', color: 'text.secondary', mt: 0.5 }}>
+                      <Typography sx={{ fontSize: '12px', color: CIN.textMuted, mt: 0.5 }}>
                         {item.notes}
                       </Typography>
                     )}
@@ -963,21 +929,16 @@ export default function MapPage() {
               px: 3,
               py: 2,
               borderRadius: '12px',
-              bgcolor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(31,21,48,0.92)'
-                  : 'rgba(255,255,255,0.92)',
+              bgcolor: 'rgba(20,20,25,0.92)',
               backdropFilter: 'blur(16px)',
-              border: 1,
-              borderColor: 'divider',
-              boxShadow: 2,
+              border: `1px solid ${CIN.hairline}`,
               textAlign: 'center',
             }}
           >
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: CIN.text, mb: 0.5 }}>
               No memories match these filters.
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography variant="caption" sx={{ color: CIN.textMuted }}>
               Try widening your date range or removing filters.
             </Typography>
           </Box>
@@ -985,6 +946,10 @@ export default function MapPage() {
 
         {/* Marker count badge + Nearby toggle */}
         <Box
+          component={motion.div}
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.05, ease: 'easeOut' }}
           sx={{
             position: 'absolute',
             top: 16,
@@ -1001,18 +966,14 @@ export default function MapPage() {
             onClick={() => setNearbyOpen((prev) => !prev)}
             aria-pressed={nearbyOpen}
             sx={{
-              bgcolor: (theme) =>
-                nearbyOpen
-                  ? 'primary.main'
-                  : theme.palette.mode === 'dark'
-                    ? 'rgba(31,21,48,0.9)'
-                    : 'rgba(255,255,255,0.9)',
-              color: nearbyOpen ? 'white' : 'text.primary',
-              backdropFilter: 'blur(16px)',
-              borderRadius: '8px',
-              border: 1,
-              borderColor: 'divider',
-              boxShadow: 1,
+              ...chromeSurfaceSx,
+              ...(nearbyOpen
+                ? {
+                    bgcolor: CIN.accent,
+                    color: CIN.bg,
+                    boxShadow: `0 0 16px ${CIN.accentGlow}`,
+                  }
+                : { color: CIN.text }),
               px: 1.5,
               py: 1,
               display: 'flex',
@@ -1020,8 +981,11 @@ export default function MapPage() {
               gap: 0.75,
               cursor: 'pointer',
               fontSize: '0.75rem',
-              fontWeight: 500,
-              transition: 'all 0.2s',
+              fontWeight: 600,
+              transition: 'all 0.2s ease',
+              '&:hover': nearbyOpen
+                ? { boxShadow: `0 0 22px ${CIN.accentGlow}` }
+                : { borderColor: 'rgba(139,124,255,0.45)', color: CIN.accent },
             }}
           >
             <Navigation style={{ height: 14, width: 14 }} />
@@ -1029,15 +993,7 @@ export default function MapPage() {
           </Box>
           <Box
             sx={{
-              bgcolor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(31,21,48,0.9)'
-                  : 'rgba(255,255,255,0.9)',
-              backdropFilter: 'blur(16px)',
-              borderRadius: '8px',
-              border: 1,
-              borderColor: 'divider',
-              boxShadow: 1,
+              ...chromeSurfaceSx,
               px: 1.5,
               py: 1,
               display: 'flex',
@@ -1050,12 +1006,20 @@ export default function MapPage() {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                bgcolor: '#10B981',
-                animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                bgcolor: CIN.accent,
+                boxShadow: `0 0 8px ${CIN.accentGlow}`,
+                '@keyframes vmapBadgePulse': {
+                  '0%, 100%': { opacity: 1 },
+                  '50%': { opacity: 0.4 },
+                },
+                animation: 'vmapBadgePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               }}
             />
-            <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.primary' }}>
-              {markerCount} {countLabel}
+            <Typography variant="caption" sx={{ fontWeight: 600, color: CIN.text }}>
+              <Box component="span" sx={{ color: CIN.accent, fontWeight: 700 }}>
+                {markerCount}
+              </Box>{' '}
+              {countLabel}
             </Typography>
           </Box>
         </Box>

@@ -4,7 +4,6 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Box, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import {
@@ -13,16 +12,24 @@ import {
   useRejectFollowRequest,
 } from '@/lib/hooks/use-follows';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import { CinemaCard, GlowButton } from '@/components/cinema';
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
+import { staggerItem } from '@/lib/animations';
 import type { FollowRequest } from '@/lib/api/follows';
-import { KEEPSAKE, eyebrowSx, fadeUpItem } from './keepsake';
 
-interface FollowRequestStampProps {
+const compactButtonSx = {
+  px: 1.75,
+  py: 0.5,
+  fontSize: '0.78rem',
+  minWidth: 76,
+} as const;
+
+interface FollowRequestRowProps {
   request: FollowRequest;
-  rotation: number;
 }
 
-/** A pending follow request styled as a passport entry stamp. */
-function FollowRequestStamp({ request, rotation }: FollowRequestStampProps) {
+/** A pending follow request: quiet dark row with accept / decline actions. */
+function FollowRequestRow({ request }: FollowRequestRowProps) {
   const accept = useAcceptFollowRequest();
   const reject = useRejectFollowRequest();
   const pending = accept.isPending || reject.isPending;
@@ -35,12 +42,11 @@ function FollowRequestStamp({ request, rotation }: FollowRequestStampProps) {
         gap: 1.5,
         px: 2,
         py: 1.5,
-        bgcolor: KEEPSAKE.paper,
-        border: '1.5px solid',
-        borderColor: KEEPSAKE.gold,
-        borderRadius: '4px',
-        transform: `rotate(${rotation}deg)`,
-        boxShadow: '2px 2px 0 rgba(34, 28, 24, 0.08)',
+        '&:not(:first-of-type)': {
+          borderTop: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+        },
+        transition: 'background-color 0.2s ease',
+        '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
       }}
     >
       <Box sx={{ flexShrink: 0 }}>
@@ -53,7 +59,7 @@ function FollowRequestStamp({ request, rotation }: FollowRequestStampProps) {
         />
       </Box>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" sx={{ color: KEEPSAKE.ink }}>
+        <Typography variant="body2" sx={{ color: 'var(--cin-text, #F4F4F6)' }}>
           <Link
             href={`/profile/${request.username}`}
             style={{ textDecoration: 'none', color: 'inherit' }}
@@ -66,26 +72,18 @@ function FollowRequestStamp({ request, rotation }: FollowRequestStampProps) {
             </Box>
           </Link>
         </Typography>
-        <Typography sx={{ ...eyebrowSx, fontSize: '10px', color: KEEPSAKE.gold }}>
-          Entry requested
+        <Typography
+          variant="caption"
+          sx={{ color: 'var(--cin-text-muted, #9A9AA6)', display: 'block' }}
+        >
+          Requested to follow you
         </Typography>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-        <Button
-          variant="contained"
+        <GlowButton
+          variant="solid"
           size="small"
-          disableElevation
-          sx={{
-            borderRadius: '4px',
-            px: 2,
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            bgcolor: KEEPSAKE.gold,
-            color: '#221C18',
-            '&:hover': { bgcolor: '#C39A38' },
-          }}
+          sx={compactButtonSx}
           onClick={() => {
             accept.mutate(request.followId, {
               onSuccess: () => toast.success(`Accepted @${request.username}`),
@@ -99,22 +97,11 @@ function FollowRequestStamp({ request, rotation }: FollowRequestStampProps) {
           ) : (
             'Accept'
           )}
-        </Button>
-        <Button
-          variant="outlined"
+        </GlowButton>
+        <GlowButton
+          variant="ghost"
           size="small"
-          disableElevation
-          sx={{
-            borderRadius: '4px',
-            px: 2,
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: KEEPSAKE.ink,
-            borderColor: KEEPSAKE.hairline,
-            '&:hover': { borderColor: KEEPSAKE.ink, bgcolor: 'transparent' },
-          }}
+          sx={compactButtonSx}
           onClick={() => {
             reject.mutate(request.followId, {
               onSuccess: () => toast.success('Request declined'),
@@ -128,16 +115,16 @@ function FollowRequestStamp({ request, rotation }: FollowRequestStampProps) {
           ) : (
             'Decline'
           )}
-        </Button>
+        </GlowButton>
       </Box>
     </Box>
   );
 }
 
 /**
- * Pending follow requests rendered as a stack of passport stamps. Hidden
- * while loading, on error, or when empty — it is a supplementary panel above
- * the main feed and should not show its own error UI.
+ * Pending follow requests in a dark cinema panel. Hidden while loading, on
+ * error, or when empty — it is a supplementary panel above the main feed and
+ * should not show its own error UI.
  */
 export function FollowRequestsSection() {
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -151,44 +138,57 @@ export function FollowRequestsSection() {
   if (isLoading || isError || requests.length === 0) return null;
 
   return (
-    <Box component={motion.div} variants={fadeUpItem} sx={{ mb: 4 }}>
-      <Typography
-        component="h2"
-        sx={{ ...eyebrowSx, color: 'text.secondary', px: { xs: 2, md: 0 }, mb: 1.25 }}
-      >
-        Entry requests
-        <Box component="span" sx={{ ml: 1, color: KEEPSAKE.gold }}>
-          ({requests.length})
+    <Box component={motion.div} variants={staggerItem} sx={{ mb: 4 }}>
+      <CinemaCard hover={false}>
+        <Typography
+          component="h2"
+          sx={{
+            ...eyebrowSx,
+            px: 2,
+            pt: 2,
+            pb: 1.25,
+          }}
+        >
+          Follow requests
+          <Box component="span" sx={{ ml: 1, color: CIN.accent }}>
+            ({requests.length})
+          </Box>
+        </Typography>
+        <Box
+          sx={{
+            borderTop: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+          }}
+        >
+          {requests.map((request) => (
+            <FollowRequestRow key={request.followId} request={request} />
+          ))}
         </Box>
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, px: { xs: 2, md: 0 } }}>
-        {requests.map((request, index) => (
-          <FollowRequestStamp
-            key={request.followId}
-            request={request}
-            rotation={index % 2 === 0 ? -0.8 : 0.8}
-          />
-        ))}
         {hasNextPage && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
-            <Button
-              variant="text"
-              disableElevation
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              py: 1,
+              borderTop: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+            }}
+          >
+            <GlowButton
+              variant="ghost"
               size="small"
+              sx={{ ...compactButtonSx, border: 'none' }}
               onClick={() => fetchNextPage()}
               disabled={isFetchingNextPage}
-              sx={{ color: KEEPSAKE.gold }}
             >
               {isFetchingNextPage ? (
                 <Loader2
-                  style={{ height: 16, width: 16, animation: 'spin 1s linear infinite', marginRight: 8 }}
+                  style={{ height: 14, width: 14, animation: 'spin 1s linear infinite', marginRight: 8 }}
                 />
               ) : null}
               Load more requests
-            </Button>
+            </GlowButton>
           </Box>
         )}
-      </Box>
+      </CinemaCard>
     </Box>
   );
 }

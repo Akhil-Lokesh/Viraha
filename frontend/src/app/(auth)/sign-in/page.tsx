@@ -17,9 +17,17 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { login } from '@/lib/api/auth';
 import { fetchCsrfToken } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import Button from '@mui/material/Button';
+import { GlowButton } from '@/components/cinema';
+import { displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { toast } from 'sonner';
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
+import {
+  authStagger,
+  authItem,
+  authFieldSx,
+  authLinkSx,
+  authDividerSx,
+} from '../auth-styles';
 
 const signInSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -27,23 +35,6 @@ const signInSchema = z.object({
 });
 
 type SignInValues = z.infer<typeof signInSchema>;
-
-const staggerChildren = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
-  },
-};
 
 export default function SignInPage() {
   const router = useRouter();
@@ -83,39 +74,21 @@ export default function SignInPage() {
   return (
     <Box
       component={motion.div}
-      variants={staggerChildren}
+      variants={authStagger}
       initial="hidden"
       animate="visible"
       sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}
     >
       {/* Heading */}
-      <Box component={motion.div} variants={staggerItem}>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontWeight: 600,
-            fontSize: '0.7rem',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--viraha-gold, #D4A843)',
-            mb: 1,
-          }}
-        >
-          Field notes · Sign in
-        </Typography>
+      <Box component={motion.div} variants={authItem}>
+        <Typography sx={{ ...eyebrowSx, mb: 1.5 }}>Sign in</Typography>
         <Typography
           variant="h4"
-          sx={{
-            fontSize: '2.25rem',
-            fontFamily: 'var(--font-accent)',
-            fontWeight: 400,
-            lineHeight: 1.15,
-            color: 'text.primary',
-          }}
+          sx={{ ...displaySx, fontSize: '2.25rem' }}
         >
           Welcome back
         </Typography>
-        <Typography sx={{ color: 'text.secondary', mt: 1 }}>
+        <Typography sx={{ color: 'var(--cin-text-muted)', mt: 1 }}>
           Sign in to continue your journey
         </Typography>
       </Box>
@@ -123,30 +96,15 @@ export default function SignInPage() {
       {/* Social sign-in — Google is wired when NEXT_PUBLIC_GOOGLE_CLIENT_ID is set */}
       <Box
         component={motion.div}
-        variants={staggerItem}
+        variants={authItem}
         sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
       >
         <GoogleSignInButton />
       </Box>
 
       {/* Divider */}
-      <Box component={motion.div} variants={staggerItem}>
-        <Divider
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: '0.65rem',
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: 'text.secondary',
-            '&::before, &::after': {
-              borderTop: '1px dashed var(--viraha-gold, #D4A843)',
-              borderBottom: 'none',
-              opacity: 0.6,
-            },
-          }}
-        >
-          or continue with email
-        </Divider>
+      <Box component={motion.div} variants={authItem}>
+        <Divider sx={authDividerSx}>or continue with email</Divider>
       </Box>
 
       {/* Form */}
@@ -155,9 +113,8 @@ export default function SignInPage() {
         onSubmit={handleSubmit(onSubmit)}
         sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
       >
-        <Box component={motion.div} variants={staggerItem}>
+        <Box component={motion.div} variants={authItem}>
           <TextField
-            className="auth-field"
             label="Email"
             type="email"
             placeholder="you@example.com"
@@ -165,19 +122,12 @@ export default function SignInPage() {
             {...register('email')}
             error={!!errors.email}
             helperText={errors.email?.message}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                height: 48,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-              },
-            }}
+            sx={authFieldSx}
           />
         </Box>
 
-        <Box component={motion.div} variants={staggerItem}>
+        <Box component={motion.div} variants={authItem}>
           <TextField
-            className="auth-field"
             label="Password"
             type={showPassword ? 'text' : 'password'}
             placeholder="Your password"
@@ -195,6 +145,7 @@ export default function SignInPage() {
                       tabIndex={-1}
                       size="small"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      sx={{ color: 'var(--cin-text-muted)' }}
                     >
                       {showPassword ? (
                         <EyeOff style={{ width: 20, height: 20 }} />
@@ -206,71 +157,43 @@ export default function SignInPage() {
                 ),
               },
             }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                height: 48,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-              },
-            }}
+            sx={authFieldSx}
           />
         </Box>
 
         <Box
           component={motion.div}
-          variants={staggerItem}
+          variants={authItem}
           sx={{ display: 'flex', justifyContent: 'flex-end' }}
         >
           <Link
             href="/forgot-password"
             style={{ textDecoration: 'none' }}
           >
-            <Typography
-              sx={{
-                fontSize: '0.875rem',
-                color: 'warning.main',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
-              Forgot password?
-            </Typography>
+            <Typography sx={authLinkSx}>Forgot password?</Typography>
           </Link>
         </Box>
 
-        <Box component={motion.div} variants={staggerItem}>
-          <Button
+        <Box component={motion.div} variants={authItem}>
+          <GlowButton
             type="submit"
-            variant="contained"
-            disableElevation
-            sx={{
-              width: '100%',
-              height: 48,
-              borderRadius: 1,
-              bgcolor: 'var(--viraha-gold, #D4A843)',
-              color: '#221C18',
-              fontWeight: 600,
-              fontSize: '1rem',
-              letterSpacing: '0.04em',
-              '&:hover': {
-                bgcolor: 'warning.dark',
-                boxShadow: '2px 2px 0 var(--viraha-hairline, rgba(34,28,24,0.15))',
-              },
-            }}
+            fullWidth
             disabled={loading}
+            sx={{ height: 48, fontSize: '1rem' }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
+          </GlowButton>
         </Box>
       </Box>
 
       {/* Link to sign up */}
       <Typography
         component={motion.p}
-        variants={staggerItem}
+        variants={authItem}
         sx={{
           fontSize: '0.875rem',
           textAlign: 'center',
-          color: 'text.secondary',
+          color: 'var(--cin-text-muted)',
         }}
       >
         Don&apos;t have an account?{' '}
@@ -278,15 +201,7 @@ export default function SignInPage() {
           href="/sign-up"
           style={{ textDecoration: 'none' }}
         >
-          <Typography
-            component="span"
-            sx={{
-              fontSize: '0.875rem',
-              color: 'warning.main',
-              fontWeight: 500,
-              '&:hover': { textDecoration: 'underline' },
-            }}
-          >
+          <Typography component="span" sx={authLinkSx}>
             Sign up
           </Typography>
         </Link>

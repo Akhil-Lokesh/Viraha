@@ -10,25 +10,10 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import { verifyEmail } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
+import { authStagger, authItem, authLinkSx, statusChipSx } from '../auth-styles';
 
 type VerifyState = 'loading' | 'success' | 'error' | 'missing';
-
-const staggerChildren = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
-  },
-};
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
@@ -62,7 +47,7 @@ function VerifyEmailContent() {
   if (state === 'loading') {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
-        <CircularProgress size={24} />
+        <CircularProgress size={24} sx={{ color: 'var(--cin-accent)' }} />
       </Box>
     );
   }
@@ -70,28 +55,15 @@ function VerifyEmailContent() {
   if (state === 'missing') {
     return (
       <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontWeight: 600,
-            fontSize: '0.7rem',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--viraha-gold, #D4A843)',
-          }}
-        >
-          Customs check · Verify email
-        </Typography>
-        <Typography variant="h5" sx={{ fontFamily: 'var(--font-accent)', fontWeight: 400, fontSize: '1.875rem' }}>
+        <Typography sx={eyebrowSx}>Verify email</Typography>
+        <Typography variant="h5" sx={{ ...displaySx, fontSize: '1.875rem' }}>
           Missing verification token
         </Typography>
-        <Typography sx={{ color: 'text.secondary' }}>
+        <Typography sx={{ color: 'var(--cin-text-muted)' }}>
           Open the verification link from your email to confirm your address.
         </Typography>
         <Link href="/sign-in" style={{ textDecoration: 'none' }}>
-          <Typography sx={{ fontSize: '0.875rem', color: 'primary.main', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
-            Back to sign in
-          </Typography>
+          <Typography sx={authLinkSx}>Back to sign in</Typography>
         </Link>
       </Box>
     );
@@ -100,58 +72,40 @@ function VerifyEmailContent() {
   return (
     <Box
       component={motion.div}
-      variants={staggerChildren}
+      variants={authStagger}
       initial="hidden"
       animate="visible"
       sx={{ display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'center' }}
     >
       <Box
         component={motion.div}
-        variants={staggerItem}
+        variants={authItem}
         sx={{
-          width: 56,
-          height: 56,
-          borderRadius: 1,
-          border: state === 'success' ? '1.5px solid #059669' : '1.5px solid #dc2626',
-          transform: 'rotate(-2deg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          ...statusChipSx,
           alignSelf: 'center',
+          color: state === 'success' ? 'var(--cin-accent)' : 'var(--cin-danger)',
         }}
       >
         {state === 'success' ? (
-          <CheckCircle style={{ width: 24, height: 24, color: '#059669' }} />
+          <CheckCircle style={{ width: 24, height: 24, color: 'inherit' }} />
         ) : (
-          <MailWarning style={{ width: 24, height: 24, color: '#dc2626' }} />
+          <MailWarning style={{ width: 24, height: 24, color: 'inherit' }} />
         )}
       </Box>
-      <Box component={motion.div} variants={staggerItem}>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontWeight: 600,
-            fontSize: '0.7rem',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--viraha-gold, #D4A843)',
-            mb: 1,
-          }}
-        >
-          Customs check · Verify email
-        </Typography>
-        <Typography variant="h5" sx={{ fontFamily: 'var(--font-accent)', fontWeight: 400, fontSize: '1.875rem' }}>
+      <Box component={motion.div} variants={authItem}>
+        <Typography sx={{ ...eyebrowSx, mb: 1.5 }}>Verify email</Typography>
+        <Typography variant="h5" sx={{ ...displaySx, fontSize: '1.875rem' }}>
           {state === 'success' ? 'Email verified' : 'Verification failed'}
         </Typography>
-        <Typography sx={{ color: 'text.secondary', mt: 1, maxWidth: 360, mx: 'auto' }}>
+        <Typography sx={{ color: 'var(--cin-text-muted)', mt: 1, maxWidth: 360, mx: 'auto' }}>
           {state === 'success'
             ? 'Your email is now verified. You can close this tab or continue using Viraha.'
             : errorMessage}
         </Typography>
       </Box>
-      <Box component={motion.div} variants={staggerItem}>
+      <Box component={motion.div} variants={authItem}>
         <Link href={state === 'success' ? '/feed' : '/sign-in'} style={{ textDecoration: 'none' }}>
-          <Typography sx={{ fontSize: '0.875rem', color: 'primary.main', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
+          <Typography sx={authLinkSx}>
             {state === 'success' ? 'Go to your feed' : 'Back to sign in'}
           </Typography>
         </Link>
@@ -165,7 +119,7 @@ export default function VerifyEmailPage() {
     <Suspense
       fallback={
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
-          <CircularProgress size={24} />
+          <CircularProgress size={24} sx={{ color: 'var(--cin-accent)' }} />
         </Box>
       }
     >

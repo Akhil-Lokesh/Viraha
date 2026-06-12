@@ -2,9 +2,10 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Box, Typography, IconButton, Slider } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { Play, Pause, RotateCcw, Calendar } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Play, Pause, RotateCcw, Calendar, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
 
 interface TimelineScrubberProps {
   startDate: string | null;
@@ -13,6 +14,7 @@ interface TimelineScrubberProps {
 }
 
 export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: TimelineScrubberProps) {
+  const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [value, setValue] = useState<number[]>([0, 100]);
@@ -101,7 +103,11 @@ export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: Time
         }}
       >
         <Box
-          component="button"
+          component={motion.button}
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1, ease: 'easeOut' }}
+          type="button"
           onClick={() => setIsOpen(true)}
           sx={{
             display: 'flex',
@@ -109,20 +115,22 @@ export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: Time
             gap: 1,
             px: 2,
             py: 1,
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: '12px',
-            bgcolor: (theme) =>
-              theme.palette.mode === 'dark' ? 'rgba(31,21,48,0.9)' : 'rgba(255,255,255,0.9)',
+            border: `1px solid ${CIN.hairline}`,
+            borderRadius: '999px',
+            bgcolor: 'rgba(20,20,25,0.92)',
             backdropFilter: 'blur(16px)',
-            boxShadow: 2,
             cursor: 'pointer',
-            transition: 'all 0.2s',
-            '&:hover': { boxShadow: 4 },
+            color: CIN.text,
+            transition: 'box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+            '&:hover': {
+              borderColor: 'rgba(139,124,255,0.45)',
+              boxShadow: `0 0 18px ${CIN.accentGlow}`,
+              color: CIN.accent,
+            },
           }}
         >
-          <Calendar style={{ width: 14, height: 14 }} />
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'text.primary' }}>
+          <Calendar style={{ width: 14, height: 14, color: CIN.accent }} />
+          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'inherit' }}>
             Timeline
           </Typography>
         </Box>
@@ -143,14 +151,15 @@ export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: Time
       }}
     >
       <Box
+        component={motion.div}
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
         sx={{
-          bgcolor: (theme) =>
-            theme.palette.mode === 'dark' ? 'rgba(31,21,48,0.95)' : 'rgba(255,255,255,0.95)',
+          bgcolor: 'rgba(20,20,25,0.95)',
           backdropFilter: 'blur(20px)',
           borderRadius: '16px',
-          border: 1,
-          borderColor: 'divider',
-          boxShadow: 4,
+          border: `1px solid ${CIN.hairline}`,
           px: 2.5,
           py: 2,
         }}
@@ -158,8 +167,8 @@ export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: Time
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Calendar style={{ width: 14, height: 14, opacity: 0.6 }} />
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.secondary' }}>
+            <Calendar style={{ width: 14, height: 14, color: CIN.accent }} />
+            <Typography sx={{ ...eyebrowSx, fontWeight: 700 }}>
               Timeline
             </Typography>
           </Box>
@@ -167,7 +176,13 @@ export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: Time
             <IconButton
               size="small"
               onClick={handleTogglePlay}
-              sx={{ width: 28, height: 28 }}
+              aria-label={isPlaying ? 'Pause timeline playback' : 'Play timeline'}
+              sx={{
+                width: 28,
+                height: 28,
+                color: isPlaying ? CIN.accent : CIN.textMuted,
+                '&:hover': { color: CIN.accent, bgcolor: 'rgba(139,124,255,0.12)' },
+              }}
             >
               {isPlaying ? <Pause style={{ width: 14, height: 14 }} /> : <Play style={{ width: 14, height: 14 }} />}
             </IconButton>
@@ -175,16 +190,25 @@ export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: Time
               size="small"
               onClick={handleReset}
               disabled={!isFiltered}
-              sx={{ width: 28, height: 28 }}
+              aria-label="Reset timeline"
+              sx={{
+                width: 28,
+                height: 28,
+                color: CIN.textMuted,
+                '&:hover': { color: CIN.accent, bgcolor: 'rgba(139,124,255,0.12)' },
+                '&.Mui-disabled': { color: 'rgba(255,255,255,0.18)' },
+              }}
             >
               <RotateCcw style={{ width: 14, height: 14 }} />
             </IconButton>
             <Box
               component="button"
+              type="button"
               onClick={() => {
                 setIsOpen(false);
                 handleReset();
               }}
+              aria-label="Close timeline"
               sx={{
                 width: 28,
                 height: 28,
@@ -195,22 +219,22 @@ export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: Time
                 bgcolor: 'transparent',
                 cursor: 'pointer',
                 borderRadius: '6px',
-                fontSize: '16px',
-                color: 'text.secondary',
-                '&:hover': { bgcolor: 'action.hover' },
+                color: CIN.textMuted,
+                transition: 'color 0.15s ease, background-color 0.15s ease',
+                '&:hover': { color: CIN.text, bgcolor: 'rgba(255,255,255,0.06)' },
               }}
             >
-              ×
+              <X style={{ width: 14, height: 14 }} />
             </Box>
           </Box>
         </Box>
 
         {/* Date labels */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-          <Typography sx={{ fontSize: '12px', fontWeight: 600, color: isFiltered ? 'primary.main' : 'text.secondary' }}>
+          <Typography suppressHydrationWarning sx={{ fontSize: '12px', fontWeight: 600, color: isFiltered ? CIN.accent : CIN.textMuted }}>
             {startLabel}
           </Typography>
-          <Typography sx={{ fontSize: '12px', fontWeight: 600, color: isFiltered ? 'primary.main' : 'text.secondary' }}>
+          <Typography suppressHydrationWarning sx={{ fontSize: '12px', fontWeight: 600, color: isFiltered ? CIN.accent : CIN.textMuted }}>
             {endLabel}
           </Typography>
         </Box>
@@ -223,14 +247,21 @@ export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: Time
           min={0}
           max={100}
           sx={{
-            color: 'primary.main',
+            color: CIN.accent,
             height: 6,
             '& .MuiSlider-thumb': {
               width: 16,
               height: 16,
-              '&:hover, &.Mui-active': { boxShadow: '0 0 0 8px rgba(128,90,213,0.16)' },
+              bgcolor: CIN.accent,
+              border: `2px solid ${CIN.bg}`,
+              boxShadow: `0 0 10px ${CIN.accentGlow}`,
+              '&:hover, &.Mui-active': { boxShadow: `0 0 0 8px rgba(139,124,255,0.16)` },
             },
-            '& .MuiSlider-rail': { opacity: 0.2 },
+            '& .MuiSlider-track': {
+              border: 'none',
+              boxShadow: `0 0 8px ${CIN.accentGlow}`,
+            },
+            '& .MuiSlider-rail': { opacity: 0.2, bgcolor: CIN.textMuted },
           }}
         />
       </Box>

@@ -1,47 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import {
-  MapPin,
-  Bookmark,
-  Star,
-  Sun,
-  Snowflake,
-  Compass,
-  Anchor,
-  Mountain,
-  ArrowRight,
-  Pen,
-  Camera,
-  Lock,
-} from 'lucide-react';
+import { MapPin, ArrowRight, Lock } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
 import type { Journal } from '@/lib/types';
+import { CinemaCard } from '@/components/cinema';
+import { CIN, displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import {
   useJournalColorsStore,
   getJournalColor,
 } from '@/lib/stores/journal-colors-store';
-
-const GOLD = 'var(--viraha-gold, #D4A843)';
-
-/** Cloth-weave texture for the cover — two crossed fine gradients, no asset files. */
-const clothTexture =
-  'repeating-linear-gradient(0deg, rgba(34,28,24,0.03) 0px, rgba(34,28,24,0.03) 1px, transparent 1px, transparent 3px), repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 3px)';
-
-// ─── Decorative icons ─────────────────────────────────
-const DECORATIVE_ICONS = [MapPin, Bookmark, Star, Sun, Snowflake, Compass, Anchor, Mountain];
-
-function getDecorativeIcon(journalId: string) {
-  let hash = 0;
-  for (let i = 0; i < journalId.length; i++) {
-    hash = (hash << 5) - hash + journalId.charCodeAt(i);
-    hash |= 0;
-  }
-  return DECORATIVE_ICONS[Math.abs(hash) % DECORATIVE_ICONS.length];
-}
 
 function estimateWordCount(summary: string | null): string {
   if (!summary) return '';
@@ -51,23 +20,22 @@ function estimateWordCount(summary: string | null): string {
   return `${words} words`;
 }
 
-// ─── Card: a cloth-bound journal, custom color as the cover/spine ──────
+const microlabelSx = {
+  ...eyebrowSx,
+  fontSize: 10,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 0.5,
+} as const;
+
+/** Journal card: dark CinemaCard with a 3px spine in the journal's custom color. */
 export function JournalCard({ journal }: { journal: Journal }) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const colorKey = useJournalColorsStore((s) => s.getColor(journal.id));
   const color = getJournalColor(colorKey);
+  const spine = color.accentDark;
 
-  const bg = isDark ? color.bgDark : color.bg;
-  const text = isDark ? color.textDark : color.text;
-  const accent = isDark ? color.accentDark : color.accent;
-  const divider = isDark ? color.dividerDark : color.divider;
-
-  const Icon = getDecorativeIcon(journal.id);
   const wordCount = estimateWordCount(journal.summary);
   const dateStr = format(new Date(journal.updatedAt), 'MMM yyyy').toUpperCase();
-  const isQuote =
-    journal.summary?.startsWith('"') || journal.summary?.startsWith('“');
 
   // Extract location from first entry if available
   const firstEntry = journal.entries?.[0];
@@ -78,297 +46,165 @@ export function JournalCard({ journal }: { journal: Journal }) {
     null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, rotate: -0.5 }}
-      transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+    <Link
+      href={`/journals/${journal.id}`}
+      style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
     >
-      <Link
-        href={`/journals/${journal.id}`}
-        style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+      <CinemaCard
+        sx={{
+          position: 'relative',
+          p: { xs: 2.5, md: 3 },
+          pl: { xs: 3, md: 3.5 },
+          minHeight: { xs: 200, md: 232 },
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+        }}
       >
+        {/* Spine — the journal's custom color, kept from the color picker */}
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: '3px',
+            bgcolor: spine,
+          }}
+        />
+
+        {/* Top row: date eyebrow + draft chip / privacy */}
         <Box
           sx={{
-            position: 'relative',
-            bgcolor: bg,
-            backgroundImage: clothTexture,
-            // book silhouette: tight spine edge, rounded fore-edge
-            borderRadius: '3px 10px 10px 3px',
-            border: '1px solid',
-            borderColor: divider,
-            boxShadow: '3px 3px 0 rgba(34,28,24,0.12)',
-            p: { xs: 2.5, md: 3 },
-            pl: { xs: 4, md: 4.5 },
-            minHeight: { xs: 260, md: 320 },
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: 'box-shadow 0.3s',
-            '&:hover': { boxShadow: '4px 5px 0 rgba(34,28,24,0.18)' },
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1,
+            mb: 1.25,
           }}
         >
-          {/* Spine: darker band with a gold tooling rule */}
-          <Box
-            aria-hidden
-            sx={{
-              position: 'absolute',
-              top: 0,
-              bottom: 0,
-              left: 0,
-              width: 14,
-              bgcolor: accent,
-              opacity: 0.35,
-            }}
-          />
-          <Box
-            aria-hidden
-            sx={{
-              position: 'absolute',
-              top: 0,
-              bottom: 0,
-              left: 14,
-              width: '1px',
-              bgcolor: GOLD,
-              opacity: 0.7,
-            }}
-          />
-          {/* Gold tooling frame inset on the cover */}
-          <Box
-            aria-hidden
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              bottom: 8,
-              left: 22,
-              border: `1px solid ${GOLD}`,
-              opacity: 0.35,
-              borderRadius: '2px 8px 8px 2px',
-              pointerEvents: 'none',
-            }}
-          />
-
-          {/* Top row: location stamp + icon */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              mb: 2,
-              position: 'relative',
-            }}
-          >
-            {/* Location — passport stamp */}
-            {location ? (
-              <Box
-                sx={{
-                  transform: 'rotate(-1.5deg)',
-                  border: '1.5px solid',
-                  borderColor: text,
-                  borderRadius: '4px',
-                  px: 1,
-                  py: 0.4,
-                  opacity: 0.85,
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontFamily: 'var(--font-brand)',
-                    fontSize: '0.6rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    color: text,
-                  }}
-                >
-                  {location}
-                </Typography>
-              </Box>
-            ) : (
-              <Box />
-            )}
-
-            {/* Decorative icon + privacy */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              {journal.privacy !== 'public' && (
-                <Lock
-                  style={{
-                    width: 14,
-                    height: 14,
-                    color: accent,
-                    opacity: 0.6,
-                  }}
-                />
-              )}
-              <Icon
-                style={{
-                  width: 20,
-                  height: 20,
-                  color: accent,
-                  opacity: 0.5,
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Date eyebrow */}
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-brand)',
-              fontSize: '0.62rem',
-              fontWeight: 600,
-              letterSpacing: '0.14em',
-              color: accent,
-              mb: 0.75,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              position: 'relative',
-            }}
-          >
-            {dateStr}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography component="span" suppressHydrationWarning sx={{ ...eyebrowSx, fontSize: 10 }}>
+              {dateStr}
+            </Typography>
             {journal.status === 'draft' && (
               <Box
                 component="span"
                 sx={{
-                  fontFamily: 'var(--font-brand)',
-                  fontSize: '0.58rem',
+                  ...eyebrowSx,
+                  fontSize: 9,
                   fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  border: `1.5px solid ${GOLD}`,
-                  color: GOLD,
-                  borderRadius: '3px',
-                  transform: 'rotate(2deg)',
+                  color: CIN.accent,
+                  border: `1px solid ${CIN.accent}`,
+                  borderRadius: '6px',
                   px: 0.75,
                   py: 0.2,
+                  lineHeight: 1.4,
                 }}
               >
-                DRAFT
+                Draft
               </Box>
             )}
-          </Typography>
+          </Box>
+          {journal.privacy !== 'public' && (
+            <Lock
+              aria-label="Private journal"
+              style={{ width: 13, height: 13, color: CIN.textMuted, flexShrink: 0 }}
+            />
+          )}
+        </Box>
 
-          {/* Title — gold-tooled display serif */}
+        {/* Title */}
+        <Typography
+          sx={{
+            ...displaySx,
+            fontSize: { xs: '1.2rem', md: '1.35rem' },
+            lineHeight: 1.15,
+            mb: 1,
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {journal.title}
+        </Typography>
+
+        {/* Preview text */}
+        {journal.summary && (
           <Typography
             sx={{
-              fontFamily: 'var(--font-accent)',
-              fontSize: { xs: '1.4rem', md: '1.65rem' },
-              lineHeight: 1.2,
-              color: text,
-              mb: 1.5,
-              position: 'relative',
+              fontSize: '0.85rem',
+              lineHeight: 1.6,
+              color: CIN.textMuted,
               display: '-webkit-box',
               WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              // gold rule under the title, like foil tooling
-              pb: 1,
-              backgroundImage: `linear-gradient(${GOLD}, ${GOLD})`,
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '48px 1.5px',
-              backgroundPosition: 'left bottom',
             }}
           >
-            {journal.title}
+            {journal.summary}
           </Typography>
+        )}
 
-          {/* Preview text */}
-          {journal.summary && (
-            <Typography
-              sx={{
-                fontSize: '0.85rem',
-                lineHeight: 1.6,
-                color: accent,
-                flex: 1,
-                position: 'relative',
-                display: '-webkit-box',
-                WebkitLineClamp: 4,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                ...(isQuote ? { fontStyle: 'italic' } : {}),
-              }}
-            >
-              {journal.summary}
-            </Typography>
-          )}
+        {/* Spacer */}
+        <Box sx={{ flex: 1 }} />
 
-          {/* Spacer */}
-          <Box sx={{ flex: 1 }} />
+        {/* Hairline divider */}
+        <Box sx={{ borderBottom: `1px solid ${CIN.hairline}`, mt: 2, mb: 1.5 }} />
 
-          {/* Divider */}
-          <Box
-            sx={{
-              width: '100%',
-              height: '1px',
-              bgcolor: divider,
-              mt: 2,
-              mb: 1.5,
-              position: 'relative',
-            }}
-          />
-
-          {/* Footer: stats + arrow */}
+        {/* Footer: muted microlabels + arrow */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1,
+          }}
+        >
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              position: 'relative',
+              gap: 1.5,
+              minWidth: 0,
+              flexWrap: 'wrap',
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              {wordCount && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Pen style={{ width: 12, height: 12, color: accent, opacity: 0.6 }} />
-                  <Typography
-                    sx={{
-                      fontFamily: 'var(--font-brand)',
-                      fontSize: '0.66rem',
-                      fontWeight: 600,
-                      color: accent,
-                      opacity: 0.75,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {wordCount}
-                  </Typography>
-                </Box>
-              )}
-              {journal.entryCount > 0 && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Camera
-                    style={{ width: 12, height: 12, color: accent, opacity: 0.6 }}
-                  />
-                  <Typography
-                    sx={{
-                      fontFamily: 'var(--font-brand)',
-                      fontSize: '0.66rem',
-                      fontWeight: 600,
-                      color: accent,
-                      opacity: 0.75,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {journal.entryCount}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-
-            <ArrowRight
-              style={{
-                width: 18,
-                height: 18,
-                color: accent,
-                opacity: 0.5,
-              }}
-            />
+            {journal.entryCount > 0 && (
+              <Typography component="span" sx={microlabelSx}>
+                {journal.entryCount} {journal.entryCount === 1 ? 'entry' : 'entries'}
+              </Typography>
+            )}
+            {wordCount && (
+              <Typography component="span" sx={microlabelSx}>
+                {wordCount}
+              </Typography>
+            )}
+            {location && (
+              <Typography
+                component="span"
+                sx={{
+                  ...microlabelSx,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: 140,
+                }}
+              >
+                <MapPin style={{ width: 11, height: 11, flexShrink: 0 }} />
+                {location}
+              </Typography>
+            )}
           </Box>
+
+          <ArrowRight
+            aria-hidden
+            style={{ width: 16, height: 16, color: CIN.accent, opacity: 0.7, flexShrink: 0 }}
+          />
         </Box>
-      </Link>
-    </motion.div>
+      </CinemaCard>
+    </Link>
   );
 }

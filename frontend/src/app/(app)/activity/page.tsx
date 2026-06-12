@@ -1,11 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
-import Skeleton from '@mui/material/Skeleton';
+import { Box, Typography, Skeleton } from '@mui/material';
 import { motion } from 'framer-motion';
-import { Bell, CheckCheck, Loader2 } from 'lucide-react';
+import { CheckCheck, Loader2 } from 'lucide-react';
 import {
   useActivities,
   useUnreadCount,
@@ -18,12 +16,36 @@ import {
   ActivityDayGroup,
   groupActivitiesByDay,
 } from '@/components/activity/activity-day-group';
-import {
-  KEEPSAKE,
-  eyebrowSx,
-  staggerContainer,
-  fadeUpItem,
-} from '@/components/activity/keepsake';
+import { EmptyState } from '@/components/shared/empty-state';
+import { GlowButton } from '@/components/cinema';
+import { CIN, eyebrowSx, displaySx } from '@/lib/design/cinema-tokens';
+import { staggerContainer, staggerItem } from '@/lib/animations';
+
+const SKELETON_SX = { bgcolor: 'var(--cin-surface-2, #1C1C24)' } as const;
+
+function ActivitySkeleton() {
+  return (
+    <Box
+      component={motion.div}
+      variants={staggerItem}
+      sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
+    >
+      {Array.from({ length: 8 }).map((_, i) => (
+        <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5 }}>
+          <Skeleton
+            variant="rounded"
+            animation="pulse"
+            sx={{ ...SKELETON_SX, height: 36, width: 36, borderRadius: '50%' }}
+          />
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            <Skeleton variant="rounded" animation="pulse" sx={{ ...SKELETON_SX, height: 16, width: '75%' }} />
+            <Skeleton variant="rounded" animation="pulse" sx={{ ...SKELETON_SX, height: 12, width: '25%' }} />
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
 
 function ActivityContent() {
   const {
@@ -54,158 +76,90 @@ function ActivityContent() {
       initial="hidden"
       animate="visible"
       variants={staggerContainer}
-      sx={{ maxWidth: 672, mx: 'auto' }}
+      sx={{ maxWidth: 672, mx: 'auto', pb: 8 }}
     >
-      {/* Page heading — journal title spread */}
-      <Box
-        component={motion.div}
-        variants={fadeUpItem}
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          mb: 3,
-          pb: 2,
-          borderBottom: '1px dashed',
-          borderColor: KEEPSAKE.hairline,
-        }}
-      >
-        <Box>
-          <Typography sx={{ ...eyebrowSx, color: KEEPSAKE.gold, mb: 0.5 }}>
-            Travel log
-          </Typography>
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontFamily: 'var(--font-accent)',
-              color: 'text.primary',
-              lineHeight: 1.1,
-            }}
-          >
-            Activity
-          </Typography>
-          {unreadCount > 0 && (
-            <Typography
-              variant="caption"
-              sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}
-            >
-              <Box
-                component="span"
-                sx={{
-                  display: 'inline-block',
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  bgcolor: KEEPSAKE.gold,
-                  mr: 0.75,
-                }}
-              />
-              {unreadCount} unread
-            </Typography>
-          )}
-        </Box>
-
-        {unreadCount > 0 && (
-          <Button
-            variant="text"
-            disableElevation
-            size="small"
-            sx={{
-              gap: 0.75,
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: KEEPSAKE.gold,
-              flexShrink: 0,
-            }}
-            onClick={() => markAllAsRead.mutate()}
-            disabled={markAllAsRead.isPending}
-          >
-            <CheckCheck style={{ height: 14, width: 14 }} />
-            Mark all read
-          </Button>
-        )}
-      </Box>
-
-      {/* Pending follow requests (private accounts) — passport stamps */}
-      <FollowRequestsSection />
-
-      {/* Activity logbook */}
-      {isLoading ? (
+      {/* Page heading */}
+      <Box component={motion.div} variants={staggerItem} sx={{ pt: { xs: 2, md: 4 }, mb: 3 }}>
         <Box
-          component={motion.div}
-          variants={fadeUpItem}
-          sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
-        >
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5 }}>
-              <Skeleton
-                variant="rounded"
-                animation="pulse"
-                sx={{ height: 36, width: 36, borderRadius: '50%' }}
-              />
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                <Skeleton variant="rounded" animation="pulse" sx={{ height: 16, width: '75%' }} />
-                <Skeleton variant="rounded" animation="pulse" sx={{ height: 12, width: '25%' }} />
-              </Box>
-            </Box>
-          ))}
-        </Box>
-      ) : activities.length === 0 ? (
-        <Box
-          component={motion.div}
-          variants={fadeUpItem}
           sx={{
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            py: 10,
-            textAlign: 'center',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: 2,
           }}
         >
-          {/* Empty-stamp motif */}
-          <Box
-            sx={{
-              width: 88,
-              height: 88,
-              borderRadius: '4px',
-              border: '1.5px dashed',
-              borderColor: KEEPSAKE.gold,
-              transform: 'rotate(-2deg)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 0.5,
-              mb: 2.5,
-            }}
-          >
-            <Bell style={{ width: 24, height: 24, color: 'var(--viraha-gold, #D4A843)' }} />
-            <Typography sx={{ ...eyebrowSx, fontSize: '9px', color: KEEPSAKE.gold }}>
-              No stamps
+          <Box>
+            <Typography sx={{ ...eyebrowSx, mb: 1 }}>What&apos;s new</Typography>
+            <Typography component="h1" sx={{ ...displaySx, fontSize: { xs: 36, md: 48 } }}>
+              Activity
             </Typography>
+            {unreadCount > 0 && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'var(--cin-text-muted, #9A9AA6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  mt: 1,
+                }}
+              >
+                <Box
+                  component="span"
+                  sx={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    bgcolor: CIN.accent,
+                    boxShadow: `0 0 8px ${CIN.accentGlow}`,
+                    flexShrink: 0,
+                  }}
+                />
+                {unreadCount} unread
+              </Typography>
+            )}
           </Box>
-          <Typography
-            variant="h6"
-            sx={{ fontFamily: 'var(--font-accent)', mb: 0.5, color: 'text.primary' }}
-          >
-            No activity yet
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 320 }}>
-            When someone follows you, comments on your posts, or saves your memories,
-            you&apos;ll see it here.
-          </Typography>
+
+          {unreadCount > 0 && (
+            <GlowButton
+              variant="ghost"
+              size="small"
+              sx={{ gap: 0.75, px: 1.75, py: 0.5, fontSize: '0.78rem', flexShrink: 0 }}
+              onClick={() => markAllAsRead.mutate()}
+              disabled={markAllAsRead.isPending}
+            >
+              <CheckCheck style={{ height: 14, width: 14 }} />
+              Mark all read
+            </GlowButton>
+          )}
+        </Box>
+        <Box
+          sx={{
+            mt: 3,
+            borderTop: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+          }}
+        />
+      </Box>
+
+      {/* Pending follow requests (private accounts) */}
+      <FollowRequestsSection />
+
+      {/* Activity stream */}
+      {isLoading ? (
+        <ActivitySkeleton />
+      ) : activities.length === 0 ? (
+        <Box component={motion.div} variants={staggerItem}>
+          <EmptyState
+            icon="compass"
+            title="No activity yet"
+            description="When someone follows you, comments on your posts, or saves your memories, you'll see it here."
+          />
         </Box>
       ) : (
         <Box
           component={motion.div}
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
-          sx={{ display: 'flex', flexDirection: 'column', gap: 2, mx: { xs: -2, md: 0 } }}
+          variants={staggerItem}
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mx: { xs: -2, md: 0 } }}
         >
           {dayGroups.map((group) => (
             <ActivityDayGroup
@@ -217,13 +171,11 @@ function ActivityContent() {
 
           {hasNextPage && (
             <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2, pb: 1 }}>
-              <Button
-                variant="text"
-                disableElevation
+              <GlowButton
+                variant="ghost"
                 size="small"
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                sx={{ color: KEEPSAKE.gold }}
               >
                 {isFetchingNextPage ? (
                   <Loader2
@@ -236,7 +188,7 @@ function ActivityContent() {
                   />
                 ) : null}
                 Load more
-              </Button>
+              </GlowButton>
             </Box>
           )}
         </Box>

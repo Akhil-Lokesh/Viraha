@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { Box, Typography, useTheme, type Theme } from '@mui/material';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { usePostsFeed } from '@/lib/hooks/use-posts';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
@@ -163,19 +164,42 @@ export function TimelineWidget({ size, color }: { size: WidgetGridSize; color?: 
                 key={s}
                 component="button"
                 onClick={() => setStyle(s)}
+                aria-pressed={style === s}
                 sx={{
+                  position: 'relative',
                   px: 1.25,
                   py: 0.25,
                   borderRadius: '6px',
                   border: 'none',
                   cursor: 'pointer',
-                  bgcolor: style === s ? 'background.paper' : 'transparent',
-                  boxShadow: style === s ? 1 : 0,
-                  transition: 'all 0.15s',
-                  '&:hover': { bgcolor: style === s ? 'background.paper' : 'action.selected' },
+                  bgcolor: 'transparent',
+                  '&:hover': { bgcolor: style === s ? 'transparent' : 'action.selected' },
+                  transition: 'background-color 0.15s',
                 }}
               >
-                <Typography sx={{ fontSize: '0.65rem', fontWeight: style === s ? 600 : 400, color: style === s ? 'text.primary' : 'text.secondary', lineHeight: 1.4 }}>
+                {style === s && (
+                  <Box
+                    component={motion.div}
+                    layoutId="timeline-style-pill"
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: '6px',
+                      bgcolor: 'rgba(139,124,255,0.14)',
+                      border: '1px solid rgba(139,124,255,0.45)',
+                    }}
+                  />
+                )}
+                <Typography
+                  sx={{
+                    position: 'relative',
+                    fontSize: '0.65rem',
+                    fontWeight: style === s ? 600 : 400,
+                    color: style === s ? 'var(--cin-accent, #8B7CFF)' : 'text.secondary',
+                    lineHeight: 1.4,
+                  }}
+                >
                   {STYLE_LABELS[s]}
                 </Typography>
               </Box>

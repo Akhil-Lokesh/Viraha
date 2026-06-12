@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Images } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
+import { glowRing } from '@/lib/design/cinema-tokens';
 import { pickDisplayAlbum, resolveAlbumCover } from '@/lib/dashboard/mock-albums';
 import { useAlbums } from '@/lib/hooks/use-albums';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
@@ -63,11 +64,13 @@ export function AlbumPreviewWidget({ size, color, albumId }: { size: WidgetGridS
           bgcolor: 'background.paper',
           borderRadius: '16px',
           overflow: 'hidden',
-          boxShadow: 1,
+          border: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
           cursor: 'pointer',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          transition: 'box-shadow 0.2s ease',
+          '&:hover': { boxShadow: glowRing(1) },
           '&:hover img': { transform: 'scale(1.05)' },
         }}
       >
@@ -99,7 +102,6 @@ export function AlbumPreviewWidget({ size, color, albumId }: { size: WidgetGridS
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 2,
               zIndex: 10,
             }}
           >

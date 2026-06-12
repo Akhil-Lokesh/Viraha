@@ -2,46 +2,41 @@
 
 import { useState, useMemo } from 'react';
 import { Box, Typography, InputBase } from '@mui/material';
-import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Plus, Search, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { useJournals } from '@/lib/hooks/use-journals';
 import { JournalNotesList } from '@/components/journal/journal-notes-list';
+import { GlowButton } from '@/components/cinema';
+import { CIN, displaySx, eyebrowSx, glowRing } from '@/lib/design/cinema-tokens';
 import { fadeInUp, fadeIn } from '@/lib/animations';
 
-const GOLD = 'var(--viraha-gold, #D4A843)';
-
-const eyebrowSx = {
-  fontFamily: 'var(--font-brand)',
-  fontSize: '11px',
-  fontWeight: 600,
-  letterSpacing: '0.16em',
-  textTransform: 'uppercase',
-  color: GOLD,
-} as const;
-
-/** Skeleton shaped like a book cover: spine band + cover block. */
-function BookSkeleton() {
+/** Skeleton shaped like the journal card: dark surface block with a spine sliver. */
+function JournalCardSkeleton() {
   return (
     <Box sx={{ position: 'relative' }}>
       <Skeleton
         variant="rounded"
         animation="pulse"
-        sx={{ borderRadius: '3px 10px 10px 3px', height: { xs: 260, md: 320 }, width: '100%' }}
+        sx={{
+          borderRadius: '16px',
+          height: { xs: 200, md: 232 },
+          width: '100%',
+          bgcolor: 'var(--cin-surface, #141419)',
+        }}
       />
       <Box
-        sx={(theme) => ({
+        aria-hidden
+        sx={{
           position: 'absolute',
           top: 0,
           bottom: 0,
           left: 0,
-          width: 14,
-          bgcolor:
-            theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.08)' : 'rgba(34,28,24,0.08)',
-          borderRadius: '3px 0 0 3px',
-        })}
+          width: '3px',
+          bgcolor: 'var(--cin-accent-glow, rgba(139,124,255,0.35))',
+          borderRadius: '16px 0 0 16px',
+        }}
       />
     </Box>
   );
@@ -50,6 +45,7 @@ function BookSkeleton() {
 export default function JournalsPage() {
   const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useJournals();
+  const reducedMotion = useReducedMotion();
 
   const [search, setSearch] = useState('');
 
@@ -68,10 +64,7 @@ export default function JournalsPage() {
         variants={fadeInUp}
         initial="hidden"
         animate="visible"
-        sx={{
-          pt: { xs: 2, md: 4 },
-          mb: 5,
-        }}
+        sx={{ pt: { xs: 2, md: 4 }, mb: 5 }}
       >
         {/* Title row */}
         <Box
@@ -85,24 +78,16 @@ export default function JournalsPage() {
           }}
         >
           <Box>
-            <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>The Shelf — Field Journals</Typography>
+            <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>Field Journals</Typography>
             <Typography
               component="h1"
-              sx={(theme) => ({
-                fontSize: { xs: '2.25rem', md: '3rem' },
-                fontFamily: 'var(--font-accent)',
-                lineHeight: 1.05,
-                color:
-                  theme.palette.mode === 'dark'
-                    ? 'var(--viraha-ink-dark, #F2EAD9)'
-                    : 'var(--viraha-ink, #221C18)',
-              })}
+              sx={{ ...displaySx, fontSize: { xs: '2.25rem', md: '3rem' } }}
             >
               Journals
             </Typography>
             <Typography
               sx={{
-                color: 'text.secondary',
+                color: CIN.textMuted,
                 fontSize: { xs: '0.85rem', md: '0.95rem' },
                 mt: 1,
                 maxWidth: 380,
@@ -123,65 +108,43 @@ export default function JournalsPage() {
               width: { xs: '100%', md: 'auto' },
             }}
           >
-            {/* Field-notes search */}
             <Box
-              sx={(theme) => ({
+              sx={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
                 px: 2,
-                py: 1.25,
-                borderRadius: '4px',
-                bgcolor:
-                  theme.palette.mode === 'dark'
-                    ? 'rgba(242,234,217,0.04)'
-                    : 'rgba(34,28,24,0.02)',
-                border: '1px solid',
-                borderColor:
-                  theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.2)' : 'rgba(34,28,24,0.25)',
-                borderBottomStyle: 'dashed',
-                borderBottomColor: GOLD,
+                py: 1,
+                borderRadius: '10px',
+                bgcolor: 'var(--cin-surface, #141419)',
+                border: `1px solid ${CIN.hairline}`,
                 flex: { xs: 1, md: 'unset' },
                 width: { md: 240 },
-                '&:focus-within': { borderColor: GOLD },
-              })}
+                transition: 'border-color .2s ease, box-shadow .2s ease',
+                '&:focus-within': {
+                  borderColor: CIN.accent,
+                  boxShadow: `0 0 0 1px ${CIN.accentGlow}`,
+                },
+              }}
             >
-              <Search
-                style={{
-                  width: 16,
-                  height: 16,
-                  color: 'var(--mui-palette-text-secondary)',
-                }}
-              />
+              <Search style={{ width: 16, height: 16, color: CIN.textMuted, flexShrink: 0 }} />
               <InputBase
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search entries..."
                 fullWidth
-                sx={{ fontSize: '0.85rem' }}
+                sx={{
+                  fontSize: '0.85rem',
+                  color: CIN.text,
+                  '& input::placeholder': { color: CIN.textMuted, opacity: 1 },
+                }}
               />
             </Box>
 
-            <Button
-              variant="outlined"
-              disableElevation
-              component={Link}
-              href="/create/journal"
-              sx={{
-                borderRadius: '4px',
-                flexShrink: 0,
-                borderColor: GOLD,
-                color: 'text.primary',
-                px: 2.5,
-                py: 1.25,
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
-              }}
-            >
+            <GlowButton component={Link} href="/create/journal" sx={{ flexShrink: 0 }}>
               <Plus style={{ width: 16, height: 16, marginRight: 6 }} />
               New Journal
-            </Button>
+            </GlowButton>
           </Box>
         </Box>
       </Box>
@@ -196,7 +159,7 @@ export default function JournalsPage() {
           }}
         >
           {Array.from({ length: 6 }).map((_, i) => (
-            <BookSkeleton key={i} />
+            <JournalCardSkeleton key={i} />
           ))}
         </Box>
       ) : isError ? (
@@ -205,44 +168,31 @@ export default function JournalsPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          sx={(theme) => ({
+          sx={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             py: 8,
+            px: 3,
             textAlign: 'center',
             gap: 1.5,
             mx: 'auto',
             maxWidth: 480,
-            border: '1px dashed',
-            borderColor:
-              theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.25)' : 'rgba(34,28,24,0.25)',
-            borderRadius: '6px',
-          })}
+            bgcolor: 'var(--cin-surface, #141419)',
+            border: `1px solid ${CIN.hairline}`,
+            borderRadius: '16px',
+          }}
         >
-          <Typography sx={{ fontFamily: 'var(--font-accent)', fontSize: '1.4rem' }}>
+          <Typography sx={{ ...displaySx, fontSize: '1.4rem' }}>
             Couldn&apos;t load your journals
           </Typography>
-          <Typography sx={{ color: 'text.secondary', maxWidth: 384 }}>
+          <Typography sx={{ color: CIN.textMuted, maxWidth: 384 }}>
             Something went wrong while loading your journals. Please try again.
           </Typography>
-          <Button
-            variant="outlined"
-            disableElevation
-            onClick={() => refetch()}
-            sx={{
-              borderRadius: '4px',
-              px: 4,
-              mt: 1,
-              borderColor: GOLD,
-              color: 'text.primary',
-              fontWeight: 600,
-              '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
-            }}
-          >
+          <GlowButton variant="ghost" onClick={() => refetch()} sx={{ px: 4, mt: 1 }}>
             Try Again
-          </Button>
+          </GlowButton>
         </Box>
       ) : (
         <Box component={motion.div} variants={fadeIn} initial="hidden" animate="visible">
@@ -250,46 +200,41 @@ export default function JournalsPage() {
 
           {hasNextPage && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <Button
-                variant="outlined"
-                disableElevation
+              <GlowButton
+                variant="ghost"
                 size="large"
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                sx={{
-                  borderRadius: '4px',
-                  px: 4,
-                  borderColor: GOLD,
-                  color: 'text.primary',
-                  fontWeight: 600,
-                  '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
-                }}
+                sx={{ px: 4 }}
               >
                 {isFetchingNextPage ? 'Loading...' : 'Load More'}
-              </Button>
+              </GlowButton>
             </Box>
           )}
         </Box>
       )}
 
-      {/* FAB — Write new memory (small purple interactive accent, per brief) */}
+      {/* FAB — Write new memory (accent glow pill) */}
       <Link href="/create/journal" style={{ textDecoration: 'none', color: 'inherit' }}>
         <Box
+          component={motion.div}
+          whileHover={reducedMotion ? undefined : { scale: 1.04 }}
+          whileTap={reducedMotion ? undefined : { scale: 0.98 }}
           sx={{
             position: 'fixed',
             bottom: { xs: 80, md: 32 },
             right: { xs: 16, md: 32 },
-            bgcolor: 'secondary.main',
-            color: 'white',
-            borderRadius: '4px',
-            boxShadow: '3px 3px 0 rgba(34,28,24,0.25)',
+            bgcolor: CIN.accent,
+            color: '#0B0B0F',
+            borderRadius: '9999px',
+            boxShadow: `0 8px 32px ${CIN.accentGlow}`,
             display: 'flex',
             alignItems: 'center',
             gap: 1.25,
             px: 2.5,
             py: 1.5,
-            '&:hover': { bgcolor: 'secondary.dark' },
-            transition: 'background-color 0.2s',
+            transition: 'box-shadow 0.2s ease',
+            '&:hover': { boxShadow: glowRing(0) },
             zIndex: 50,
           }}
         >

@@ -5,12 +5,26 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import FormLabel from '@mui/material/FormLabel';
 import { useCreateJournal } from '@/lib/hooks/use-journals';
+import { GlowButton } from '@/components/cinema';
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { fadeInUp } from '@/lib/animations';
+
+const inputSx = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '10px',
+    bgcolor: 'var(--cin-surface-2, #1C1C24)',
+    color: CIN.text,
+    '& fieldset': { borderColor: CIN.hairline },
+    '&:hover fieldset': { borderColor: 'rgba(139,124,255,0.4)' },
+    '&.Mui-focused fieldset': { borderColor: CIN.accent },
+  },
+} as const;
+
+const labelSx = { ...eyebrowSx, display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' } as const;
 
 export function CreateJournalForm() {
   const router = useRouter();
@@ -47,7 +61,7 @@ export function CreateJournalForm() {
       style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <FormLabel htmlFor="title" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Title</FormLabel>
+        <FormLabel htmlFor="title" sx={labelSx}>Title</FormLabel>
         <TextField
           id="title"
           placeholder="e.g. A Week in Patagonia"
@@ -58,12 +72,12 @@ export function CreateJournalForm() {
           size="small"
           fullWidth
           slotProps={{ htmlInput: { maxLength: 200 } }}
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+          sx={inputSx}
         />
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <FormLabel htmlFor="summary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Summary (optional)</FormLabel>
+        <FormLabel htmlFor="summary" sx={labelSx}>Summary (optional)</FormLabel>
         <TextField
           id="summary"
           placeholder="What is this journal about?"
@@ -75,20 +89,20 @@ export function CreateJournalForm() {
           size="small"
           fullWidth
           slotProps={{ htmlInput: { maxLength: 2000 } }}
-          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+          sx={inputSx}
         />
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <FormLabel sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Privacy</FormLabel>
+          <FormLabel sx={labelSx}>Privacy</FormLabel>
           <TextField
             select
             value={privacy}
             onChange={(e) => setPrivacy(e.target.value)}
             size="small"
             fullWidth
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            sx={inputSx}
           >
             <MenuItem value="public">Public</MenuItem>
             <MenuItem value="followers">Followers only</MenuItem>
@@ -97,14 +111,14 @@ export function CreateJournalForm() {
         </Box>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <FormLabel sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Status</FormLabel>
+          <FormLabel sx={labelSx}>Status</FormLabel>
           <TextField
             select
             value={status}
             onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
             size="small"
             fullWidth
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
+            sx={inputSx}
           >
             <MenuItem value="draft">Draft</MenuItem>
             <MenuItem value="published">Published</MenuItem>
@@ -113,17 +127,15 @@ export function CreateJournalForm() {
       </Box>
 
       {createJournal.isError && (
-        <Typography sx={{ fontSize: '0.875rem', color: 'error.main' }}>
+        <Typography sx={{ fontSize: '0.875rem', color: 'var(--cin-danger, #FF6B6B)' }}>
           Failed to create journal. Please try again.
         </Typography>
       )}
 
-      <Button
+      <GlowButton
         type="submit"
-        variant="contained"
-        disableElevation
-        sx={{ width: '100%', borderRadius: '9999px' }}
         size="large"
+        sx={{ width: '100%' }}
         disabled={!title.trim() || createJournal.isPending}
       >
         {createJournal.isPending ? (
@@ -134,7 +146,7 @@ export function CreateJournalForm() {
         ) : (
           'Create Journal'
         )}
-      </Button>
+      </GlowButton>
     </motion.form>
   );
 }

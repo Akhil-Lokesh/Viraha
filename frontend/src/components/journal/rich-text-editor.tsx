@@ -20,10 +20,14 @@ interface RichTextEditorProps {
 
 const proseMirrorStyles = (
   <GlobalStyles
-    styles={(theme) => ({
+    styles={{
       '.ProseMirror': {
         outline: 'none',
         minHeight: 400,
+        fontSize: '1.05rem',
+        lineHeight: 1.7,
+        color: 'var(--cin-text, #F4F4F6)',
+        caretColor: 'var(--cin-accent, #8B7CFF)',
         '& > * + *': {
           marginTop: '0.75em',
         },
@@ -52,24 +56,28 @@ const proseMirrorStyles = (
           margin: '1em 0',
         },
         '& blockquote': {
-          borderLeft: `2px solid var(--viraha-gold, #D4A843)`,
+          borderLeft: '2px solid var(--cin-accent, #8B7CFF)',
           paddingLeft: '1em',
-          color: theme.palette.text.secondary,
+          color: 'var(--cin-text-muted, #9A9AA6)',
           fontStyle: 'italic',
           margin: '1em 0',
         },
         '& ul, & ol': {
           paddingLeft: '1.5em',
         },
+        '& ::selection': {
+          backgroundColor: 'var(--cin-accent-glow, rgba(139,124,255,0.35))',
+        },
         '& p.is-editor-empty:first-child::before': {
           content: 'attr(data-placeholder)',
           float: 'left',
-          color: theme.palette.text.disabled,
+          color: 'var(--cin-text-muted, #9A9AA6)',
+          opacity: 0.6,
           pointerEvents: 'none',
           height: 0,
         },
       },
-    })}
+    }}
   />
 );
 

@@ -9,6 +9,7 @@ import { Route, MapPin, Calendar, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useJourneys, useDetectJourneys } from '@/lib/hooks/use-journeys';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
+import { glowRing } from '@/lib/design/cinema-tokens';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
 const DEFAULT_COLOR = '#8B5CF6';
@@ -93,8 +94,8 @@ export function JourneyPreviewWidget({ size, color }: { size: WidgetGridSize; co
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'box-shadow 0.2s',
-          '&:hover': { boxShadow: 3 },
+          transition: 'box-shadow 0.2s ease',
+          '&:hover': { boxShadow: glowRing(1) },
         }}
       >
         {/* Photo strip */}

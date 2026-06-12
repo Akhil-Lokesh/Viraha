@@ -10,8 +10,10 @@ import {
   IconButton,
   CircularProgress,
 } from '@mui/material';
+import { motion, MotionConfig } from 'framer-motion';
 import { X } from 'lucide-react';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import { CIN, displaySx } from '@/lib/design/cinema-tokens';
 import { getFollowers, getFollowing } from '@/lib/api/follows';
 
 interface FollowUser {
@@ -74,14 +76,32 @@ export function FollowListDialog({ open, onClose, userId, type }: FollowListDial
       maxWidth="xs"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: '16px', maxHeight: '70vh' },
+        sx: {
+          borderRadius: '16px',
+          maxHeight: '70vh',
+          bgcolor: CIN.surface,
+          backgroundImage: 'none',
+          border: `1px solid ${CIN.hairline}`,
+        },
       }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
-        <Typography sx={{ fontWeight: 600, fontSize: '1.125rem' }}>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          pb: 1,
+          borderBottom: `1px solid ${CIN.hairline}`,
+        }}
+      >
+        <Typography sx={{ ...displaySx, fontSize: 17 }}>
           {type === 'followers' ? 'Followers' : 'Following'}
         </Typography>
-        <IconButton onClick={onClose} size="small">
+        <IconButton
+          onClick={onClose}
+          size="small"
+          sx={{ color: CIN.textMuted, '&:hover': { color: CIN.text } }}
+        >
           <X style={{ width: 18, height: 18 }} />
         </IconButton>
       </DialogTitle>
@@ -92,57 +112,72 @@ export function FollowListDialog({ open, onClose, userId, type }: FollowListDial
         sx={{
           overflowY: 'auto',
           px: 2,
+          pt: 1,
           pb: 2,
           minHeight: 200,
         }}
       >
-        {users.map((u) => (
-          <Link
-            key={u.id}
-            href={`/profile/${u.username}`}
-            style={{ textDecoration: 'none', color: 'inherit' }}
-            onClick={onClose}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                py: 1.5,
-                px: 1,
-                borderRadius: '12px',
-                '&:hover': { bgcolor: 'action.hover' },
-                transition: 'background-color 0.15s',
-              }}
+        <MotionConfig reducedMotion="user">
+          {users.map((u) => (
+            <Link
+              key={u.id}
+              href={`/profile/${u.username}`}
+              style={{ textDecoration: 'none', color: 'inherit' }}
+              onClick={onClose}
             >
-              <UserAvatar
-                src={u.avatar}
-                username={u.username}
-                displayName={u.displayName}
-                size="sm"
-                link={false}
-              />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {u.displayName || u.username}
-                </Typography>
-                <Typography sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                  @{u.username}
-                </Typography>
-              </Box>
-            </Box>
-          </Link>
-        ))}
+              <motion.div whileHover={{ x: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    py: 1.5,
+                    px: 1,
+                    borderRadius: '12px',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
+                    transition: 'background-color 0.15s',
+                  }}
+                >
+                  <UserAvatar
+                    src={u.avatar}
+                    username={u.username}
+                    displayName={u.displayName}
+                    size="sm"
+                    link={false}
+                    sx={{ bgcolor: CIN.surface2, color: CIN.accent }}
+                  />
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        color: CIN.text,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {u.displayName || u.username}
+                    </Typography>
+                    <Typography sx={{ color: CIN.textMuted, fontSize: '0.75rem' }}>
+                      @{u.username}
+                    </Typography>
+                  </Box>
+                </Box>
+              </motion.div>
+            </Link>
+          ))}
+        </MotionConfig>
 
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress size={24} />
+            <CircularProgress size={24} sx={{ color: CIN.accent }} />
           </Box>
         )}
 
         {!loading && users.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+            <Typography sx={{ color: CIN.textMuted, fontSize: '0.875rem' }}>
               {type === 'followers' ? 'No followers yet' : 'Not following anyone yet'}
             </Typography>
           </Box>

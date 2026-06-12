@@ -6,7 +6,8 @@ import { Box, Typography } from '@mui/material';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import { Map, Camera, Compass, ChevronDown, MapPin } from 'lucide-react';
-import Button from '@mui/material/Button';
+import { CinemaCard, GlowButton } from '@/components/cinema';
+import { displaySx, glowRing } from '@/lib/design/cinema-tokens';
 import { SectionHeader } from '@/components/shared/section-header';
 import { StatCard } from '@/components/shared/stat-card';
 import { heroPhotos, mockTrips, mockUsers } from '@/lib/mock-data';
@@ -38,6 +39,7 @@ function HeroSection() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        bgcolor: 'var(--cin-bg)',
       }}
     >
       {/* Background image with parallax */}
@@ -52,8 +54,15 @@ function HeroSection() {
         />
       </Box>
 
-      {/* Gradient overlay */}
-      <Box sx={{ position: 'absolute', inset: 0 }} className="gradient-hero" />
+      {/* Dark-room gradient overlay */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'linear-gradient(to top, rgba(11,11,15,0.88) 0%, rgba(11,11,15,0.35) 40%, rgba(11,11,15,0.08) 70%, transparent 100%)',
+        }}
+      />
 
       {/* Additional top vignette for navbar readability */}
       <Box
@@ -63,7 +72,7 @@ function HeroSection() {
           right: 0,
           top: 0,
           height: 160,
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)',
+          background: 'linear-gradient(to bottom, rgba(11,11,15,0.5), transparent)',
         }}
       />
 
@@ -79,11 +88,8 @@ function HeroSection() {
           initial="hidden"
           animate="visible"
           sx={{
+            ...displaySx,
             fontSize: { xs: '3rem', md: '4.5rem', lg: '6rem' },
-            fontFamily: 'var(--font-heading)',
-            color: 'white',
-            lineHeight: 1.1,
-            letterSpacing: '-0.02em',
           }}
         >
           Keep your travels alive
@@ -98,7 +104,7 @@ function HeroSection() {
           sx={{
             mt: { xs: 3, md: 4 },
             fontSize: { xs: '1.125rem', md: '1.25rem' },
-            color: 'rgba(255,255,255,0.8)',
+            color: 'rgba(244,244,246,0.82)',
             maxWidth: 672,
             mx: 'auto',
             lineHeight: 1.6,
@@ -123,48 +129,30 @@ function HeroSection() {
             gap: 2,
           }}
         >
-          <Button
-            variant="contained"
-            disableElevation
+          <GlowButton
             size="large"
             component={Link}
             href="/sign-up"
-            sx={{
-              bgcolor: 'secondary.main',
-              color: 'secondary.contrastText',
-              '&:hover': { bgcolor: 'secondary.dark' },
-              borderRadius: '9999px',
-              px: 4,
-              height: 48,
-              fontSize: '1rem',
-              fontWeight: 500,
-              boxShadow: '0 4px 14px rgba(var(--mui-palette-secondary-mainChannel) / 0.25)',
-            }}
+            sx={{ px: 4, height: 48, fontSize: '1rem' }}
           >
             Start Your Journey
-          </Button>
-          <Button
+          </GlowButton>
+          <GlowButton
+            variant="ghost"
             size="large"
-            variant="text"
-            disableElevation
             component={Link}
             href="/sign-in"
             sx={{
-              color: 'white',
-              border: 1,
-              borderColor: 'rgba(255,255,255,0.3)',
-              bgcolor: 'rgba(255,255,255,0.1)',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.2)', color: 'white' },
-              borderRadius: '9999px',
               px: 4,
               height: 48,
               fontSize: '1rem',
-              fontWeight: 500,
+              bgcolor: 'rgba(11,11,15,0.35)',
               backdropFilter: 'blur(4px)',
+              '&:hover': { bgcolor: 'rgba(11,11,15,0.55)' },
             }}
           >
             Sign In
-          </Button>
+          </GlowButton>
         </Box>
       </Box>
 
@@ -187,7 +175,7 @@ function HeroSection() {
         }}
       >
         <Typography
-          sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+          sx={{ color: 'var(--cin-text-muted)', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}
         >
           Scroll
         </Typography>
@@ -195,7 +183,7 @@ function HeroSection() {
           animate={{ y: [0, 8, 0] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <ChevronDown style={{ height: 20, width: 20, color: 'rgba(255,255,255,0.6)' }} />
+          <ChevronDown style={{ height: 20, width: 20, color: 'var(--cin-text-muted)' }} />
         </motion.div>
       </Box>
     </Box>
@@ -209,27 +197,24 @@ const features = [
     title: 'Map Your Memories',
     description:
       'Every pin on the map is a story. Watch your journey unfold across continents.',
-    color: { bgcolor: 'rgba(var(--viraha-deep-channel, 88,28,135) / 0.1)', color: 'var(--viraha-deep, #581C87)' },
   },
   {
     icon: Camera,
     title: 'Tell Your Story',
     description:
-      'Posts, albums, and journals \u2014 capture your travels the way you want to remember them.',
-    color: { bgcolor: 'rgba(var(--viraha-teal-channel, 20,184,166) / 0.1)', color: 'var(--viraha-teal, #14B8A6)' },
+      'Posts, albums, and journals — capture your travels the way you want to remember them.',
   },
   {
     icon: Compass,
     title: 'Discover Places',
     description:
       'Find inspiration from fellow travelers. Explore the world through authentic stories.',
-    color: { bgcolor: 'rgba(var(--viraha-teal-700-channel, 15,118,110) / 0.1)', color: 'var(--viraha-teal-700, #0F766E)' },
   },
 ];
 
 function FeaturesSection() {
   return (
-    <Box component="section" id="features" className="section-spacing">
+    <Box component="section" id="features" className="section-spacing" sx={{ bgcolor: 'var(--cin-bg)' }}>
       <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 3 } }}>
         <SectionHeader
           title="Your Journey, Beautifully Preserved"
@@ -250,41 +235,33 @@ function FeaturesSection() {
           }}
         >
           {features.map((feature) => (
-            <Box
-              key={feature.title}
-              component={motion.div}
-              variants={staggerItem}
-              sx={{
-                borderRadius: '16px',
-                p: 4,
-                bgcolor: 'background.paper',
-                border: 1,
-                borderColor: 'divider',
-                '&:hover': { borderColor: 'divider', boxShadow: 3 },
-                transition: 'all 0.3s',
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 56,
-                  height: 56,
-                  borderRadius: '16px',
-                  mb: 3,
-                  transition: 'transform 0.3s',
-                  ...feature.color,
-                }}
-              >
-                <feature.icon style={{ height: 24, width: 24 }} />
-              </Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, letterSpacing: '-0.01em' }}>
-                {feature.title}
-              </Typography>
-              <Typography sx={{ mt: 1.5, color: 'text.secondary', lineHeight: 1.6 }}>
-                {feature.description}
-              </Typography>
+            <Box key={feature.title} component={motion.div} variants={staggerItem}>
+              <CinemaCard sx={{ p: 4, height: '100%' }}>
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 56,
+                    height: 56,
+                    borderRadius: '14px',
+                    mb: 3,
+                    bgcolor: 'rgba(139,124,255,0.12)',
+                    color: 'var(--cin-accent)',
+                  }}
+                >
+                  <feature.icon style={{ height: 24, width: 24 }} />
+                </Box>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--cin-text)' }}
+                >
+                  {feature.title}
+                </Typography>
+                <Typography sx={{ mt: 1.5, color: 'var(--cin-text-muted)', lineHeight: 1.6 }}>
+                  {feature.description}
+                </Typography>
+              </CinemaCard>
             </Box>
           ))}
         </Box>
@@ -299,7 +276,7 @@ function PreviewSection() {
   const user = mockUsers[0]; // Nina Soleil
 
   return (
-    <Box component="section" className="section-spacing" sx={{ overflow: 'hidden' }}>
+    <Box component="section" className="section-spacing" sx={{ overflow: 'hidden', bgcolor: 'var(--cin-bg)' }}>
       <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 3 } }}>
         <SectionHeader
           title="See Your Travels Come Alive"
@@ -318,19 +295,16 @@ function PreviewSection() {
             {/* Main trip card */}
             <Box
               component={motion.div}
-              whileHover={{
-                rotateY: -2,
-                rotateX: 1,
-                scale: 1.02,
-              }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              style={{ perspective: 1000 }}
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
               sx={{
                 position: 'relative',
                 borderRadius: '16px',
                 overflow: 'hidden',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)',
+                border: '1px solid var(--cin-hairline)',
                 cursor: 'pointer',
+                transition: 'box-shadow .2s ease',
+                '&:hover': { boxShadow: glowRing(1) },
                 '&:hover img': { transform: 'scale(1.05)' },
               }}
             >
@@ -344,12 +318,13 @@ function PreviewSection() {
                   sizes="(max-width: 768px) 100vw, 512px"
                 />
 
-                {/* Gradient overlay */}
+                {/* Bottom vignette */}
                 <Box
                   sx={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.2), transparent)',
+                    background:
+                      'linear-gradient(to top, rgba(11,11,15,0.85), rgba(11,11,15,0.25), transparent)',
                   }}
                 />
 
@@ -361,16 +336,15 @@ function PreviewSection() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 0.75,
-                      bgcolor: 'rgba(0,0,0,0.4)',
+                      bgcolor: 'rgba(11,11,15,0.55)',
                       backdropFilter: 'blur(12px)',
-                      color: 'white',
+                      color: 'var(--cin-text)',
                       fontSize: '0.75rem',
                       fontWeight: 500,
                       px: 1.5,
                       py: 0.75,
                       borderRadius: '9999px',
-                      border: 1,
-                      borderColor: 'rgba(255,255,255,0.1)',
+                      border: '1px solid var(--cin-hairline)',
                     }}
                   >
                     <MapPin style={{ height: 12, width: 12 }} />
@@ -386,16 +360,15 @@ function PreviewSection() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 0.5,
-                      bgcolor: 'rgba(0,0,0,0.4)',
+                      bgcolor: 'rgba(11,11,15,0.55)',
                       backdropFilter: 'blur(12px)',
-                      color: 'white',
+                      color: 'var(--cin-text)',
                       fontSize: '0.75rem',
                       fontWeight: 500,
                       px: 1.25,
                       py: 0.75,
                       borderRadius: '9999px',
-                      border: 1,
-                      borderColor: 'rgba(255,255,255,0.1)',
+                      border: '1px solid var(--cin-hairline)',
                     }}
                   >
                     <Camera style={{ height: 12, width: 12 }} />
@@ -413,8 +386,7 @@ function PreviewSection() {
                         height: 36,
                         borderRadius: '50%',
                         overflow: 'hidden',
-                        border: 2,
-                        borderColor: 'rgba(255,255,255,0.3)',
+                        border: '2px solid rgba(255,255,255,0.3)',
                         flexShrink: 0,
                       }}
                     >
@@ -427,10 +399,10 @@ function PreviewSection() {
                       />
                     </Box>
                     <Box>
-                      <Typography sx={{ color: 'white', fontSize: '0.875rem', fontWeight: 500 }}>
+                      <Typography sx={{ color: 'var(--cin-text)', fontSize: '0.875rem', fontWeight: 500 }}>
                         {user.displayName}
                       </Typography>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
+                      <Typography sx={{ color: 'var(--cin-text-muted)', fontSize: '0.75rem' }}>
                         @{user.username}
                       </Typography>
                     </Box>
@@ -438,14 +410,14 @@ function PreviewSection() {
 
                   {/* Trip title */}
                   <Typography
-                    sx={{ fontSize: '1.5rem', fontFamily: 'var(--font-heading)', color: 'white', lineHeight: 1.2 }}
+                    sx={{ ...displaySx, fontSize: '1.5rem', lineHeight: 1.15 }}
                   >
                     {trip.title}
                   </Typography>
                   <Typography
                     sx={{
                       mt: 1,
-                      color: 'rgba(255,255,255,0.7)',
+                      color: 'rgba(244,244,246,0.72)',
                       fontSize: '0.875rem',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
@@ -490,17 +462,16 @@ function PreviewSection() {
                         width: 14,
                         height: 14,
                         borderRadius: '50%',
-                        bgcolor: 'secondary.main',
-                        border: 2,
-                        borderColor: 'background.default',
-                        boxShadow: 2,
+                        bgcolor: 'var(--cin-accent)',
+                        border: '2px solid var(--cin-bg)',
+                        boxShadow: '0 0 12px var(--cin-accent-glow)',
                       }}
                     />
                     <Typography
                       sx={{
                         mt: 1,
                         fontSize: '11px',
-                        color: 'text.secondary',
+                        color: 'var(--cin-text-muted)',
                         fontWeight: 500,
                         whiteSpace: 'nowrap',
                       }}
@@ -524,8 +495,8 @@ function PreviewSection() {
                       sx={{
                         width: { xs: 64, sm: 96 },
                         height: 2,
-                        background: (theme) =>
-                          `linear-gradient(to right, ${theme.palette.secondary.main}99, ${theme.palette.secondary.main}4D)`,
+                        background:
+                          'linear-gradient(to right, rgba(139,124,255,0.6), rgba(139,124,255,0.3))',
                         transformOrigin: 'left',
                         mb: 2.5,
                       }}
@@ -546,11 +517,25 @@ function StatsSection() {
   return (
     <Box
       component="section"
-      className="gradient-warm"
-      sx={{ py: { xs: 10, md: 14 }, position: 'relative', overflow: 'hidden' }}
+      sx={{
+        py: { xs: 10, md: 14 },
+        position: 'relative',
+        overflow: 'hidden',
+        bgcolor: 'var(--cin-surface)',
+        borderTop: '1px solid var(--cin-hairline)',
+        borderBottom: '1px solid var(--cin-hairline)',
+      }}
     >
-      {/* Subtle pattern overlay */}
-      <Box sx={{ position: 'absolute', inset: 0, opacity: 0.1 }}>
+      {/* Accent glow + subtle dot pattern */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse at 50% 0%, rgba(139,124,255,0.12), transparent 60%)',
+        }}
+      />
+      <Box sx={{ position: 'absolute', inset: 0, opacity: 0.05 }}>
         <Box
           sx={{
             position: 'absolute',
@@ -573,16 +558,14 @@ function StatsSection() {
         >
           <Typography
             sx={{
+              ...displaySx,
               fontSize: { xs: '1.875rem', md: '2.25rem' },
-              fontWeight: 'bold',
-              color: 'white',
-              letterSpacing: '-0.01em',
             }}
           >
             Join travelers preserving memories
           </Typography>
           <Typography
-            sx={{ mt: 1.5, fontSize: '1.125rem', color: 'rgba(255,255,255,0.7)', maxWidth: 576, mx: 'auto' }}
+            sx={{ mt: 1.5, fontSize: '1.125rem', color: 'var(--cin-text-muted)', maxWidth: 576, mx: 'auto' }}
           >
             A growing community of people who believe travel stories deserve to
             be kept alive.
@@ -590,15 +573,9 @@ function StatsSection() {
         </Box>
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 4, maxWidth: 768, mx: 'auto' }}>
-          <Box sx={{ color: 'white', '& div': { color: 'white' }, '& .MuiTypography-root': { color: 'white' } }}>
-            <StatCard value={10000} suffix="+" label="Memories Preserved" />
-          </Box>
-          <Box sx={{ color: 'white', '& div': { color: 'white' }, '& .MuiTypography-root': { color: 'white' } }}>
-            <StatCard value={50} suffix="+" label="Countries Explored" />
-          </Box>
-          <Box sx={{ color: 'white', '& div': { color: 'white' }, '& .MuiTypography-root': { color: 'white' } }}>
-            <StatCard value={5000} suffix="+" label="Stories Shared" />
-          </Box>
+          <StatCard value={10000} suffix="+" label="Memories Preserved" />
+          <StatCard value={50} suffix="+" label="Countries Explored" />
+          <StatCard value={5000} suffix="+" label="Stories Shared" />
         </Box>
       </Box>
     </Box>
@@ -608,13 +585,18 @@ function StatsSection() {
 // ─── CTA Section ───────────────────────────────────────
 function CTASection() {
   return (
-    <Box component="section" className="section-spacing" sx={{ position: 'relative', overflow: 'hidden' }}>
-      {/* Subtle radial gradient background */}
+    <Box
+      component="section"
+      className="section-spacing"
+      sx={{ position: 'relative', overflow: 'hidden', bgcolor: 'var(--cin-bg)' }}
+    >
+      {/* Subtle accent gradient background */}
       <Box
         sx={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(to bottom, transparent, rgba(var(--mui-palette-secondary-mainChannel) / 0.03), transparent)',
+          background:
+            'linear-gradient(to bottom, transparent, rgba(139,124,255,0.05), transparent)',
         }}
       />
 
@@ -629,14 +611,13 @@ function CTASection() {
         >
           <Typography
             sx={{
+              ...displaySx,
               fontSize: { xs: '1.875rem', md: '2.25rem' },
-              fontWeight: 'bold',
-              letterSpacing: '-0.01em',
             }}
           >
             Ready to start your journey?
           </Typography>
-          <Typography sx={{ mt: 2, fontSize: '1.125rem', color: 'text.secondary' }}>
+          <Typography sx={{ mt: 2, fontSize: '1.125rem', color: 'var(--cin-text-muted)' }}>
             Your travels deserve more than a camera roll. Give them a home.
           </Typography>
           <Box
@@ -648,28 +629,16 @@ function CTASection() {
             transition={{ delay: 0.2 }}
             sx={{ mt: 4 }}
           >
-            <Button
-              variant="contained"
-              disableElevation
+            <GlowButton
               size="large"
               component={Link}
               href="/sign-up"
-              sx={{
-                bgcolor: 'secondary.main',
-                color: 'secondary.contrastText',
-                '&:hover': { bgcolor: 'secondary.dark' },
-                borderRadius: '9999px',
-                px: 5,
-                height: 48,
-                fontSize: '1rem',
-                fontWeight: 500,
-                boxShadow: '0 4px 14px rgba(var(--mui-palette-secondary-mainChannel) / 0.2)',
-              }}
+              sx={{ px: 5, height: 48, fontSize: '1rem' }}
             >
               Create Free Account
-            </Button>
+            </GlowButton>
           </Box>
-          <Typography variant="caption" sx={{ mt: 2, display: 'block', color: 'text.secondary' }}>
+          <Typography variant="caption" sx={{ mt: 2, display: 'block', color: 'var(--cin-text-muted)' }}>
             Free forever. No credit card required.
           </Typography>
         </Box>

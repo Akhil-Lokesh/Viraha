@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, MapPin, Calendar, Type, FileText } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import FormLabel from '@mui/material/FormLabel';
 import { useCreateEntry, useUpdateEntry } from '@/lib/hooks/use-journals';
 import { uploadPhotos } from '@/lib/api/media';
 import { PhotoUpload } from '@/components/post/photo-upload';
+import { GlowButton } from '@/components/cinema';
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { MoodSelector } from './mood-selector';
 import { toast } from 'sonner';
 import type { JournalEntry, CreateJournalEntryInput } from '@/lib/types';
@@ -19,6 +20,19 @@ interface Props {
   journalId: string;
   entry?: JournalEntry;
 }
+
+const inputSx = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '10px',
+    bgcolor: 'var(--cin-surface-2, #1C1C24)',
+    color: CIN.text,
+    '& fieldset': { borderColor: CIN.hairline },
+    '&:hover fieldset': { borderColor: 'rgba(139,124,255,0.4)' },
+    '&.Mui-focused fieldset': { borderColor: CIN.accent },
+  },
+} as const;
+
+const labelSx = { ...eyebrowSx, display: 'flex', alignItems: 'center', gap: 0.5, userSelect: 'none' } as const;
 
 export function JournalEntryEditor({ journalId, entry }: Props) {
   const router = useRouter();
@@ -82,10 +96,9 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
   }
 
   const sectionSx = {
-    borderRadius: 4,
-    border: '1px solid',
-    borderColor: 'divider',
-    bgcolor: 'background.paper',
+    borderRadius: '16px',
+    border: `1px solid ${CIN.hairline}`,
+    bgcolor: 'var(--cin-surface, #141419)',
     p: 3,
   };
 
@@ -96,15 +109,17 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
     mb: 2,
   };
 
-  const iconBoxSx = (bgColor: string) => ({
+  const iconBoxSx = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     width: 32,
     height: 32,
-    borderRadius: 2,
-    bgcolor: bgColor,
-  });
+    borderRadius: '8px',
+    bgcolor: 'rgba(139,124,255,0.12)',
+  };
+
+  const iconStyle = { height: 16, width: 16, color: CIN.accent };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -115,14 +130,14 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
       >
         <Box sx={sectionSx}>
           <Box sx={sectionHeaderSx}>
-            <Box sx={iconBoxSx('rgba(var(--mui-palette-primary-mainChannel) / 0.1)')}>
-              <Type style={{ height: 16, width: 16, color: 'var(--mui-palette-primary-main)' }} />
+            <Box sx={iconBoxSx}>
+              <Type style={iconStyle} />
             </Box>
-            <Typography sx={{ fontSize: '1.125rem', fontWeight: 600 }}>Title & Date</Typography>
+            <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: CIN.text }}>Title & Date</Typography>
           </Box>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <FormLabel htmlFor="title" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Title (optional)</FormLabel>
+              <FormLabel htmlFor="title" sx={labelSx}>Title (optional)</FormLabel>
               <TextField
                 id="title"
                 placeholder="e.g. Arriving in Buenos Aires"
@@ -132,11 +147,11 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
                 size="small"
                 fullWidth
                 slotProps={{ htmlInput: { maxLength: 200 } }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+                sx={inputSx}
               />
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <FormLabel htmlFor="date" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.875rem', fontWeight: 500, userSelect: 'none', color: 'text.secondary' }}>Date</FormLabel>
+              <FormLabel htmlFor="date" sx={labelSx}>Date</FormLabel>
               <TextField
                 id="date"
                 type="date"
@@ -145,7 +160,7 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
                 variant="outlined"
                 size="small"
                 fullWidth
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+                sx={inputSx}
               />
             </Box>
           </Box>
@@ -160,10 +175,10 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
       >
         <Box sx={sectionSx}>
           <Box sx={sectionHeaderSx}>
-            <Box sx={iconBoxSx('rgba(100,116,139,0.1)')}>
-              <FileText style={{ height: 16, width: 16, color: '#64748b' }} />
+            <Box sx={iconBoxSx}>
+              <FileText style={iconStyle} />
             </Box>
-            <Typography sx={{ fontSize: '1.125rem', fontWeight: 600 }}>Your Story</Typography>
+            <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: CIN.text }}>Your Story</Typography>
           </Box>
           <TextField
             placeholder="Write about this part of your journey... (supports markdown)"
@@ -174,7 +189,7 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
             variant="outlined"
             size="small"
             fullWidth
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3, resize: 'none', fontSize: '0.875rem', fontFamily: 'monospace' }}
+            sx={{ ...inputSx, resize: 'none', fontSize: '0.875rem', fontFamily: 'monospace' }}
           />
         </Box>
       </motion.div>
@@ -187,10 +202,10 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
       >
         <Box sx={sectionSx}>
           <Box sx={sectionHeaderSx}>
-            <Box sx={iconBoxSx('rgba(139,92,246,0.1)')}>
-              <Calendar style={{ height: 16, width: 16, color: '#7c3aed' }} />
+            <Box sx={iconBoxSx}>
+              <Calendar style={iconStyle} />
             </Box>
-            <Typography sx={{ fontSize: '1.125rem', fontWeight: 600 }}>Photos</Typography>
+            <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: CIN.text }}>Photos</Typography>
           </Box>
           <PhotoUpload files={files} onChange={setFiles} />
         </Box>
@@ -203,7 +218,7 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
         transition={{ delay: 0.15 }}
       >
         <Box sx={sectionSx}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.primary', mb: 1.5 }}>
+          <Typography sx={{ ...eyebrowSx, mb: 1.5 }}>
             How are you feeling?
           </Typography>
           <MoodSelector value={mood} onChange={setMood} />
@@ -218,10 +233,10 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
       >
         <Box sx={sectionSx}>
           <Box sx={sectionHeaderSx}>
-            <Box sx={iconBoxSx('rgba(16,185,129,0.1)')}>
-              <MapPin style={{ height: 16, width: 16, color: '#059669' }} />
+            <Box sx={iconBoxSx}>
+              <MapPin style={iconStyle} />
             </Box>
-            <Typography sx={{ fontSize: '1.125rem', fontWeight: 600 }}>Location</Typography>
+            <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, color: CIN.text }}>Location</Typography>
           </Box>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
             <TextField
@@ -231,7 +246,7 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
               variant="outlined"
               size="small"
               fullWidth
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+              sx={inputSx}
             />
             <TextField
               placeholder="City"
@@ -240,7 +255,7 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
               variant="outlined"
               size="small"
               fullWidth
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+              sx={inputSx}
             />
             <TextField
               placeholder="Country"
@@ -249,7 +264,7 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
               variant="outlined"
               size="small"
               fullWidth
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 }, borderRadius: 3 }}
+              sx={inputSx}
             />
           </Box>
         </Box>
@@ -261,11 +276,9 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
       >
-        <Button
+        <GlowButton
           type="submit"
-          variant="contained"
-          disableElevation
-          sx={{ width: '100%', height: 48, borderRadius: 4 }}
+          sx={{ width: '100%', height: 48 }}
           disabled={isPending}
         >
           {isPending ? (
@@ -278,7 +291,7 @@ export function JournalEntryEditor({ journalId, entry }: Props) {
           ) : (
             'Add Entry'
           )}
-        </Button>
+        </GlowButton>
       </motion.div>
     </Box>
   );

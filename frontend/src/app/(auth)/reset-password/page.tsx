@@ -16,8 +16,16 @@ import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 import { resetPassword } from '@/lib/api/auth';
 import { fetchCsrfToken } from '@/lib/api/client';
-import Button from '@mui/material/Button';
+import { CinemaCard, GlowButton } from '@/components/cinema';
+import { displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { toast } from 'sonner';
+import {
+  authStagger,
+  authItem,
+  authFieldSx,
+  authLinkSx,
+  statusChipSx,
+} from '../auth-styles';
 
 const resetSchema = z.object({
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
@@ -28,23 +36,6 @@ const resetSchema = z.object({
 });
 
 type ResetValues = z.infer<typeof resetSchema>;
-
-const staggerChildren = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
-  },
-};
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -82,14 +73,14 @@ function ResetPasswordForm() {
     return (
       <Box
         component={motion.div}
-        variants={staggerChildren}
+        variants={authStagger}
         initial="hidden"
         animate="visible"
         sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
       >
         <Box
           component={motion.div}
-          variants={staggerItem}
+          variants={authItem}
           sx={{
             textAlign: 'center',
             display: 'flex',
@@ -99,30 +90,18 @@ function ResetPasswordForm() {
         >
           <Typography
             variant="h5"
-            sx={{
-              fontSize: '1.5rem',
-              fontFamily: 'var(--font-heading)',
-              fontWeight: 700,
-              color: 'text.primary',
-            }}
+            sx={{ ...displaySx, fontSize: '1.5rem' }}
           >
             Invalid reset link
           </Typography>
-          <Typography sx={{ color: 'text.secondary' }}>
+          <Typography sx={{ color: 'var(--cin-text-muted)' }}>
             This password reset link is invalid. Please request a new one.
           </Typography>
           <Link
             href="/forgot-password"
             style={{ textDecoration: 'none' }}
           >
-            <Typography
-              sx={{
-                fontSize: '0.875rem',
-                color: 'primary.main',
-                fontWeight: 500,
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
+            <Typography sx={authLinkSx}>
               Request new reset link
             </Typography>
           </Link>
@@ -134,25 +113,27 @@ function ResetPasswordForm() {
   return (
     <Box
       component={motion.div}
-      variants={staggerChildren}
+      variants={authStagger}
       initial="hidden"
       animate="visible"
       sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}
     >
-      <Box component={motion.div} variants={staggerItem}>
+      <Box component={motion.div} variants={authItem}>
         <Link
           href="/sign-in"
           style={{ textDecoration: 'none' }}
         >
           <Box
+            component={motion.span}
+            whileHover={{ x: 2 }}
             sx={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 0.75,
               fontSize: '0.875rem',
-              color: 'text.secondary',
+              color: 'var(--cin-text-muted)',
               mb: 3,
-              '&:hover': { color: 'text.primary' },
+              '&:hover': { color: 'var(--cin-text)' },
               transition: 'color 0.2s',
             }}
           >
@@ -160,101 +141,61 @@ function ResetPasswordForm() {
             Back to sign in
           </Box>
         </Link>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontWeight: 600,
-            fontSize: '0.7rem',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--viraha-gold, #D4A843)',
-            mb: 1,
-          }}
-        >
-          Fresh ink · Recovery
-        </Typography>
+        <Typography sx={{ ...eyebrowSx, mb: 1.5 }}>Account recovery</Typography>
         <Typography
           variant="h4"
-          sx={{
-            fontSize: '2.25rem',
-            fontFamily: 'var(--font-accent)',
-            fontWeight: 400,
-            lineHeight: 1.15,
-            color: 'text.primary',
-          }}
+          sx={{ ...displaySx, fontSize: '2.25rem' }}
         >
           New password
         </Typography>
-        <Typography sx={{ color: 'text.secondary', mt: 1 }}>
+        <Typography sx={{ color: 'var(--cin-text-muted)', mt: 1 }}>
           Choose a strong password for your account
         </Typography>
       </Box>
 
       {success ? (
-        <Box
-          component={motion.div}
-          variants={staggerItem}
-          className="paper-grain"
-          sx={{
-            borderRadius: 1,
-            border: '1px solid var(--viraha-hairline, rgba(34,28,24,0.15))',
-            bgcolor: 'background.paper',
-            p: 4,
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 2,
-          }}
-        >
-          <Box
+        <Box component={motion.div} variants={authItem}>
+          <CinemaCard
+            hover={false}
             sx={{
-              width: 56,
-              height: 56,
-              borderRadius: 1,
-              border: '1.5px solid #059669',
-              transform: 'rotate(-2deg)',
+              p: 4,
+              textAlign: 'center',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: 2,
             }}
           >
-            <CheckCircle style={{ width: 24, height: 24, color: '#059669' }} />
-          </Box>
-          <Typography
-            sx={{
-              fontSize: '1.125rem',
-              fontWeight: 600,
-              color: 'text.primary',
-            }}
-          >
-            Password updated
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.875rem',
-              color: 'text.secondary',
-              maxWidth: 320,
-            }}
-          >
-            Your password has been reset. You can now sign in with your new password.
-          </Typography>
-          <Link
-            href="/sign-in"
-            style={{ textDecoration: 'none' }}
-          >
+            <Box sx={{ ...statusChipSx, color: 'var(--cin-accent)' }}>
+              <CheckCircle style={{ width: 24, height: 24, color: 'inherit' }} />
+            </Box>
             <Typography
               sx={{
-                mt: 1,
-                fontSize: '0.875rem',
-                color: 'primary.main',
-                fontWeight: 500,
-                '&:hover': { textDecoration: 'underline' },
+                fontSize: '1.125rem',
+                fontWeight: 600,
+                color: 'var(--cin-text)',
               }}
             >
-              Sign in
+              Password updated
             </Typography>
-          </Link>
+            <Typography
+              sx={{
+                fontSize: '0.875rem',
+                color: 'var(--cin-text-muted)',
+                maxWidth: 320,
+              }}
+            >
+              Your password has been reset. You can now sign in with your new password.
+            </Typography>
+            <Link
+              href="/sign-in"
+              style={{ textDecoration: 'none' }}
+            >
+              <Typography sx={{ ...authLinkSx, mt: 1 }}>
+                Sign in
+              </Typography>
+            </Link>
+          </CinemaCard>
         </Box>
       ) : (
         <Box
@@ -262,9 +203,8 @@ function ResetPasswordForm() {
           onSubmit={handleSubmit(onSubmit)}
           sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
         >
-          <Box component={motion.div} variants={staggerItem}>
+          <Box component={motion.div} variants={authItem}>
             <TextField
-              className="auth-field"
               label="New Password"
               type={showPassword ? 'text' : 'password'}
               placeholder="At least 8 characters"
@@ -281,6 +221,8 @@ function ResetPasswordForm() {
                         edge="end"
                         tabIndex={-1}
                         size="small"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        sx={{ color: 'var(--cin-text-muted)' }}
                       >
                         {showPassword ? (
                           <EyeOff style={{ width: 20, height: 20 }} />
@@ -292,19 +234,12 @@ function ResetPasswordForm() {
                   ),
                 },
               }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  height: 48,
-                  borderRadius: 1,
-                  bgcolor: 'background.paper',
-                },
-              }}
+              sx={authFieldSx}
             />
           </Box>
 
-          <Box component={motion.div} variants={staggerItem}>
+          <Box component={motion.div} variants={authItem}>
             <TextField
-              className="auth-field"
               label="Confirm Password"
               type="password"
               placeholder="Confirm new password"
@@ -312,39 +247,19 @@ function ResetPasswordForm() {
               {...register('confirmPassword')}
               error={!!errors.confirmPassword}
               helperText={errors.confirmPassword?.message}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  height: 48,
-                  borderRadius: 1,
-                  bgcolor: 'background.paper',
-                },
-              }}
+              sx={authFieldSx}
             />
           </Box>
 
-          <Box component={motion.div} variants={staggerItem}>
-            <Button
+          <Box component={motion.div} variants={authItem}>
+            <GlowButton
               type="submit"
-              variant="contained"
-              disableElevation
-              sx={{
-                width: '100%',
-                height: 48,
-                borderRadius: 1,
-                bgcolor: 'var(--viraha-gold, #D4A843)',
-                color: '#221C18',
-                fontWeight: 600,
-                fontSize: '1rem',
-                letterSpacing: '0.04em',
-                '&:hover': {
-                  bgcolor: 'warning.dark',
-                  boxShadow: '2px 2px 0 var(--viraha-hairline, rgba(34,28,24,0.15))',
-                },
-              }}
+              fullWidth
               disabled={loading}
+              sx={{ height: 48, fontSize: '1rem' }}
             >
               {loading ? 'Resetting...' : 'Reset Password'}
-            </Button>
+            </GlowButton>
           </Box>
         </Box>
       )}
@@ -364,7 +279,7 @@ export default function ResetPasswordPage() {
             minHeight: 200,
           }}
         >
-          <CircularProgress size={24} />
+          <CircularProgress size={24} sx={{ color: 'var(--cin-accent)' }} />
         </Box>
       }
     >

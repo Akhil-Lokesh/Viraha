@@ -1,66 +1,46 @@
 import { Box } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
 
+const SKELETON_SX = { bgcolor: 'var(--cin-surface-2, #1C1C24)' } as const;
+
 export default function Loading() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {/* Greeting skeleton — paper panel with hairline border */}
-      <Box
-        className="paper-grain"
-        sx={{
-          borderRadius: 1,
-          border: '1px solid var(--viraha-hairline, rgba(34,28,24,0.15))',
-          bgcolor: 'background.paper',
-          p: 3,
-        }}
-      >
-        <Skeleton variant="rounded" animation="pulse" sx={{ height: 32, width: 256, mb: 1 }} />
-        <Skeleton variant="rounded" animation="pulse" sx={{ height: 16, width: 160 }} />
+      {/* Heading skeleton */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Skeleton variant="rounded" animation="pulse" sx={{ ...SKELETON_SX, height: 12, width: 120 }} />
+        <Skeleton variant="rounded" animation="pulse" sx={{ ...SKELETON_SX, height: 36, width: 260 }} />
       </Box>
 
-      {/* Stamp-rail skeleton */}
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        {[80, 96, 80].map((width, i) => (
+      {/* Stat strip skeleton */}
+      <Box sx={{ display: 'flex', gap: 1.5 }}>
+        {[92, 92, 92].map((width, i) => (
           <Skeleton
             key={i}
             variant="rounded"
             animation="pulse"
-            sx={{
-              height: 32,
-              width,
-              borderRadius: '4px',
-              transform: `rotate(${i % 2 === 0 ? -1.5 : 1.5}deg)`,
-            }}
+            sx={{ ...SKELETON_SX, height: 56, width, borderRadius: '12px' }}
           />
         ))}
       </Box>
 
-      {/* Postcard grid skeleton */}
+      {/* Photo grid skeleton */}
       <Box
         sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' },
-          gap: 3,
+          gap: 2.5,
         }}
       >
         {Array.from({ length: 6 }).map((_, i) => (
-          <Box
-            key={i}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1.5,
-              p: 1.5,
-              pb: 3, // thick postcard bottom
-              borderRadius: 1,
-              border: '1px solid var(--viraha-hairline, rgba(34,28,24,0.15))',
-              bgcolor: 'background.paper',
-              transform: `rotate(${i % 3 === 0 ? -0.6 : i % 3 === 1 ? 0.5 : 0}deg)`,
-            }}
-          >
-            <Skeleton variant="rounded" animation="pulse" sx={{ aspectRatio: '4/3', borderRadius: '4px' }} />
-            <Skeleton variant="rounded" animation="pulse" sx={{ height: 16, width: '75%' }} />
-            <Skeleton variant="rounded" animation="pulse" sx={{ height: 12, width: '50%' }} />
+          <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+            <Skeleton
+              variant="rounded"
+              animation="pulse"
+              sx={{ ...SKELETON_SX, aspectRatio: '4/3', height: 'auto', width: '100%', borderRadius: '14px' }}
+            />
+            <Skeleton variant="rounded" animation="pulse" sx={{ ...SKELETON_SX, height: 14, width: '70%' }} />
+            <Skeleton variant="rounded" animation="pulse" sx={{ ...SKELETON_SX, height: 12, width: '45%' }} />
           </Box>
         ))}
       </Box>

@@ -14,14 +14,21 @@ import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
-import LinearProgress from '@mui/material/LinearProgress';
 import { useTheme } from '@mui/material/styles';
 import { register as registerUser } from '@/lib/api/auth';
 import { fetchCsrfToken } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import Button from '@mui/material/Button';
+import { GlowButton } from '@/components/cinema';
+import { displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { toast } from 'sonner';
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
+import {
+  authStagger,
+  authItem,
+  authFieldSx,
+  authLinkSx,
+  authDividerSx,
+} from '../auth-styles';
 
 const signUpSchema = z.object({
   username: z
@@ -38,22 +45,7 @@ const signUpSchema = z.object({
 
 type SignUpValues = z.infer<typeof signUpSchema>;
 
-const staggerChildren = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
-  },
-};
+const STRENGTH_EMPTY = 'rgba(255,255,255,0.10)';
 
 interface StrengthPalette {
   error: string;
@@ -97,7 +89,7 @@ export default function SignUpPage() {
     warning: theme.palette.warning.main,
     success: theme.palette.success.main,
     successDark: theme.palette.success.dark,
-    empty: theme.palette.action.disabledBackground,
+    empty: STRENGTH_EMPTY,
   };
 
   useEffect(() => {
@@ -140,39 +132,21 @@ export default function SignUpPage() {
   return (
     <Box
       component={motion.div}
-      variants={staggerChildren}
+      variants={authStagger}
       initial="hidden"
       animate="visible"
       sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}
     >
       {/* Heading */}
-      <Box component={motion.div} variants={staggerItem}>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontWeight: 600,
-            fontSize: '0.7rem',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--viraha-gold, #D4A843)',
-            mb: 1,
-          }}
-        >
-          New passport · Sign up
-        </Typography>
+      <Box component={motion.div} variants={authItem}>
+        <Typography sx={{ ...eyebrowSx, mb: 1.5 }}>Sign up</Typography>
         <Typography
           variant="h4"
-          sx={{
-            fontSize: '2.25rem',
-            fontFamily: 'var(--font-accent)',
-            fontWeight: 400,
-            lineHeight: 1.15,
-            color: 'text.primary',
-          }}
+          sx={{ ...displaySx, fontSize: '2.25rem' }}
         >
           Create your account
         </Typography>
-        <Typography sx={{ color: 'text.secondary', mt: 1 }}>
+        <Typography sx={{ color: 'var(--cin-text-muted)', mt: 1 }}>
           Start preserving your travel memories
         </Typography>
       </Box>
@@ -180,30 +154,15 @@ export default function SignUpPage() {
       {/* Social sign-in — Google is wired when NEXT_PUBLIC_GOOGLE_CLIENT_ID is set */}
       <Box
         component={motion.div}
-        variants={staggerItem}
+        variants={authItem}
         sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
       >
         <GoogleSignInButton label="Sign up with Google" />
       </Box>
 
       {/* Divider */}
-      <Box component={motion.div} variants={staggerItem}>
-        <Divider
-          sx={{
-            fontFamily: 'var(--font-brand)',
-            fontSize: '0.65rem',
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: 'text.secondary',
-            '&::before, &::after': {
-              borderTop: '1px dashed var(--viraha-gold, #D4A843)',
-              borderBottom: 'none',
-              opacity: 0.6,
-            },
-          }}
-        >
-          or continue with email
-        </Divider>
+      <Box component={motion.div} variants={authItem}>
+        <Divider sx={authDividerSx}>or continue with email</Divider>
       </Box>
 
       {/* Form */}
@@ -212,28 +171,20 @@ export default function SignUpPage() {
         onSubmit={handleSubmit(onSubmit)}
         sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
       >
-        <Box component={motion.div} variants={staggerItem}>
+        <Box component={motion.div} variants={authItem}>
           <TextField
-            className="auth-field"
             label="Username"
             placeholder="traveler"
             fullWidth
             {...register('username')}
             error={!!errors.username}
             helperText={errors.username?.message}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                height: 48,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-              },
-            }}
+            sx={authFieldSx}
           />
         </Box>
 
-        <Box component={motion.div} variants={staggerItem}>
+        <Box component={motion.div} variants={authItem}>
           <TextField
-            className="auth-field"
             label="Email"
             type="email"
             placeholder="you@example.com"
@@ -241,36 +192,22 @@ export default function SignUpPage() {
             {...register('email')}
             error={!!errors.email}
             helperText={errors.email?.message}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                height: 48,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-              },
-            }}
+            sx={authFieldSx}
           />
         </Box>
 
-        <Box component={motion.div} variants={staggerItem}>
+        <Box component={motion.div} variants={authItem}>
           <TextField
-            className="auth-field"
             label="Display Name (optional)"
             placeholder="Your Name"
             fullWidth
             {...register('displayName')}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                height: 48,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-              },
-            }}
+            sx={authFieldSx}
           />
         </Box>
 
-        <Box component={motion.div} variants={staggerItem}>
+        <Box component={motion.div} variants={authItem}>
           <TextField
-            className="auth-field"
             label="Password"
             type={showPassword ? 'text' : 'password'}
             placeholder="At least 8 characters"
@@ -288,6 +225,7 @@ export default function SignUpPage() {
                       tabIndex={-1}
                       size="small"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      sx={{ color: 'var(--cin-text-muted)' }}
                     >
                       {showPassword ? (
                         <EyeOff style={{ width: 20, height: 20 }} />
@@ -299,13 +237,7 @@ export default function SignUpPage() {
                 ),
               },
             }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                height: 48,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-              },
-            }}
+            sx={authFieldSx}
           />
 
           {/* Password strength indicator */}
@@ -320,14 +252,17 @@ export default function SignUpPage() {
                       flex: 1,
                       borderRadius: 3,
                       transition: 'background-color 0.3s',
-                      bgcolor: level <= strength.score ? strength.color : 'action.disabledBackground',
+                      bgcolor: level <= strength.score ? strength.color : STRENGTH_EMPTY,
                     }}
                   />
                 ))}
               </Box>
-              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}>
+              <Typography sx={{ fontSize: '0.75rem', color: 'var(--cin-text-muted)', mt: 0.5 }}>
                 Password strength:{' '}
-                <Typography component="span" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                <Typography
+                  component="span"
+                  sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--cin-text)' }}
+                >
                   {strength.label}
                 </Typography>
               </Typography>
@@ -335,38 +270,26 @@ export default function SignUpPage() {
           )}
         </Box>
 
-        <Box component={motion.div} variants={staggerItem}>
-          <Button
+        <Box component={motion.div} variants={authItem}>
+          <GlowButton
             type="submit"
-            variant="contained"
-            disableElevation
-            sx={{
-              width: '100%',
-              height: 48,
-              borderRadius: 3,
-              bgcolor: 'warning.main',
-              color: 'warning.contrastText',
-              fontWeight: 600,
-              fontSize: '1rem',
-              '&:hover': {
-                bgcolor: 'warning.dark',
-              },
-            }}
+            fullWidth
             disabled={loading}
+            sx={{ height: 48, fontSize: '1rem' }}
           >
             {loading ? 'Creating account...' : 'Create Account'}
-          </Button>
+          </GlowButton>
         </Box>
       </Box>
 
       {/* Link to sign in */}
       <Typography
         component={motion.p}
-        variants={staggerItem}
+        variants={authItem}
         sx={{
           fontSize: '0.875rem',
           textAlign: 'center',
-          color: 'text.secondary',
+          color: 'var(--cin-text-muted)',
         }}
       >
         Already have an account?{' '}
@@ -374,15 +297,7 @@ export default function SignUpPage() {
           href="/sign-in"
           style={{ textDecoration: 'none' }}
         >
-          <Typography
-            component="span"
-            sx={{
-              fontSize: '0.875rem',
-              color: 'warning.main',
-              fontWeight: 500,
-              '&:hover': { textDecoration: 'underline' },
-            }}
-          >
+          <Typography component="span" sx={authLinkSx}>
             Sign in
           </Typography>
         </Link>

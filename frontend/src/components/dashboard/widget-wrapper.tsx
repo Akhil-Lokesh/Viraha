@@ -94,7 +94,6 @@ export function WidgetWrapper({
               borderRadius: '50%',
               bgcolor: widget.color || '#7B68EE',
               border: '2px solid white',
-              boxShadow: 1,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

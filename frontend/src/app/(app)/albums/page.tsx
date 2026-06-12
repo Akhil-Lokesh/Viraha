@@ -5,47 +5,28 @@ import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { useAlbums } from '@/lib/hooks/use-albums';
 import { AlbumGrid } from '@/components/album/album-grid';
-import Button from '@mui/material/Button';
+import { GlowButton } from '@/components/cinema';
+import { CIN, displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import Skeleton from '@mui/material/Skeleton';
 import Link from 'next/link';
 import { fadeInUp, fadeIn, staggerContainer, staggerItem } from '@/lib/animations';
 
-const GOLD = 'var(--viraha-gold, #D4A843)';
-
-const eyebrowSx = {
-  fontFamily: 'var(--font-brand)',
-  fontSize: '11px',
-  fontWeight: 600,
-  letterSpacing: '0.16em',
-  textTransform: 'uppercase',
-  color: GOLD,
-} as const;
-
-/** Skeleton shaped like the photo-stack cards. */
-function StackSkeleton() {
+/** Dark tile skeleton matching the CinemaCard album cover shape. */
+function CardSkeleton() {
   return (
-    <Box sx={{ position: 'relative', pt: '10px', px: '8px' }}>
+    <Box
+      sx={{
+        borderRadius: '16px',
+        overflow: 'hidden',
+        border: `1px solid ${CIN.hairline}`,
+        bgcolor: CIN.surface,
+      }}
+    >
       <Skeleton
-        variant="rounded"
+        variant="rectangular"
         animation="pulse"
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 14,
-          right: 14,
-          height: '55%',
-          transform: 'rotate(-2.5deg)',
-          borderRadius: '4px',
-          opacity: 0.4,
-        }}
+        sx={{ aspectRatio: '4 / 3', width: '100%', height: 'auto', bgcolor: CIN.surface2 }}
       />
-      <Skeleton
-        variant="rounded"
-        animation="pulse"
-        sx={{ aspectRatio: '4/3', borderRadius: '4px', width: '100%' }}
-      />
-      <Skeleton variant="rounded" animation="pulse" sx={{ height: 18, width: '60%', mt: 1.5, borderRadius: '2px' }} />
-      <Skeleton variant="rounded" animation="pulse" sx={{ height: 12, width: '35%', mt: 1, borderRadius: '2px' }} />
     </Box>
   );
 }
@@ -76,25 +57,16 @@ export default function AlbumsPage() {
           }}
         >
           <Box>
-            <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>The Shelf — Collections</Typography>
+            <Typography sx={{ ...eyebrowSx, mb: 0.75 }}>Collections</Typography>
             <Typography
               component="h1"
-              sx={(theme) => ({
-                fontSize: { xs: '2.25rem', md: '3rem' },
-                fontFamily: 'var(--font-accent)',
-                letterSpacing: '0.005em',
-                lineHeight: 1.05,
-                color:
-                  theme.palette.mode === 'dark'
-                    ? 'var(--viraha-ink-dark, #F2EAD9)'
-                    : 'var(--viraha-ink, #221C18)',
-              })}
+              sx={{ ...displaySx, fontSize: { xs: '2.25rem', md: '3rem' } }}
             >
               Albums
             </Typography>
             <Typography
               sx={{
-                color: 'text.secondary',
+                color: CIN.textMuted,
                 fontSize: { xs: '0.85rem', md: '0.95rem' },
                 mt: 1,
                 maxWidth: 380,
@@ -105,26 +77,10 @@ export default function AlbumsPage() {
             </Typography>
           </Box>
 
-          <Button
-            variant="outlined"
-            disableElevation
-            component={Link}
-            href="/create/album"
-            sx={{
-              borderRadius: '4px',
-              flexShrink: 0,
-              px: 2.5,
-              py: 1.25,
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              borderColor: GOLD,
-              color: 'text.primary',
-              '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
-            }}
-          >
+          <GlowButton component={Link} href="/create/album" sx={{ flexShrink: 0 }}>
             <Plus style={{ width: 16, height: 16, marginRight: 6 }} />
             Create
-          </Button>
+          </GlowButton>
         </Box>
       </Box>
 
@@ -134,9 +90,8 @@ export default function AlbumsPage() {
           component={motion.div}
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' },
-            columnGap: 3,
-            rowGap: 4.5,
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+            gap: { xs: 3, md: 4 },
           }}
           variants={staggerContainer}
           initial="hidden"
@@ -144,7 +99,7 @@ export default function AlbumsPage() {
         >
           {Array.from({ length: 6 }).map((_, i) => (
             <Box key={i} component={motion.div} variants={staggerItem}>
-              <StackSkeleton />
+              <CardSkeleton />
             </Box>
           ))}
         </Box>
@@ -154,7 +109,7 @@ export default function AlbumsPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          sx={(theme) => ({
+          sx={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -162,37 +117,30 @@ export default function AlbumsPage() {
             textAlign: 'center',
             gap: 1.5,
             py: 8,
+            px: 3,
             mx: 'auto',
             maxWidth: 480,
-            border: '1px dashed',
-            borderColor:
-              theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.25)' : 'rgba(34,28,24,0.25)',
-            borderRadius: '6px',
-          })}
+            bgcolor: CIN.surface,
+            border: `1px solid ${CIN.hairline}`,
+            borderRadius: '16px',
+          }}
         >
           <Typography
-            sx={{ fontFamily: 'var(--font-accent)', fontSize: '1.4rem', color: 'text.primary' }}
+            sx={{
+              fontFamily: 'Posterama, var(--font-body)',
+              fontWeight: 700,
+              fontSize: '1.3rem',
+              color: CIN.text,
+            }}
           >
             Couldn&apos;t load your albums
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 360 }}>
+          <Typography variant="body2" sx={{ color: CIN.textMuted, maxWidth: 360 }}>
             Something went wrong while fetching your albums. Please try again.
           </Typography>
-          <Button
-            variant="outlined"
-            disableElevation
-            onClick={() => refetch()}
-            sx={{
-              borderRadius: '4px',
-              mt: 0.5,
-              borderColor: GOLD,
-              color: 'text.primary',
-              fontWeight: 600,
-              '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
-            }}
-          >
+          <GlowButton variant="ghost" onClick={() => refetch()} sx={{ mt: 0.5 }}>
             Retry
-          </Button>
+          </GlowButton>
         </Box>
       ) : (
         <Box component={motion.div} variants={fadeIn} initial="hidden" animate="visible">
@@ -200,23 +148,15 @@ export default function AlbumsPage() {
 
           {hasNextPage && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
-              <Button
-                variant="outlined"
-                disableElevation
+              <GlowButton
+                variant="ghost"
                 size="large"
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                sx={{
-                  borderRadius: '4px',
-                  px: 4,
-                  borderColor: GOLD,
-                  color: 'text.primary',
-                  fontWeight: 600,
-                  '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
-                }}
+                sx={{ px: 4 }}
               >
                 {isFetchingNextPage ? 'Loading...' : 'Load More'}
-              </Button>
+              </GlowButton>
             </Box>
           )}
         </Box>

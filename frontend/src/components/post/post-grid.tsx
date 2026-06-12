@@ -18,11 +18,12 @@ export function PostGrid({ posts }: { posts: Post[] }) {
     );
   }
 
-  // Postcards are self-contained paper artifacts — generous gaps, no dividers.
+  // Each card is a self-lit frame in the dark room — generous gaps, no dividers.
+  // The index drives the orchestrated entrance stagger inside PostCard.
   return (
     <Box sx={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 4, py: 1 }}>
-      {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+      {posts.map((post, index) => (
+        <PostCard key={post.id} post={post} index={index} />
       ))}
     </Box>
   );

@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Box, Typography, InputBase, GlobalStyles } from '@mui/material';
-import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Pencil } from 'lucide-react';
@@ -17,6 +16,8 @@ import { sanitizeHtml } from '@/lib/utils/sanitize-html';
 import { ColorPicker } from '@/components/journal/color-picker';
 import { useJournalColorsStore } from '@/lib/stores/journal-colors-store';
 import { EmptyState } from '@/components/shared/empty-state';
+import { GlowButton } from '@/components/cinema';
+import { CIN, displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { fadeInUp } from '@/lib/animations';
 
 // Tiptap (~180KB) loads only on the client, keeping it out of the initial
@@ -26,7 +27,11 @@ const RichTextEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <Skeleton variant="rounded" animation="pulse" sx={{ height: 320, width: '100%', borderRadius: '12px' }} />
+      <Skeleton
+        variant="rounded"
+        animation="pulse"
+        sx={{ height: 320, width: '100%', borderRadius: '12px', bgcolor: 'var(--cin-surface, #141419)' }}
+      />
     ),
   },
 );
@@ -41,41 +46,33 @@ function getPlainTextExcerpt(html: string, maxLength = 200): string {
   return text.length > maxLength ? text.slice(0, maxLength).trimEnd() + '...' : text;
 }
 
-const GOLD = 'var(--viraha-gold, #D4A843)';
-
-const eyebrowSx = {
-  fontFamily: 'var(--font-brand)',
-  fontSize: '11px',
-  fontWeight: 600,
-  letterSpacing: '0.16em',
-  textTransform: 'uppercase',
-  color: GOLD,
-} as const;
-
 const contentStyles = (
   <GlobalStyles
-    styles={(theme) => ({
+    styles={{
       '.journal-content': {
         '& h1': {
-          fontSize: '2rem',
+          fontSize: '1.9rem',
           fontWeight: 700,
           lineHeight: 1.2,
           marginTop: '1.5em',
           marginBottom: '0.5em',
+          color: 'var(--cin-text, #F4F4F6)',
         },
         '& h2': {
-          fontSize: '1.5rem',
+          fontSize: '1.45rem',
           fontWeight: 600,
           lineHeight: 1.3,
           marginTop: '1.25em',
           marginBottom: '0.5em',
+          color: 'var(--cin-text, #F4F4F6)',
         },
         '& h3': {
-          fontSize: '1.25rem',
+          fontSize: '1.2rem',
           fontWeight: 600,
           lineHeight: 1.4,
           marginTop: '1em',
           marginBottom: '0.5em',
+          color: 'var(--cin-text, #F4F4F6)',
         },
         '& img': {
           maxWidth: '100%',
@@ -84,14 +81,17 @@ const contentStyles = (
           margin: '1em 0',
         },
         '& blockquote': {
-          borderLeft: `2px solid var(--viraha-gold, #D4A843)`,
+          borderLeft: '2px solid var(--cin-accent, #8B7CFF)',
           paddingLeft: '1em',
-          color: theme.palette.text.secondary,
+          color: 'var(--cin-text-muted, #9A9AA6)',
           fontStyle: 'italic',
           margin: '1em 0',
         },
         '& ul, & ol': {
           paddingLeft: '1.5em',
+        },
+        '& a': {
+          color: 'var(--cin-accent, #8B7CFF)',
         },
         '& p': {
           marginTop: '0.75em',
@@ -102,9 +102,19 @@ const contentStyles = (
           marginTop: 0,
         },
       },
-    })}
+    }}
   />
 );
+
+const backLinkSx = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 0.75,
+  fontSize: '0.875rem',
+  color: CIN.textMuted,
+  '&:hover': { color: CIN.text },
+  transition: 'color 0.2s',
+} as const;
 
 export default function JournalDetailPage() {
   const params = useParams<{ id: string }>();
@@ -188,10 +198,10 @@ export default function JournalDetailPage() {
     return (
       <Box sx={{ maxWidth: 720, mx: 'auto', pb: 6 }}>
         <Box sx={{ pt: { xs: 2, md: 4 }, mb: 3 }}>
-          <Skeleton variant="rounded" animation="pulse" sx={{ height: 20, width: 80, mb: 3, borderRadius: '9999px' }} />
-          <Skeleton variant="rounded" animation="pulse" sx={{ height: 44, width: 320, mb: 1 }} />
-          <Skeleton variant="rounded" animation="pulse" sx={{ height: 18, width: 100, mb: 3 }} />
-          <Skeleton variant="rounded" animation="pulse" sx={{ height: 200, width: '100%', borderRadius: '12px' }} />
+          <Skeleton variant="rounded" animation="pulse" sx={{ height: 20, width: 80, mb: 3, borderRadius: '9999px', bgcolor: 'var(--cin-surface, #141419)' }} />
+          <Skeleton variant="rounded" animation="pulse" sx={{ height: 44, width: 320, mb: 1, bgcolor: 'var(--cin-surface, #141419)' }} />
+          <Skeleton variant="rounded" animation="pulse" sx={{ height: 18, width: 100, mb: 3, bgcolor: 'var(--cin-surface, #141419)' }} />
+          <Skeleton variant="rounded" animation="pulse" sx={{ height: 200, width: '100%', borderRadius: '12px', bgcolor: 'var(--cin-surface, #141419)' }} />
         </Box>
       </Box>
     );
@@ -203,18 +213,7 @@ export default function JournalDetailPage() {
       <Box sx={{ maxWidth: 720, mx: 'auto', pb: 6 }}>
         <Box sx={{ pt: { xs: 2, md: 4 }, mb: 4 }}>
           <Link href="/journals" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                fontSize: '0.875rem',
-                color: 'text.secondary',
-                mb: 3,
-                '&:hover': { color: 'text.primary' },
-                transition: 'color 0.2s',
-              }}
-            >
+            <Box sx={{ ...backLinkSx, mb: 3 }}>
               <ArrowLeft style={{ width: 16, height: 16 }} />
               Journals
             </Box>
@@ -250,37 +249,13 @@ export default function JournalDetailPage() {
             mb: 3,
           }}
         >
-          <Box
-            onClick={() => setEditing(false)}
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.75,
-              fontSize: '0.875rem',
-              color: 'text.secondary',
-              cursor: 'pointer',
-              '&:hover': { color: 'text.primary' },
-              transition: 'color 0.2s',
-            }}
-          >
+          <Box onClick={() => setEditing(false)} sx={{ ...backLinkSx, cursor: 'pointer' }}>
             <ArrowLeft style={{ width: 16, height: 16 }} />
             Cancel
           </Box>
-          <Button
-            variant="contained"
-            disableElevation
-            onClick={handleSave}
-            disabled={saving}
-            sx={{
-              borderRadius: '4px',
-              bgcolor: GOLD,
-              color: 'var(--viraha-ink, #221C18)',
-              fontWeight: 700,
-              '&:hover': { bgcolor: '#C09934' },
-            }}
-          >
+          <GlowButton onClick={handleSave} disabled={saving}>
             {saving ? 'Saving...' : 'Save'}
-          </Button>
+          </GlowButton>
         </Box>
 
         <InputBase
@@ -291,13 +266,16 @@ export default function JournalDetailPage() {
           autoFocus
           sx={{
             fontSize: '2.25rem',
-            fontFamily: 'var(--font-accent)',
+            fontFamily: 'Posterama, var(--font-body)',
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
             lineHeight: 1.2,
-            '& input::placeholder': { color: 'text.disabled' },
+            color: CIN.text,
+            '& input::placeholder': { color: CIN.textMuted, opacity: 0.6 },
           }}
         />
 
-        <Typography sx={{ ...eyebrowSx, mt: 0.75, mb: 2 }}>
+        <Typography suppressHydrationWarning sx={{ ...eyebrowSx, mt: 0.75, mb: 2 }}>
           Entry — {format(new Date(journal.updatedAt), 'MMM d, yyyy')}
         </Typography>
 
@@ -314,7 +292,7 @@ export default function JournalDetailPage() {
     );
   }
 
-  // Read mode
+  // Read mode — focused dark reading column
   return (
     <Box
       component={motion.div}
@@ -331,30 +309,18 @@ export default function JournalDetailPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           pt: { xs: 2, md: 4 },
-          mb: 3,
+          mb: 4,
         }}
       >
         <Link href="/journals" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.75,
-              fontSize: '0.875rem',
-              color: 'text.secondary',
-              '&:hover': { color: 'text.primary' },
-              transition: 'color 0.2s',
-            }}
-          >
+          <Box sx={backLinkSx}>
             <ArrowLeft style={{ width: 16, height: 16 }} />
             Journals
           </Box>
         </Link>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {isOwner && journal.status === 'draft' && (
-            <Button
-              variant="contained"
-              disableElevation
+            <GlowButton
               disabled={publishMutation.isPending}
               onClick={async () => {
                 try {
@@ -364,107 +330,69 @@ export default function JournalDetailPage() {
                   toast.error('Failed to publish. Make sure you have at least one entry.');
                 }
               }}
-              sx={{
-                borderRadius: '4px',
-                bgcolor: GOLD,
-                color: 'var(--viraha-ink, #221C18)',
-                fontWeight: 700,
-                '&:hover': { bgcolor: '#C09934' },
-              }}
             >
               {publishMutation.isPending ? 'Publishing...' : 'Publish'}
-            </Button>
+            </GlowButton>
           )}
           {isOwner && (
-            <Button
-              variant="outlined"
-              disableElevation
-              onClick={startEditing}
-              sx={{
-                borderRadius: '4px',
-                gap: 0.75,
-                borderColor: GOLD,
-                color: 'text.primary',
-                fontWeight: 600,
-                '&:hover': { borderColor: GOLD, bgcolor: 'rgba(212,168,67,0.08)' },
-              }}
-            >
+            <GlowButton variant="ghost" onClick={startEditing} sx={{ gap: 0.75 }}>
               <Pencil style={{ width: 14, height: 14 }} />
               Edit
-            </Button>
+            </GlowButton>
           )}
         </Box>
       </Box>
 
-      {/* The journal page: paper sheet with a flight-path margin rule */}
-      <Box
-        sx={(theme) => ({
-          position: 'relative',
-          border: '1px solid',
-          borderColor:
-            theme.palette.mode === 'dark' ? 'rgba(242,234,217,0.18)' : 'rgba(34,28,24,0.2)',
-          borderRadius: '4px',
-          bgcolor:
-            theme.palette.mode === 'dark' ? 'var(--viraha-paper-dark, #1D1828)' : '#FFFDF6',
-          backgroundImage:
-            'repeating-linear-gradient(0deg, rgba(34,28,24,0.015) 0px, rgba(34,28,24,0.015) 1px, transparent 1px, transparent 3px)',
-          boxShadow: '3px 3px 0 rgba(34,28,24,0.08)',
-          px: { xs: 2.5, md: 4 },
-          py: { xs: 3, md: 4 },
-        })}
-      >
-        {/* Date eyebrow with stamp dot + flight-path rule */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-          <Box
-            aria-hidden
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              border: `1.5px solid ${GOLD}`,
-              bgcolor: 'rgba(212,168,67,0.25)',
-              flexShrink: 0,
-            }}
-          />
-          <Typography sx={eyebrowSx}>
-            Entry — {format(new Date(journal.updatedAt), 'MMM d, yyyy')}
-          </Typography>
-          <Box aria-hidden sx={{ flex: 1, borderBottom: `1px dashed ${GOLD}`, opacity: 0.5 }} />
-        </Box>
-
-        <Typography
-          component="h1"
-          sx={(theme) => ({
-            fontSize: { xs: '1.9rem', md: '2.4rem' },
-            fontFamily: 'var(--font-accent)',
-            lineHeight: 1.15,
-            mb: 3,
-            color:
-              theme.palette.mode === 'dark'
-                ? 'var(--viraha-ink-dark, #F2EAD9)'
-                : 'var(--viraha-ink, #221C18)',
-          })}
-        >
-          {journal.title}
+      {/* Entry date eyebrow + draft chip */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+        <Typography suppressHydrationWarning sx={eyebrowSx}>
+          Entry — {format(new Date(journal.updatedAt), 'MMM d, yyyy')}
         </Typography>
-
-        {entry?.content ? (
+        {journal.status === 'draft' && (
           <Box
-            className="journal-content"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(entry.content) }}
+            component="span"
             sx={{
-              lineHeight: 1.7,
-              fontSize: '1rem',
-              pl: { md: 2.5 },
-              borderLeft: { md: `1px dashed ${GOLD}` },
+              ...eyebrowSx,
+              fontSize: 9,
+              fontWeight: 700,
+              color: CIN.accent,
+              border: `1px solid ${CIN.accent}`,
+              borderRadius: '6px',
+              px: 0.75,
+              py: 0.2,
+              lineHeight: 1.4,
             }}
-          />
-        ) : (
-          <Typography sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-            No content yet. Click Edit to start writing.
-          </Typography>
+          >
+            Draft
+          </Box>
         )}
       </Box>
+
+      <Typography
+        component="h1"
+        sx={{ ...displaySx, fontSize: { xs: '1.9rem', md: '2.4rem' }, lineHeight: 1.1 }}
+      >
+        {journal.title}
+      </Typography>
+
+      {/* Hairline divider between header and entry content */}
+      <Box sx={{ borderBottom: `1px solid ${CIN.hairline}`, mt: 3, mb: 3 }} />
+
+      {entry?.content ? (
+        <Box
+          className="journal-content"
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(entry.content) }}
+          sx={{
+            lineHeight: 1.7,
+            fontSize: '1.05rem',
+            color: CIN.text,
+          }}
+        />
+      ) : (
+        <Typography sx={{ color: CIN.textMuted, fontStyle: 'italic' }}>
+          No content yet. Click Edit to start writing.
+        </Typography>
+      )}
     </Box>
   );
 }

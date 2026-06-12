@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { Box, Typography } from '@mui/material';
 import { MapPin } from 'lucide-react';
 import { LocationBadge } from '@/components/shared/location-badge';
+import { EmptyState } from '@/components/shared/empty-state';
 import { hasMapCoordinates } from '@/components/post/keepsake';
+import { PhotoTile } from '@/components/cinema';
+import { CIN, glowRing } from '@/lib/design/cinema-tokens';
 import type { Post } from '@/lib/types';
 
 // ─── Dynamic map components ──────────────────────────
@@ -21,10 +24,10 @@ function MapSkeleton() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'rgba(0,0,0,0.05)',
+        bgcolor: CIN.surface,
       }}
     >
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" sx={{ color: CIN.textMuted }}>
         Loading map...
       </Typography>
     </Box>
@@ -70,14 +73,23 @@ export default function ProfileMapTab({ posts }: ProfileMapTabProps) {
 
   if (!firstLocated) {
     return (
-      <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography color="text.secondary">No locations to display</Typography>
-      </Box>
+      <EmptyState
+        icon="map"
+        title="No locations yet"
+        description="Posts with location data will appear here on an interactive map."
+      />
     );
   }
 
   return (
-    <Box sx={{ borderRadius: '12px', overflow: 'hidden', border: 1, borderColor: 'divider', height: 500 }}>
+    <Box
+      sx={{
+        borderRadius: '16px',
+        overflow: 'hidden',
+        border: `1px solid ${CIN.hairline}`,
+        height: 500,
+      }}
+    >
       <MapComponent
         center={[firstLocated.locationLng, firstLocated.locationLat]}
         zoom={locatedPosts.length === 1 ? 8 : 2}
@@ -98,7 +110,21 @@ export default function ProfileMapTab({ posts }: ProfileMapTabProps) {
               latitude={post.locationLat}
             >
               <MarkerContent>
-                <Box sx={{ width: 36, height: 36, borderRadius: '50%', border: 2, borderColor: 'white', boxShadow: 3, overflow: 'hidden' }}>
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    border: `2px solid ${CIN.text}`,
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+                    overflow: 'hidden',
+                    transition: 'box-shadow .2s ease, transform .2s ease',
+                    '&:hover': {
+                      transform: 'scale(1.08)',
+                      boxShadow: `0 0 0 2px ${CIN.accent}, 0 4px 14px rgba(0,0,0,0.5)`,
+                    },
+                  }}
+                >
                   {resolved ? (
                     <img
                       src={resolved}
@@ -106,8 +132,8 @@ export default function ProfileMapTab({ posts }: ProfileMapTabProps) {
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   ) : (
-                    <Box sx={{ width: '100%', height: '100%', bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <MapPin style={{ height: 14, width: 14, color: 'var(--mui-palette-primary-contrastText)' }} />
+                    <Box sx={{ width: '100%', height: '100%', bgcolor: CIN.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <MapPin style={{ height: 14, width: 14, color: CIN.bg }} />
                     </Box>
                   )}
                 </Box>
@@ -116,13 +142,19 @@ export default function ProfileMapTab({ posts }: ProfileMapTabProps) {
                 <Box sx={{ width: 224 }}>
                   {post.mediaUrls[0] && (
                     <Link href={`/post/${post.id}`}>
-                      <Box sx={{ position: 'relative', aspectRatio: '16/10', borderRadius: '6px', overflow: 'hidden', mb: 1 }}>
-                        <img
-                          src={resolveImageUrl(post.mediaUrls[0])}
-                          alt={post.caption || 'Travel photo'}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
-                        />
-                      </Box>
+                      <PhotoTile
+                        src={post.mediaUrls[0]}
+                        alt={post.caption || 'Travel photo'}
+                        rounded={6}
+                        sx={{
+                          aspectRatio: '16/10',
+                          mb: 1,
+                          transition: 'box-shadow .25s ease',
+                          '& img': { transition: 'transform .3s ease' },
+                          '&:hover': { boxShadow: glowRing(1) },
+                          '&:hover img': { transform: 'scale(1.03)' },
+                        }}
+                      />
                     </Link>
                   )}
                   {post.caption && (
@@ -135,7 +167,7 @@ export default function ProfileMapTab({ posts }: ProfileMapTabProps) {
                   )}
                   <Link href={`/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                     <Box
-                      sx={{ display: 'block', mt: 1, fontSize: '0.75rem', color: 'secondary.main', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}
+                      sx={{ display: 'block', mt: 1, fontSize: '0.75rem', color: CIN.accent, fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}
                     >
                       View post
                     </Box>

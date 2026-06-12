@@ -60,8 +60,9 @@ export function QuoteWidget({ size, color }: { size: WidgetGridSize; color?: str
             fontSize: isBanner ? '48px' : '36px',
             lineHeight: 1,
             color: c.accent,
-            opacity: 0.2,
-            fontFamily: 'Georgia, serif',
+            opacity: 0.25,
+            fontFamily: 'Posterama, var(--font-body)',
+            fontWeight: 700,
             flexShrink: 0,
             userSelect: 'none',
           }}

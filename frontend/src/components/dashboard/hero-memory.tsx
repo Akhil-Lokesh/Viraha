@@ -1,23 +1,15 @@
 'use client';
 
-import { Box, Typography, Skeleton, useTheme } from '@mui/material';
-import Image from 'next/image';
+import { Box, Typography, Skeleton } from '@mui/material';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { MapPin, Stamp } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useMyPosts } from '@/lib/hooks/use-posts';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import type { Post } from '@/lib/types';
-import { getJournalTokens, eyebrowSx, displaySerifSx, spreadItem } from './journal-tokens';
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
-
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
+import { PhotoTile, CinemaCard, SectionLabel } from '@/components/cinema';
+import { EmptyState } from '@/components/shared/empty-state';
+import { eyebrowSx } from '@/lib/design/cinema-tokens';
+import { staggerItem } from '@/lib/animations';
 
 /** Null when the backend redacted the post's location (hidden lat/lng). */
 function formatCoordinates(lat: number | null, lng: number | null): string | null {
@@ -29,11 +21,11 @@ function formatCoordinates(lat: number | null, lng: number | null): string | nul
 }
 
 /**
- * Hero "latest memory" postcard — the opening artifact of the journal spread.
+ * Hero "latest memory" — the user's own most recent post as a full-bleed
+ * cinematic frame. The photo is the light source; caption sits in the vignette.
  */
 export function HeroMemory() {
-  const theme = useTheme();
-  const t = getJournalTokens(theme.palette.mode === 'dark' ? 'dark' : 'light');
+  const reduceMotion = useReducedMotion();
   const userId = useAuthStore((s) => s.user?.id);
   const { data, isLoading } = useMyPosts(userId);
 
@@ -41,35 +33,41 @@ export function HeroMemory() {
 
   if (isLoading) {
     return (
-      <motion.div variants={spreadItem}>
-        <Box
-          sx={{
-            border: '1px solid',
-            borderColor: t.inkHairline,
-            bgcolor: t.paper,
-            backgroundImage: t.grain,
-            borderRadius: '4px',
-            p: 1.5,
-            pb: 7,
-            boxShadow: '3px 3px 0 rgba(34,28,24,0.08)',
-          }}
-        >
+      <motion.div variants={staggerItem}>
+        <CinemaCard hover={false}>
           <Skeleton
             variant="rectangular"
             animation="pulse"
-            sx={{ width: '100%', height: { xs: 240, md: 380 }, borderRadius: '2px', bgcolor: t.inkHairline }}
+            sx={{
+              width: '100%',
+              height: { xs: 260, sm: 340, md: 440 },
+              bgcolor: 'var(--cin-surface-2, #1C1C24)',
+            }}
           />
-          <Skeleton variant="text" animation="pulse" sx={{ width: 180, mt: 2, bgcolor: t.inkHairline }} />
-        </Box>
+        </CinemaCard>
       </motion.div>
     );
   }
 
-  if (!latest) return <EmptyHero gold={t.gold} ink={t.ink} inkSoft={t.inkSoft} paper={t.paper} grain={t.grain} goldHairline={t.goldHairline} />;
+  if (!latest) {
+    return (
+      <motion.div variants={staggerItem}>
+        <CinemaCard hover={false}>
+          <EmptyState
+            icon="camera"
+            title="Your first memory awaits"
+            description="Post a memory and it will premiere here, front and center."
+            actionLabel="Post your first memory"
+            actionHref="/create/post"
+          />
+        </CinemaCard>
+      </motion.div>
+    );
+  }
 
   const image = latest.mediaThumbnails[0] || latest.mediaUrls[0];
   const place = latest.locationName || latest.locationCity || latest.locationCountry || 'Somewhere on the map';
-  const stampLabel = latest.locationCity || latest.locationCountry;
+  const regionLabel = latest.locationCity || latest.locationCountry;
   const coordsLabel = formatCoordinates(latest.locationLat, latest.locationLng);
   const postedDate = new Date(latest.postedAt).toLocaleDateString('en-US', {
     month: 'short',
@@ -78,190 +76,106 @@ export function HeroMemory() {
   });
 
   return (
-    <motion.div variants={spreadItem}>
-      <Typography component="p" sx={{ ...eyebrowSx, color: t.inkSoft, mb: 1.5 }}>
-        Latest entry
-      </Typography>
+    <motion.div variants={staggerItem}>
+      <SectionLabel>Latest memory</SectionLabel>
 
-      <Link href={`/post/${latest.id}`} aria-label={`Open latest memory: ${place}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-        <Box
-          component={motion.div}
-          whileHover={{ rotate: -0.75, scale: 1.01 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-          sx={{
-            position: 'relative',
-            border: '1px solid',
-            borderColor: t.inkHairline,
-            bgcolor: t.paper,
-            backgroundImage: t.grain,
-            borderRadius: '4px',
-            p: { xs: 1.25, md: 1.5 },
-            boxShadow: '3px 3px 0 rgba(34,28,24,0.10)',
-            cursor: 'pointer',
-          }}
+      <Link
+        href={`/post/${latest.id}`}
+        aria-label={`Open latest memory: ${place}`}
+        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      >
+        <motion.div
+          whileHover={reduceMotion ? undefined : { scale: 1.015 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 22 }}
         >
-          {/* Photo */}
-          <Box sx={{ position: 'relative', width: '100%', height: { xs: 240, sm: 320, md: 400 }, overflow: 'hidden', borderRadius: '2px' }}>
-            {image ? (
-              <Image src={resolveImageUrl(image)} alt={place} fill style={{ objectFit: 'cover' }} unoptimized priority />
-            ) : (
+          <CinemaCard sx={{ cursor: 'pointer' }}>
+            <PhotoTile
+              src={image}
+              alt={place}
+              rounded={0}
+              sx={{ height: { xs: 260, sm: 340, md: 440 } }}
+            >
+              {/* Region chip — quiet dark glass, top-right */}
+              {regionLabel && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 14,
+                    right: 14,
+                    px: 1.25,
+                    py: 0.5,
+                    borderRadius: '999px',
+                    bgcolor: 'rgba(11,11,15,0.55)',
+                    border: '1px solid var(--cin-hairline, rgba(255,255,255,0.08))',
+                    backdropFilter: 'blur(6px)',
+                  }}
+                >
+                  <Typography component="span" sx={{ ...eyebrowSx, fontSize: 10, color: 'var(--cin-text, #F4F4F6)' }}>
+                    {regionLabel}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Caption + location over the bottom vignette */}
               <Box
                 sx={{
                   position: 'absolute',
                   inset: 0,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px dashed',
-                  borderColor: t.goldHairline,
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  p: { xs: 2, md: 3 },
                 }}
               >
-                <MapPin style={{ width: 32, height: 32, color: t.gold, opacity: 0.6 }} />
+                {coordsLabel && (
+                  <Typography component="p" sx={{ ...eyebrowSx, fontSize: 10, mb: 0.75 }}>
+                    {coordsLabel}
+                  </Typography>
+                )}
+                <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2 }}>
+                  <Typography
+                    component="h3"
+                    noWrap
+                    sx={{
+                      fontFamily: 'Posterama, var(--font-body)',
+                      fontWeight: 700,
+                      letterSpacing: '-0.01em',
+                      color: 'var(--cin-text, #F4F4F6)',
+                      fontSize: { xs: '1.35rem', md: '1.75rem' },
+                      lineHeight: 1.1,
+                      minWidth: 0,
+                    }}
+                  >
+                    {place}
+                  </Typography>
+                  <Typography
+                    component="span"
+                    suppressHydrationWarning
+                    sx={{ ...eyebrowSx, fontSize: 10, flexShrink: 0 }}
+                  >
+                    {postedDate}
+                  </Typography>
+                </Box>
+                {latest.caption && (
+                  <Typography
+                    sx={{
+                      color: 'rgba(244,244,246,0.78)',
+                      mt: 0.75,
+                      fontSize: '0.95rem',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {latest.caption}
+                  </Typography>
+                )}
               </Box>
-            )}
-
-            {/* Location stamp — rotated, gold border */}
-            {stampLabel && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 14,
-                  right: 14,
-                  transform: 'rotate(2deg)',
-                  border: '1.5px solid',
-                  borderColor: 'var(--viraha-gold, #D4A843)',
-                  color: '#FFF',
-                  bgcolor: 'rgba(22,18,31,0.55)',
-                  px: 1.25,
-                  py: 0.5,
-                  borderRadius: '3px',
-                }}
-              >
-                <Typography component="span" sx={{ ...eyebrowSx, fontSize: '10px', color: 'inherit' }}>
-                  {stampLabel}
-                </Typography>
-              </Box>
-            )}
-          </Box>
-
-          {/* Postcard caption block — thick bottom padding */}
-          <Box sx={{ pt: 2, pb: { xs: 2, md: 2.5 }, px: 0.5 }}>
-            {coordsLabel && (
-              <Typography component="p" sx={{ ...eyebrowSx, color: t.gold, mb: 0.75 }}>
-                {coordsLabel}
-              </Typography>
-            )}
-            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2 }}>
-              <Typography
-                component="h2"
-                sx={{ ...displaySerifSx, color: t.ink, fontSize: { xs: '1.5rem', md: '1.9rem' }, minWidth: 0 }}
-                noWrap
-              >
-                {place}
-              </Typography>
-              <Typography
-                component="span"
-                suppressHydrationWarning
-                sx={{ ...eyebrowSx, fontSize: '10px', color: t.inkSoft, flexShrink: 0 }}
-              >
-                {postedDate}
-              </Typography>
-            </Box>
-            {latest.caption && (
-              <Typography
-                sx={{
-                  color: t.inkSoft,
-                  mt: 0.75,
-                  fontSize: '0.95rem',
-                  fontStyle: 'italic',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}
-              >
-                {latest.caption}
-              </Typography>
-            )}
-          </Box>
-        </Box>
+            </PhotoTile>
+          </CinemaCard>
+        </motion.div>
       </Link>
-    </motion.div>
-  );
-}
-
-interface EmptyHeroProps {
-  gold: string;
-  ink: string;
-  inkSoft: string;
-  paper: string;
-  grain: string;
-  goldHairline: string;
-}
-
-function EmptyHero({ gold, ink, inkSoft, paper, grain, goldHairline }: EmptyHeroProps) {
-  return (
-    <motion.div variants={spreadItem}>
-      <Box
-        sx={{
-          border: '1.5px dashed',
-          borderColor: goldHairline,
-          bgcolor: paper,
-          backgroundImage: grain,
-          borderRadius: '4px',
-          px: 3,
-          py: { xs: 6, md: 9 },
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: 1.5,
-        }}
-      >
-        <Box
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            border: '1.5px solid',
-            borderColor: gold,
-            transform: 'rotate(-4deg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mb: 0.5,
-          }}
-        >
-          <Stamp style={{ width: 26, height: 26, color: gold }} />
-        </Box>
-        <Typography component="h2" sx={{ ...displaySerifSx, color: ink, fontSize: { xs: '1.5rem', md: '1.9rem' } }}>
-          No stamps yet
-        </Typography>
-        <Typography sx={{ color: inkSoft, maxWidth: 380 }}>
-          Your journal is waiting for its first page. Post a memory and it will appear here as a postcard.
-        </Typography>
-        <Link href="/create/post" style={{ textDecoration: 'none' }}>
-          <Box
-            component="span"
-            sx={{
-              display: 'inline-block',
-              mt: 1,
-              px: 2.5,
-              py: 1,
-              border: '1.5px solid',
-              borderColor: gold,
-              borderRadius: '3px',
-              color: gold,
-              ...eyebrowSx,
-              cursor: 'pointer',
-              '&:hover': { bgcolor: 'rgba(212,168,67,0.1)' },
-              transition: 'background-color 0.2s',
-            }}
-          >
-            Post your first memory
-          </Box>
-        </Link>
-      </Box>
     </motion.div>
   );
 }

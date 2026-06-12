@@ -2,8 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   MapPin,
@@ -13,41 +12,49 @@ import {
   Plane,
   MoreHorizontal,
   Flag,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import Menu from '@mui/material/Menu';
 import MuiMenuItem from '@mui/material/MenuItem';
 import type { Post } from '@/lib/types';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { ReportDialog } from '@/components/shared/report-dialog';
 import { useToggleSave } from '@/lib/hooks/use-saves';
-import {
-  GOLD,
-  paper,
-  ink,
-  inkMuted,
-  hairline,
-  hardShadow,
-  grain,
-  EYEBROW_SX,
-  getCoordinates,
-  formatCoordinates,
-} from './keepsake';
+import { CinemaCard, PhotoTile } from '@/components/cinema';
+import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
+import { getCoordinates } from './keepsake';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
+const ACCENT_TINT = 'rgba(139,124,255,0.10)';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
+const heroControlSx = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: 32,
+  width: 32,
+  borderRadius: '50%',
+  bgcolor: 'rgba(11,11,15,0.55)',
+  backdropFilter: 'blur(8px)',
+  border: `1px solid ${CIN.hairline}`,
+  color: CIN.text,
+  cursor: 'pointer',
+  transition: 'background-color 0.2s',
+  '&:hover': { bgcolor: 'rgba(11,11,15,0.8)' },
+} as const;
+
+interface PostCardProps {
+  post: Post;
+  /** Position within a list — drives the orchestrated entrance stagger. */
+  index?: number;
 }
 
-export function PostCard({ post }: { post: Post }) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+export function PostCard({ post, index = 0 }: PostCardProps) {
+  const reduceMotion = useReducedMotion();
   const [saved, setSaved] = useState(post.isSaved ?? false);
   const [saveCount, setSaveCount] = useState(post.saveCount ?? 0);
+  const [photoIdx, setPhotoIdx] = useState(0);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   // The ReportDialog self-manages its open state via its trigger element. We keep
   // that trigger OUTSIDE the Menu (so closing the Menu doesn't unmount the dialog)
@@ -55,24 +62,19 @@ export function PostCard({ post }: { post: Post }) {
   const reportTriggerRef = useRef<HTMLButtonElement>(null);
   const toggleSave = useToggleSave();
 
+  const photoCount = post.mediaUrls.length;
   // Feed cards use the generated thumbnail to save bandwidth; the full-res
-  // mediaUrls image is reserved for the post detail lightbox.
-  const thumbnailSource = post.mediaThumbnails?.[0] || post.mediaUrls[0];
-  const imageUrl = thumbnailSource
-    ? resolveImageUrl(thumbnailSource)
-    : null;
-  // Relative /uploads paths resolve to the API origin, which is not registered
-  // in next.config image remotePatterns; bypass the optimizer for those so the
-  // image still loads (R2/CDN absolute URLs stay optimized).
-  const imageUnoptimized = !!thumbnailSource && !thumbnailSource.startsWith('http');
+  // mediaUrls image is reserved for the post detail lightbox. PhotoTile
+  // resolves relative /uploads paths against the API origin itself.
+  const photoSource = post.mediaThumbnails?.[photoIdx] || post.mediaUrls[photoIdx] || '';
 
-  const locationLabel = [post.locationName, post.locationCity, post.locationCountry]
+  const locationDetail = [post.locationCity, post.locationCountry]
     .filter(Boolean)
     .join(', ');
 
   // The backend redacts hidden locations: lat/lng arrive as null while
-  // city/country remain. Such posts get an "Approximate location" stamp
-  // instead of coordinates and no map affordances.
+  // city/country remain. Such posts get a muted "Approximate location"
+  // microlabel instead of coordinates and no map affordances.
   const coords = getCoordinates(post.locationLat, post.locationLng);
   const isApproximateLocation =
     !coords && !!(post.locationCity || post.locationCountry);
@@ -89,16 +91,13 @@ export function PostCard({ post }: { post: Post }) {
     gap: 0.5,
     px: 1,
     py: 0.5,
-    borderRadius: '4px',
-    transition: 'all 0.2s',
+    borderRadius: '8px',
+    transition: 'color 0.2s, background-color 0.2s',
     border: 'none',
     bgcolor: 'transparent',
     cursor: 'pointer',
-    color: inkMuted(isDark),
-    '&:hover': {
-      color: GOLD,
-      bgcolor: isDark ? 'rgba(212,168,67,0.08)' : 'rgba(212,168,67,0.1)',
-    },
+    color: CIN.textMuted,
+    '&:hover': { color: CIN.accent, bgcolor: ACCENT_TINT },
   } as const;
 
   function handleSave(e: React.MouseEvent) {
@@ -128,27 +127,38 @@ export function PostCard({ post }: { post: Post }) {
     }
   }
 
+  function goToPhoto(e: React.MouseEvent, idx: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    setPhotoIdx(Math.max(0, Math.min(photoCount - 1, idx)));
+  }
+
   return (
     <motion.article
-      initial={{ opacity: 0, y: 8 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ rotate: -0.7, scale: 1.01 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-      style={{ willChange: 'transform' }}
+      transition={{
+        type: 'spring',
+        stiffness: 260,
+        damping: 24,
+        delay: Math.min(index, 8) * 0.05,
+      }}
     >
-      {/* Postcard surface: warm paper, hairline border, hard offset shadow */}
-      <Box
+      <CinemaCard
         sx={{
-          bgcolor: paper(isDark),
-          backgroundImage: grain(isDark),
-          border: `1px solid ${hairline(isDark)}`,
-          borderRadius: '6px',
-          boxShadow: hardShadow(isDark),
-          overflow: 'hidden',
+          // Photo-hover treatment: the tile image breathes while the card glows.
+          '& .pc-photo img': {
+            transition: reduceMotion
+              ? 'none'
+              : 'transform 0.5s cubic-bezier(0.2, 0.65, 0.4, 0.95)',
+          },
+          '&:hover .pc-photo img': {
+            transform: reduceMotion ? 'none' : 'scale(1.02)',
+          },
         }}
       >
-        {/* Header: Avatar + Name + Time */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, px: 2.25, pt: 2 }}>
+        {/* Header: avatar + name + time + traveling + more menu */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, pt: 1.75, pb: 1.5 }}>
           {post.user && (
             <UserAvatar
               src={post.user.avatar}
@@ -156,7 +166,6 @@ export function PostCard({ post }: { post: Post }) {
               displayName={post.user.displayName}
               size="md"
               link={true}
-              sx={{ mt: 0.25 }}
             />
           )}
 
@@ -172,7 +181,7 @@ export function PostCard({ post }: { post: Post }) {
                       sx={{
                         fontWeight: 600,
                         fontSize: '0.875rem',
-                        color: ink(isDark),
+                        color: CIN.text,
                         '&:hover': { textDecoration: 'underline' },
                         textUnderlineOffset: 3,
                         overflow: 'hidden',
@@ -187,8 +196,8 @@ export function PostCard({ post }: { post: Post }) {
                 {post.user && (
                   <Typography
                     sx={{
-                      color: inkMuted(isDark),
-                      fontSize: '0.875rem',
+                      color: CIN.textMuted,
+                      fontSize: '0.8125rem',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -200,14 +209,10 @@ export function PostCard({ post }: { post: Post }) {
                 )}
                 {timeAgo && (
                   <>
-                    <Typography sx={{ color: inkMuted(isDark), opacity: 0.6 }}>&middot;</Typography>
+                    <Typography sx={{ color: CIN.textMuted, opacity: 0.6 }}>&middot;</Typography>
                     <Typography
                       suppressHydrationWarning
-                      sx={{
-                        color: inkMuted(isDark),
-                        fontSize: '0.75rem',
-                        flexShrink: 0,
-                      }}
+                      sx={{ color: CIN.textMuted, fontSize: '0.75rem', flexShrink: 0 }}
                       title={fullDate || undefined}
                     >
                       {timeAgo}
@@ -218,18 +223,18 @@ export function PostCard({ post }: { post: Post }) {
                   <Box
                     component="span"
                     sx={{
-                      ...EYEBROW_SX,
+                      ...eyebrowSx,
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 0.5,
-                      border: `1px solid ${GOLD}`,
-                      color: GOLD,
-                      borderRadius: '3px',
-                      px: 0.75,
+                      border: `1px solid rgba(139,124,255,0.4)`,
+                      color: CIN.accent,
+                      bgcolor: ACCENT_TINT,
+                      borderRadius: '9999px',
+                      px: 1,
                       py: 0.25,
                       fontSize: '0.5625rem',
                       flexShrink: 0,
-                      transform: 'rotate(-1.5deg)',
                     }}
                   >
                     <Plane style={{ height: 10, width: 10 }} />
@@ -255,13 +260,11 @@ export function PostCard({ post }: { post: Post }) {
                   border: 'none',
                   bgcolor: 'transparent',
                   cursor: 'pointer',
-                  borderRadius: '4px',
-                  color: inkMuted(isDark),
+                  borderRadius: '8px',
+                  color: CIN.textMuted,
                   flexShrink: 0,
-                  '&:hover': {
-                    bgcolor: isDark ? 'rgba(212,168,67,0.08)' : 'rgba(212,168,67,0.1)',
-                    color: ink(isDark),
-                  },
+                  transition: 'color 0.2s, background-color 0.2s',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', color: CIN.text },
                 }}
               >
                 <MoreHorizontal style={{ height: 16, width: 16 }} />
@@ -272,14 +275,23 @@ export function PostCard({ post }: { post: Post }) {
                 onClose={() => setMenuAnchor(null)}
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                slotProps={{ paper: { sx: { borderRadius: 1.5, minWidth: 160 } } }}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      borderRadius: '12px',
+                      minWidth: 160,
+                      bgcolor: CIN.surface2,
+                      border: `1px solid ${CIN.hairline}`,
+                    },
+                  },
+                }}
               >
                 <MuiMenuItem
                   onClick={() => {
                     setMenuAnchor(null);
                     reportTriggerRef.current?.click();
                   }}
-                  sx={{ fontSize: '0.875rem', borderRadius: 1, mx: 0.5, color: 'error.main' }}
+                  sx={{ fontSize: '0.875rem', borderRadius: '8px', mx: 0.5, color: CIN.danger }}
                 >
                   <Flag size={16} style={{ marginRight: 8 }} />
                   Report
@@ -314,129 +326,214 @@ export function PostCard({ post }: { post: Post }) {
           </Box>
         </Box>
 
-        {/* Photo — narrow mat on the sides, thick mat below (postcard treatment) */}
-        {imageUrl && (
+        {/* Full-bleed photo: the light source. Location + date live on the vignette. */}
+        {photoSource && (
           <Link href={`/post/${post.id}`} style={{ display: 'block', textDecoration: 'none' }}>
-            <Box sx={{ px: 1.5, mt: 1.75 }}>
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '100%',
-                  aspectRatio: '4 / 3',
-                  maxHeight: 600,
-                  borderRadius: '3px',
-                  overflow: 'hidden',
-                  border: `1px solid ${hairline(isDark)}`,
-                  bgcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(34,28,24,0.05)',
-                }}
+            <Box className="pc-photo">
+              <PhotoTile
+                src={photoSource}
+                alt={post.caption || 'Travel photo'}
+                rounded={0}
+                sx={{ aspectRatio: '4 / 3', maxHeight: 600, width: '100%' }}
               >
-                <Image
-                  src={imageUrl}
-                  alt={post.caption || 'Travel photo'}
-                  fill
-                  sizes="(max-width: 600px) 100vw, 600px"
-                  unoptimized={imageUnoptimized}
-                  style={{ objectFit: 'cover' }}
-                />
-                {post.mediaUrls.length > 1 && (
+                {/* Photo count badge */}
+                {photoCount > 1 && (
                   <Box
+                    component="span"
                     sx={{
-                      ...EYEBROW_SX,
+                      ...eyebrowSx,
                       position: 'absolute',
-                      top: 10,
-                      right: 10,
-                      bgcolor: 'rgba(22,18,31,0.65)',
-                      backdropFilter: 'blur(4px)',
-                      color: '#FAF6EE',
+                      top: 12,
+                      right: 12,
+                      bgcolor: 'rgba(11,11,15,0.6)',
+                      backdropFilter: 'blur(8px)',
+                      border: `1px solid ${CIN.hairline}`,
+                      color: CIN.text,
                       px: 1,
-                      py: 0.5,
-                      borderRadius: '3px',
+                      py: 0.4,
+                      borderRadius: '9999px',
                       fontSize: '0.625rem',
                     }}
                   >
-                    1/{post.mediaUrls.length}
+                    {photoIdx + 1}/{photoCount}
                   </Box>
                 )}
-              </Box>
+
+                {/* Multi-photo prev/next */}
+                {photoCount > 1 && photoIdx > 0 && (
+                  <Box
+                    component="button"
+                    type="button"
+                    aria-label="Previous photo"
+                    onClick={(e) => goToPhoto(e, photoIdx - 1)}
+                    sx={{
+                      ...heroControlSx,
+                      position: 'absolute',
+                      left: 10,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                    }}
+                  >
+                    <ChevronLeft style={{ height: 16, width: 16 }} />
+                  </Box>
+                )}
+                {photoCount > 1 && photoIdx < photoCount - 1 && (
+                  <Box
+                    component="button"
+                    type="button"
+                    aria-label="Next photo"
+                    onClick={(e) => goToPhoto(e, photoIdx + 1)}
+                    sx={{
+                      ...heroControlSx,
+                      position: 'absolute',
+                      right: 10,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                    }}
+                  >
+                    <ChevronRight style={{ height: 16, width: 16 }} />
+                  </Box>
+                )}
+
+                {/* Bottom-vignette caption: location name + city + date */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    px: 2,
+                    pb: photoCount > 1 ? 3.25 : 1.75,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.25,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  {post.locationName && (
+                    <Typography
+                      sx={{
+                        color: '#fff',
+                        fontWeight: 600,
+                        fontSize: '0.9375rem',
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        textShadow: '0 1px 12px rgba(11,11,15,0.6)',
+                      }}
+                    >
+                      {post.locationName}
+                    </Typography>
+                  )}
+                  <Box
+                    component="span"
+                    suppressHydrationWarning
+                    sx={{
+                      ...eyebrowSx,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 0.75,
+                      color: 'rgba(255,255,255,0.78)',
+                      fontSize: '0.625rem',
+                      textShadow: '0 1px 8px rgba(11,11,15,0.6)',
+                    }}
+                  >
+                    {locationDetail && (
+                      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        <MapPin style={{ height: 10, width: 10, flexShrink: 0 }} />
+                        {locationDetail}
+                      </Box>
+                    )}
+                    {locationDetail && fullDate && <Box component="span">&middot;</Box>}
+                    {fullDate && <Box component="span">{fullDate}</Box>}
+                    {isApproximateLocation && (
+                      <>
+                        <Box component="span">&middot;</Box>
+                        {/* Redacted coordinates: muted microlabel, no map affordances */}
+                        <Box component="span" sx={{ color: 'rgba(255,255,255,0.55)' }}>
+                          Approximate location
+                        </Box>
+                      </>
+                    )}
+                  </Box>
+                </Box>
+
+                {/* Dot indicators */}
+                {photoCount > 1 && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 10,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                    }}
+                  >
+                    {post.mediaUrls.map((_, idx) => (
+                      <Box
+                        key={idx}
+                        component="button"
+                        type="button"
+                        aria-label={`Go to photo ${idx + 1}`}
+                        onClick={(e) => goToPhoto(e, idx)}
+                        sx={{
+                          borderRadius: '9999px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          p: 0,
+                          transition: 'all 0.2s',
+                          ...(idx === photoIdx
+                            ? { width: 18, height: 6, bgcolor: CIN.accent }
+                            : {
+                                width: 6,
+                                height: 6,
+                                bgcolor: 'rgba(255,255,255,0.45)',
+                                '&:hover': { bgcolor: 'rgba(255,255,255,0.75)' },
+                              }),
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </PhotoTile>
             </Box>
           </Link>
         )}
 
-        {/* Bottom mat: eyebrow + stamp, caption, tags, quiet action row */}
-        <Box sx={{ px: 2.5, pt: imageUrl ? 1.75 : 1.25, pb: 2 }}>
-          {/* Coordinates eyebrow (or date) + passport-stamp location chip */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 1,
-              mb: post.caption || locationLabel ? 1.25 : 0,
-            }}
-          >
-            {coords ? (
-              <Typography component="span" sx={{ ...EYEBROW_SX, color: inkMuted(isDark) }}>
-                {formatCoordinates(coords.lat, coords.lng)}
-              </Typography>
-            ) : isApproximateLocation ? (
-              /* Redacted location: approximate stamp, no coordinates, no map affordances */
-              <Box
-                component="span"
-                sx={{
-                  ...EYEBROW_SX,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  px: 1,
-                  py: 0.4,
-                  border: `1.5px dashed ${GOLD}`,
-                  borderRadius: '3px',
-                  transform: 'rotate(-1.5deg)',
-                  color: GOLD,
-                  fontSize: '0.625rem',
-                }}
-              >
-                <MapPin style={{ height: 11, width: 11 }} />
-                Approximate location
-              </Box>
-            ) : fullDate ? (
-              <Typography component="span" sx={{ ...EYEBROW_SX, color: inkMuted(isDark) }}>
-                {fullDate}
-              </Typography>
-            ) : (
-              <Box component="span" />
-            )}
-
-            {locationLabel && (
-              <Box
-                component="span"
-                sx={{
-                  ...EYEBROW_SX,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  px: 1.25,
-                  py: 0.5,
-                  border: `1.5px solid ${GOLD}`,
-                  borderRadius: '3px',
-                  transform: 'rotate(1.2deg)',
-                  color: ink(isDark),
-                  letterSpacing: '0.1em',
-                  fontSize: '0.625rem',
-                  maxWidth: '100%',
-                }}
-              >
-                <MapPin style={{ height: 11, width: 11, color: GOLD, flexShrink: 0 }} />
-                <Box
-                  component="span"
-                  sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                >
-                  {locationLabel}
+        {/* Body: caption, tags, quiet action row */}
+        <Box sx={{ px: 2, pt: photoSource ? 1.5 : 0.5, pb: 1.75 }}>
+          {/* No photo: still surface the place + date so the card stands alone */}
+          {!photoSource && (post.locationName || locationDetail || fullDate) && (
+            <Box
+              component="span"
+              sx={{
+                ...eyebrowSx,
+                display: 'inline-flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 0.75,
+                mb: 1,
+                fontSize: '0.625rem',
+              }}
+            >
+              {(post.locationName || locationDetail) && (
+                <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                  <MapPin style={{ height: 10, width: 10, flexShrink: 0 }} />
+                  {[post.locationName, locationDetail].filter(Boolean).join(', ')}
                 </Box>
-              </Box>
-            )}
-          </Box>
+              )}
+              {fullDate && <Box component="span">{fullDate}</Box>}
+              {isApproximateLocation && (
+                <Box component="span" sx={{ opacity: 0.7 }}>
+                  Approximate location
+                </Box>
+              )}
+            </Box>
+          )}
 
           {/* Caption */}
           {post.caption && (
@@ -444,7 +541,7 @@ export function PostCard({ post }: { post: Post }) {
               <Typography
                 sx={{
                   fontSize: '0.9rem',
-                  color: ink(isDark),
+                  color: CIN.text,
                   lineHeight: 1.65,
                   whiteSpace: 'pre-line',
                 }}
@@ -456,15 +553,11 @@ export function PostCard({ post }: { post: Post }) {
 
           {/* Tags */}
           {post.tags && post.tags.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.25 }}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
               {post.tags.map((tag) => (
                 <Typography
                   key={tag}
-                  sx={{
-                    fontSize: '0.75rem',
-                    color: GOLD,
-                    fontWeight: 600,
-                  }}
+                  sx={{ fontSize: '0.75rem', color: CIN.accent, fontWeight: 600 }}
                 >
                   #{tag}
                 </Typography>
@@ -472,16 +565,16 @@ export function PostCard({ post }: { post: Post }) {
             </Box>
           )}
 
-          {/* Quiet action row — gold active states */}
+          {/* Quiet action row — accent on active save */}
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 2.5,
-              mt: 1.5,
+              gap: 2,
+              mt: 1.25,
               ml: -1,
               pt: 1.25,
-              borderTop: `1px dashed ${isDark ? 'rgba(212,168,67,0.22)' : 'rgba(212,168,67,0.4)'}`,
+              borderTop: `1px solid ${CIN.hairline}`,
             }}
           >
             {/* Comments */}
@@ -496,22 +589,21 @@ export function PostCard({ post }: { post: Post }) {
               </Box>
             </Link>
 
-            {/* Save/Bookmark — gold when active */}
+            {/* Save/Bookmark — accent when active, springy press */}
             <Box
-              component="button"
+              component={motion.button}
+              type="button"
+              whileTap={reduceMotion ? undefined : { scale: 0.82 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 18 }}
               onClick={handleSave}
               aria-label={saved ? 'Unsave post' : 'Save post'}
               sx={{
                 ...quietAction,
-                color: saved ? GOLD : inkMuted(isDark),
+                color: saved ? CIN.accent : CIN.textMuted,
               }}
             >
               <Bookmark
-                style={{
-                  height: 18,
-                  width: 18,
-                  fill: saved ? 'currentColor' : 'none',
-                }}
+                style={{ height: 18, width: 18, fill: saved ? 'currentColor' : 'none' }}
               />
               {saveCount > 0 && (
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 500 }}>
@@ -522,7 +614,10 @@ export function PostCard({ post }: { post: Post }) {
 
             {/* Share */}
             <Box
-              component="button"
+              component={motion.button}
+              type="button"
+              whileTap={reduceMotion ? undefined : { scale: 0.82 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 18 }}
               onClick={handleShare}
               aria-label="Share post"
               sx={quietAction}
@@ -531,7 +626,7 @@ export function PostCard({ post }: { post: Post }) {
             </Box>
           </Box>
         </Box>
-      </Box>
+      </CinemaCard>
     </motion.article>
   );
 }
