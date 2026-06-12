@@ -149,13 +149,29 @@
 
 [data-mui-color-scheme='dark'],
 .dark {
-  --viraha-paper: #16121F;             /* deep ink-plum page surface */
-  --viraha-paper-raised: #1E1929;      /* raised card / panel surface */
-  --viraha-ink: #F3EDE3;               /* warm cream text */
-  --viraha-ink-muted: #A89F93;         /* secondary text */
-  --viraha-gold: #E2BC5C;              /* gold, brightened for dark contrast */
-  --viraha-hairline: rgba(243, 237, 227, 0.16); /* 1px borders: cream @ 16% */
-  --viraha-paper-shadow: 2px 2px 0 rgba(0, 0, 0, 0.38); /* hard offset, visible on dark */
+  /* Dark Cinematic: legacy --viraha-* names remapped so every consumer flips to the new look. */
+  --viraha-paper: #0B0B0F;             /* near-black room */
+  --viraha-paper-raised: #141419;      /* raised card / panel surface */
+  --viraha-ink: #F4F4F6;               /* primary text */
+  --viraha-ink-muted: #9A9AA6;         /* secondary text */
+  --viraha-gold: #8B7CFF;              /* the ONE accent: electric violet */
+  --viraha-hairline: rgba(255, 255, 255, 0.08); /* 1px borders */
+  --viraha-paper-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06); /* hairline ring, no offset */
+}
+
+/* ── Dark Cinematic tokens (contract — consumed by components/cinema + redesigned pages) ── */
+:root,
+[data-mui-color-scheme='dark'],
+.dark {
+  --cin-bg: #0B0B0F;
+  --cin-surface: #141419;
+  --cin-surface-2: #1C1C24;
+  --cin-hairline: rgba(255, 255, 255, 0.08);
+  --cin-text: #F4F4F6;
+  --cin-text-muted: #9A9AA6;
+  --cin-accent: #8B7CFF;
+  --cin-accent-glow: rgba(139, 124, 255, 0.35);
+  --cin-danger: #FF6B6B;
 }
 
 /* ── Keepsake utility classes ── */

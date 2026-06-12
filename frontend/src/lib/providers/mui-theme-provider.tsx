@@ -64,7 +64,7 @@ export function VirahaMuiProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
       theme={theme}
-      defaultMode="system"
+      defaultMode="dark"
       noSsr
     >
       <CssBaseline enableColorScheme />

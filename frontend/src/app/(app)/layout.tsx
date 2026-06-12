@@ -5,6 +5,7 @@ import { BottomNav } from '@/components/layout/mobile-nav';
 import { UnverifiedEmailBanner } from '@/components/layout/unverified-email-banner';
 import { TravelAutoDetector } from '@/components/travel/travel-auto-detector';
 import { ActivityStreamMount } from '@/components/layout/activity-stream-mount';
+import { FirstRun } from '@/components/onboarding/first-run';
 import { AuthGuard } from '@/components/auth/auth-guard';
 
 export default function AppLayout({
@@ -47,6 +48,9 @@ export default function AppLayout({
 
         {/* App-wide activity SSE stream (live unread counts everywhere) */}
         <ActivityStreamMount />
+
+        {/* One-time welcome for new users */}
+        <FirstRun />
       </Box>
     </AuthGuard>
   );

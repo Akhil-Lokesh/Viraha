@@ -80,13 +80,14 @@ const keepsake = {
     gold: '#D4A843',
     hairline: alpha('#221C18', 0.15),
   },
+  // Dark scheme = "Dark Cinematic": near-black room, photos are the light source.
   dark: {
-    paper: '#16121F',
-    paperRaised: '#1E1929',
-    ink: '#F3EDE3',
-    inkMuted: '#A89F93',
+    paper: '#0B0B0F',
+    paperRaised: '#141419',
+    ink: '#F4F4F6',
+    inkMuted: '#9A9AA6',
     gold: '#E2BC5C',
-    hairline: alpha('#F3EDE3', 0.16),
+    hairline: alpha('#FFFFFF', 0.08),
   },
 };
 
@@ -321,8 +322,8 @@ export const theme = createTheme({
     dark: {
       palette: {
         primary: { main: '#A594F9', light: '#BDB0F7', dark: '#7B68EE', contrastText: '#1A1025' },
-        secondary: { main: keepsake.dark.gold, light: '#F5E6C4', dark: '#D4A843', contrastText: '#16121F' },
-        tertiary: { main: '#E2BC5C', light: '#F5E6C4', dark: '#D4A843', contrastText: '#16121F' },
+        secondary: { main: '#8B7CFF', light: '#A594F9', dark: '#6F5DF0', contrastText: '#0B0B0F' },
+        tertiary: { main: '#8B7CFF', light: '#A594F9', dark: '#6F5DF0', contrastText: '#0B0B0F' },
         warning: { main: '#E2BC5C', light: '#F5E6C4' },
         error: { main: '#EF5350', light: '#FFCDD2', dark: '#C62828' },
         background: { default: keepsake.dark.paper, paper: keepsake.dark.paperRaised },
@@ -335,15 +336,15 @@ export const theme = createTheme({
           disabled: alpha(keepsake.dark.ink, 0.38),
           disabledBackground: alpha(keepsake.dark.ink, 0.12),
         },
-        surfaceTint: '#A594F9',
-        surfaceContainerLowest: '#110D18',
-        surfaceContainerLow: '#1A1524',
-        surfaceContainer: '#1E1929',
-        surfaceContainerHigh: '#241E31',
+        surfaceTint: '#8B7CFF',
+        surfaceContainerLowest: '#0B0B0F',
+        surfaceContainerLow: '#141419',
+        surfaceContainer: '#1C1C24',
+        surfaceContainerHigh: '#222230',
         // surfaceContainerHighest pinned: sidebar toggle thumb must stay identical
         surfaceContainerHighest: '#36343B',
-        outline: '#7E7668',
-        outlineVariant: '#3B3547',
+        outline: '#5B5B68',
+        outlineVariant: '#26262F',
         viraha: virahaPalette,
       },
     },
