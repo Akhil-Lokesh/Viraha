@@ -78,12 +78,16 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        // Only redirect if not already on an auth page to prevent loops
+        // Only redirect if not already on an auth page to prevent loops, and
+        // never for the silent /auth/me bootstrap probe — that path is handled
+        // by CsrfInitializer (clears stale state) so routing stays deterministic
+        // instead of hard-bouncing logged-out visitors off the public landing.
         if (typeof window !== 'undefined') {
+          const isAuthProbe = originalRequest.url?.includes('/auth/me');
           const onAuthPage = ['/sign-in', '/sign-up', '/forgot-password', '/reset-password'].some(
             (p) => window.location.pathname.startsWith(p)
           );
-          if (!onAuthPage) {
+          if (!onAuthPage && !isAuthProbe) {
             window.location.href = '/sign-in';
           }
         }
