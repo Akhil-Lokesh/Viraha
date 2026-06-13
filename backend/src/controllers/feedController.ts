@@ -66,18 +66,26 @@ export async function getPersonalizedFeed(req: Request, res: Response, next: Nex
     const items = hasMore ? posts.slice(0, limit) : posts;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-    // Check save status for each post
+    // Check save + like status for each post
     const postIds = items.map((p) => p.id);
-    const saves = await prisma.save.findMany({
-      where: { userId, postId: { in: postIds } },
-      select: { postId: true },
-    });
+    const [saves, reactions] = await Promise.all([
+      prisma.save.findMany({
+        where: { userId, postId: { in: postIds } },
+        select: { postId: true },
+      }),
+      prisma.reaction.findMany({
+        where: { userId, postId: { in: postIds }, type: 'like' },
+        select: { postId: true },
+      }),
+    ]);
     const savedPostIds = new Set(saves.map((s) => s.postId));
+    const likedPostIds = new Set(reactions.map((r) => r.postId));
 
     const responseData = {
       items: items.map((post) => ({
         ...redactPostLocation(post, userId),
         isSaved: savedPostIds.has(post.id),
+        isLiked: likedPostIds.has(post.id),
       })),
       nextCursor,
     };
@@ -143,21 +151,30 @@ export async function getDiscoverFeed(req: Request, res: Response, next: NextFun
     const items = hasMore ? posts.slice(0, limit) : posts;
     const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-    // Check save status if authenticated
+    // Check save + like status if authenticated
     let savedPostIds = new Set<string>();
+    let likedPostIds = new Set<string>();
     if (req.user) {
       const postIds = items.map((p) => p.id);
-      const saves = await prisma.save.findMany({
-        where: { userId: req.user.userId, postId: { in: postIds } },
-        select: { postId: true },
-      });
+      const [saves, reactions] = await Promise.all([
+        prisma.save.findMany({
+          where: { userId: req.user.userId, postId: { in: postIds } },
+          select: { postId: true },
+        }),
+        prisma.reaction.findMany({
+          where: { userId: req.user.userId, postId: { in: postIds }, type: 'like' },
+          select: { postId: true },
+        }),
+      ]);
       savedPostIds = new Set(saves.map((s) => s.postId));
+      likedPostIds = new Set(reactions.map((r) => r.postId));
     }
 
     const responseData = {
       items: items.map((post) => ({
         ...redactPostLocation(post, req.user?.userId ?? null),
         isSaved: savedPostIds.has(post.id),
+        isLiked: likedPostIds.has(post.id),
       })),
       nextCursor,
     };

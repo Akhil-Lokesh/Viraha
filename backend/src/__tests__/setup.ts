@@ -22,6 +22,7 @@ const TABLE_NAMES = [
   'journal_entries',
   'album_posts',
   'activities',
+  'reactions',
   'saves',
   'comments',
   'reports',

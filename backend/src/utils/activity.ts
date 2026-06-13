@@ -1,11 +1,12 @@
 import { prisma } from '../lib/prisma';
 import { publishActivity } from '../lib/realtime';
 import { logger } from '../lib/logger';
+import * as sseRegistry from '../lib/sseRegistry';
 
 interface CreateActivityParams {
   userId: string;
   actorId: string;
-  type: 'follow' | 'follow_request' | 'follow_accepted' | 'comment' | 'reply' | 'save';
+  type: 'follow' | 'follow_request' | 'follow_accepted' | 'comment' | 'reply' | 'save' | 'like';
   postId?: string;
   commentId?: string;
 }
@@ -38,4 +39,14 @@ export async function createActivity(params: CreateActivityParams): Promise<void
   } catch (err) {
     logger.debug({ err }, 'Failed to publish realtime activity');
   }
+
+  // Push live notification to connected SSE listeners (no-op if none)
+  sseRegistry.push(userId, 'activity', {
+    id: activity.id,
+    type,
+    actorId,
+    postId: postId || null,
+    commentId: commentId || null,
+    createdAt: activity.createdAt.toISOString(),
+  });
 }

@@ -88,4 +88,10 @@ export function getAuthCookie(userId: string): string {
   return `viraha_access=${token}`;
 }
 
+export async function createTestFollow(followerId: string, followingId: string): Promise<void> {
+  await prisma.follow.create({
+    data: { followerId, followingId, status: 'accepted' },
+  });
+}
+
 export { prisma };

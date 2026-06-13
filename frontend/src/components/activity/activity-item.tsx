@@ -8,6 +8,7 @@ import {
   UserPlus,
   MessageCircle,
   Bookmark,
+  Heart,
   Reply,
   CheckCheck,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ const activityIcons = {
   comment: MessageCircle,
   reply: Reply,
   save: Bookmark,
+  like: Heart,
 } as const;
 
 function activityMessage(activity: Activity): string {
@@ -39,6 +41,8 @@ function activityMessage(activity: Activity): string {
       return 'replied to your comment';
     case 'save':
       return 'saved your post';
+    case 'like':
+      return 'liked your post';
     default:
       return 'interacted with you';
   }

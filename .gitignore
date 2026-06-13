@@ -63,3 +63,6 @@ next-env.d.ts
 # pnpm (project standardizes on npm)
 pnpm-lock.yaml
 pnpm-workspace.yaml
+
+# git worktrees (local only)
+.claude/worktrees/

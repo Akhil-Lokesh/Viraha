@@ -7,11 +7,12 @@ export default defineConfig({
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['src/__tests__/**/*.test.ts'],
     testTimeout: 30000,
+    // Integration tests share one Postgres database — run files serially so
+    // afterEach() truncations from one file don't wipe data the other file
+    // is mid-assertion on.
     fileParallelism: false,
-    // The integration suite shares one Dockerized Postgres; under the full
-    // serial run a transient connection-contention failure occasionally surfaces
-    // (a different test each run, always green in isolation). Retry twice so CI
-    // is deterministic without masking a genuine, repeatable failure.
+    // Retry twice so a transient connection-contention failure (a different test
+    // each run, always green in isolation) doesn't make CI flaky.
     retry: 2,
     coverage: {
       provider: 'v8',

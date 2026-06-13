@@ -194,6 +194,8 @@ export const mockPosts: Post[] = [
     tags: ['santorini', 'greece', 'sunset', 'goldenhour'],
     commentCount: 12,
     saveCount: 34,
+
+    likeCount: 20,
     isDeleted: false,
     createdAt: '2025-02-21T08:00:00Z',
     updatedAt: '2025-02-21T08:00:00Z',
@@ -218,6 +220,8 @@ export const mockPosts: Post[] = [
     tags: ['switzerland', 'alps', 'hiking', 'mountains'],
     commentCount: 8,
     saveCount: 22,
+
+    likeCount: 17,
     isDeleted: false,
     createdAt: '2025-01-16T14:00:00Z',
     updatedAt: '2025-01-16T14:00:00Z',
@@ -242,6 +246,8 @@ export const mockPosts: Post[] = [
     tags: ['kyoto', 'japan', 'ramen', 'foodie'],
     commentCount: 15,
     saveCount: 45,
+
+    likeCount: 21,
     isDeleted: false,
     createdAt: '2025-03-01T18:00:00Z',
     updatedAt: '2025-03-01T18:00:00Z',
@@ -266,6 +272,8 @@ export const mockPosts: Post[] = [
     tags: ['sahara', 'morocco', 'desert', 'sunrise'],
     commentCount: 19,
     saveCount: 51,
+
+    likeCount: 28,
     isDeleted: false,
     createdAt: '2025-02-10T20:00:00Z',
     updatedAt: '2025-02-10T20:00:00Z',
@@ -290,6 +298,8 @@ export const mockPosts: Post[] = [
     tags: ['venice', 'italy', 'winter', 'canals'],
     commentCount: 7,
     saveCount: 18,
+
+    likeCount: 31,
     isDeleted: false,
     createdAt: '2025-01-05T15:00:00Z',
     updatedAt: '2025-01-05T15:00:00Z',
@@ -314,6 +324,8 @@ export const mockPosts: Post[] = [
     tags: ['paris', 'france', 'streets', 'architecture'],
     commentCount: 5,
     saveCount: 14,
+
+    likeCount: 13,
     isDeleted: false,
     createdAt: '2025-02-28T22:00:00Z',
     updatedAt: '2025-02-28T22:00:00Z',
@@ -338,6 +350,8 @@ export const mockPosts: Post[] = [
     tags: ['bali', 'indonesia', 'riceterraces', 'nature'],
     commentCount: 11,
     saveCount: 38,
+
+    likeCount: 19,
     isDeleted: false,
     createdAt: '2025-01-20T14:00:00Z',
     updatedAt: '2025-01-20T14:00:00Z',
@@ -362,6 +376,8 @@ export const mockPosts: Post[] = [
     tags: ['london', 'uk', 'rain', 'citylife'],
     commentCount: 4,
     saveCount: 9,
+
+    likeCount: 27,
     isDeleted: false,
     createdAt: '2025-03-05T18:00:00Z',
     updatedAt: '2025-03-05T18:00:00Z',
@@ -386,6 +402,8 @@ export const mockPosts: Post[] = [
     tags: ['iceland', 'nature', 'landscape', 'adventure'],
     commentCount: 21,
     saveCount: 67,
+
+    likeCount: 14,
     isDeleted: false,
     createdAt: '2025-02-06T10:00:00Z',
     updatedAt: '2025-02-06T10:00:00Z',
@@ -410,6 +428,8 @@ export const mockPosts: Post[] = [
     tags: ['vietnam', 'motorbike', 'mountains', 'adventure'],
     commentCount: 14,
     saveCount: 42,
+
+    likeCount: 16,
     isDeleted: false,
     createdAt: '2025-01-29T07:00:00Z',
     updatedAt: '2025-01-29T07:00:00Z',
@@ -434,6 +454,8 @@ export const mockPosts: Post[] = [
     tags: ['maldives', 'beach', 'tropical', 'paradise'],
     commentCount: 9,
     saveCount: 55,
+
+    likeCount: 28,
     isDeleted: false,
     createdAt: '2025-03-08T16:00:00Z',
     updatedAt: '2025-03-08T16:00:00Z',
@@ -458,6 +480,8 @@ export const mockPosts: Post[] = [
     tags: ['italy', 'amalfi', 'coast', 'roadtrip'],
     commentCount: 6,
     saveCount: 27,
+
+    likeCount: 8,
     isDeleted: false,
     createdAt: '2025-02-15T09:00:00Z',
     updatedAt: '2025-02-15T09:00:00Z',

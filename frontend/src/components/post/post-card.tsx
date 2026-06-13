@@ -8,6 +8,7 @@ import {
   MapPin,
   MessageCircle,
   Bookmark,
+  Heart,
   Share2,
   Plane,
   MoreHorizontal,
@@ -25,6 +26,7 @@ import { useToggleSave } from '@/lib/hooks/use-saves';
 import { CinemaCard, PhotoTile } from '@/components/cinema';
 import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { getCoordinates } from './keepsake';
+import { useToggleLike } from '@/lib/hooks/use-reactions';
 
 const ACCENT_TINT = 'rgba(139,124,255,0.10)';
 
@@ -60,7 +62,10 @@ export function PostCard({ post, index = 0 }: PostCardProps) {
   // that trigger OUTSIDE the Menu (so closing the Menu doesn't unmount the dialog)
   // and click it programmatically from the in-menu "Report" row.
   const reportTriggerRef = useRef<HTMLButtonElement>(null);
+  const [liked, setLiked] = useState(post.isLiked ?? false);
+  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
   const toggleSave = useToggleSave();
+  const toggleLike = useToggleLike();
 
   const photoCount = post.mediaUrls.length;
   // Feed cards use the generated thumbnail to save bandwidth; the full-res
@@ -110,6 +115,20 @@ export function PostCard({ post, index = 0 }: PostCardProps) {
       onError: () => {
         setSaved(wasSaved);
         setSaveCount((c) => (wasSaved ? c + 1 : c - 1));
+      },
+    });
+  }
+
+  function handleLike(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount((c) => (wasLiked ? Math.max(0, c - 1) : c + 1));
+    toggleLike.mutate(post.id, {
+      onError: () => {
+        setLiked(wasLiked);
+        setLikeCount((c) => (wasLiked ? c + 1 : Math.max(0, c - 1)));
       },
     });
   }
@@ -588,6 +607,35 @@ export function PostCard({ post, index = 0 }: PostCardProps) {
                 )}
               </Box>
             </Link>
+
+            {/* Like — heart fills red when active, springy press */}
+            <Box
+              component={motion.button}
+              type="button"
+              whileTap={reduceMotion ? undefined : { scale: 0.82 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 18 }}
+              onClick={handleLike}
+              aria-label={liked ? 'Unlike post' : 'Like post'}
+              aria-pressed={liked}
+              sx={{
+                ...quietAction,
+                color: liked ? '#EF4444' : CIN.textMuted,
+                '&:hover': { color: '#EF4444', bgcolor: 'rgba(239,68,68,0.10)' },
+              }}
+            >
+              <Heart
+                style={{
+                  height: 18,
+                  width: 18,
+                  fill: liked ? 'currentColor' : 'none',
+                }}
+              />
+              {likeCount > 0 && (
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                  {likeCount}
+                </Typography>
+              )}
+            </Box>
 
             {/* Save/Bookmark — accent when active, springy press */}
             <Box
