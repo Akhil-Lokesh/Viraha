@@ -114,6 +114,53 @@ describe('Reactions API — POST /api/v1/posts/:postId/like', () => {
     expect(res.body.data).toMatchObject({ liked: true, likeCount: 1 });
   });
 
+  it('returns 404 when liking the post of a user who has blocked you', async () => {
+    const author = await createTestUser();
+    const liker = await createTestUser();
+    const post = await createTestPost(author.id); // public
+    await prisma.block.create({ data: { blockerId: author.id, blockedId: liker.id } });
+
+    const res = await request(app)
+      .post(`/api/v1/posts/${post.id}/like`)
+      .set('Cookie', getAuthCookie(liker.id));
+
+    expect(res.status).toBe(404);
+    const reaction = await prisma.reaction.findUnique({
+      where: { userId_postId_type: { userId: liker.id, postId: post.id, type: 'like' } },
+    });
+    expect(reaction).toBeNull();
+  });
+
+  it('still lets you unlike after a block appears — no orphaned reaction or inflated count', async () => {
+    const author = await createTestUser();
+    const liker = await createTestUser();
+    const post = await createTestPost(author.id); // public
+    const cookie = getAuthCookie(liker.id);
+
+    // Like first (allowed — no block yet)
+    const likeRes = await request(app).post(`/api/v1/posts/${post.id}/like`).set('Cookie', cookie);
+    expect(likeRes.status).toBe(201);
+
+    // A block now exists between the two users.
+    await prisma.block.create({ data: { blockerId: author.id, blockedId: liker.id } });
+
+    // Unlike must still succeed so the reaction row and likeCount never orphan.
+    const unlikeRes = await request(app).post(`/api/v1/posts/${post.id}/like`).set('Cookie', cookie);
+    expect(unlikeRes.status).toBe(200);
+    expect(unlikeRes.body.data).toMatchObject({ liked: false, likeCount: 0 });
+
+    const reaction = await prisma.reaction.findUnique({
+      where: { userId_postId_type: { userId: liker.id, postId: post.id, type: 'like' } },
+    });
+    expect(reaction).toBeNull();
+
+    const updated = await prisma.post.findUnique({
+      where: { id: post.id },
+      select: { likeCount: true },
+    });
+    expect(updated?.likeCount).toBe(0);
+  });
+
   it('returns 401 when unauthenticated', async () => {
     const author = await createTestUser();
     const post = await createTestPost(author.id);

@@ -77,7 +77,7 @@ model Post {
   locationCountry String?   @map("location_country") @db.VarChar(100)
   placeId         String?   @map("place_id") @db.VarChar(255)
   takenAt         DateTime? @map("taken_at")
-  postedAt        DateTime  @default(now()) @map("posted_at")
+  postedAt        DateTime  @default(now()) @map("posted_at") @db.Timestamptz
   privacy         String    @default("public") @db.VarChar(20)
   tags            String[]
   commentCount    Int       @default(0) @map("comment_count")
@@ -114,7 +114,7 @@ model RefreshToken {
   id         String   @id @default(uuid()) @db.Uuid
   userId     String   @map("user_id") @db.Uuid
   token      String   @unique
-  expiresAt  DateTime @map("expires_at")
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz
   createdAt  DateTime @default(now()) @map("created_at")
   userAgent  String?  @map("user_agent") @db.VarChar(512)
   ip         String?  @db.VarChar(64)
@@ -131,7 +131,7 @@ model PasswordReset {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @map("user_id") @db.Uuid
   token     String    @unique
-  expiresAt DateTime  @map("expires_at")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
   usedAt    DateTime? @map("used_at")
   createdAt DateTime  @default(now()) @map("created_at")
 
@@ -176,7 +176,7 @@ model EmailVerification {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @map("user_id") @db.Uuid
   token     String    @unique
-  expiresAt DateTime  @map("expires_at")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
   usedAt    DateTime? @map("used_at")
   createdAt DateTime  @default(now()) @map("created_at")
 
@@ -503,7 +503,7 @@ model TimeCapsule {
   locationLng  Decimal?  @map("location_lng")
   type         String    @default("departure") @db.VarChar(20) // departure, letter_to_self
   sealedAt     DateTime  @default(now()) @map("sealed_at")
-  openAt       DateTime  @map("open_at")
+  openAt       DateTime  @map("open_at") @db.Timestamptz
   isOpened     Boolean   @default(false) @map("is_opened")
   openedAt     DateTime? @map("opened_at")
   createdAt    DateTime  @default(now()) @map("created_at")

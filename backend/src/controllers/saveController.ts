@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { createActivity } from '../utils/activity';
 import { redactPostLocation } from '../utils/locationPrivacy';
+import { isBlockedBetween } from '../lib/blocks';
 
 const userSelect = {
   id: true,
@@ -24,6 +25,26 @@ export async function toggleSave(req: Request, res: Response, next: NextFunction
         error: { code: 'NOT_FOUND', message: 'Post not found' },
       });
       return;
+    }
+
+    // Privacy + block gate: you can only save a post you are allowed to view.
+    // Present 404 (not 403) so existence isn't leaked. Mirrors reactionController/commentController.
+    if (post.userId !== userId) {
+      const blocked = await isBlockedBetween(userId, post.userId);
+      const hiddenByPrivacy =
+        post.privacy === 'private' ||
+        (post.privacy === 'followers' &&
+          !(await prisma.follow.findFirst({
+            where: { followerId: userId, followingId: post.userId, status: 'accepted' },
+            select: { id: true },
+          })));
+      if (blocked || hiddenByPrivacy) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Post not found' },
+        });
+        return;
+      }
     }
 
     const existing = await prisma.save.findUnique({

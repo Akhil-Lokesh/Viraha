@@ -1,7 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { publishActivity } from '../lib/realtime';
 import { logger } from '../lib/logger';
-import * as sseRegistry from '../lib/sseRegistry';
 
 interface CreateActivityParams {
   userId: string;
@@ -17,18 +16,19 @@ export async function createActivity(params: CreateActivityParams): Promise<void
   // Don't create notification for yourself
   if (userId === actorId) return;
 
-  const activity = await prisma.activity.create({
-    data: {
-      userId,
-      actorId,
-      type,
-      postId: postId || null,
-      commentId: commentId || null,
-    },
-  });
-
-  // Real-time delivery is best-effort — never fail the originating request.
+  // Notification + realtime delivery is best-effort — it must never fail the
+  // originating action (the like/comment/follow has already committed).
   try {
+    const activity = await prisma.activity.create({
+      data: {
+        userId,
+        actorId,
+        type,
+        postId: postId || null,
+        commentId: commentId || null,
+      },
+    });
+
     await publishActivity(userId, {
       type,
       actorId,
@@ -37,16 +37,6 @@ export async function createActivity(params: CreateActivityParams): Promise<void
       createdAt: activity.createdAt.toISOString(),
     });
   } catch (err) {
-    logger.debug({ err }, 'Failed to publish realtime activity');
+    logger.warn({ err }, 'Failed to create/publish activity notification');
   }
-
-  // Push live notification to connected SSE listeners (no-op if none)
-  sseRegistry.push(userId, 'activity', {
-    id: activity.id,
-    type,
-    actorId,
-    postId: postId || null,
-    commentId: commentId || null,
-    createdAt: activity.createdAt.toISOString(),
-  });
 }
