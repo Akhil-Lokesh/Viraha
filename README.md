@@ -1,142 +1,106 @@
 # Viraha
 
-**"Keep your travels alive"**
+**विरह — the ache of separation from what you love.**
 
-Viraha is a travel memory platform — Letterboxd for travel. Document experiences as
-location-tagged posts, weave them into albums and journals, browse them on an interactive
-map, and discover authentic places through the people you follow. The interface is built
-around a **Dark Cinematic** aesthetic that puts your photography first.
+Viraha is a travel memory platform — Letterboxd for travel. Every memory is pinned to a
+place: post photos with a story, gather them into albums, write journals, and relive it all
+on a map. Discovery happens through people you trust, not star ratings.
+
+- [Product](docs/PRODUCT.md) — what Viraha is for and what it does
+- [Design](docs/DESIGN.md) — the Dark Cinematic design language and UI primitives
+- [Architecture](docs/ARCHITECTURE.md) — how the backend and frontend fit together
 
 ---
 
-## Quick Start
+## Quick start
 
-### Prerequisites
-
-- Node.js 18+
-- Docker & Docker Compose
-- npm
-
-### 1. Start databases
+Requires Node.js 20+, npm and Docker.
 
 ```bash
-docker compose up -d
+docker compose up -d            # Postgres + PostGIS (5433), test DB (5434), Redis (6379)
 ```
-
-Brings up PostgreSQL + PostGIS on port **5433** (dev) and **5434** (test), and Redis on **6379**.
-
-### 2. Backend
 
 ```bash
 cd backend
-cp .env.example .env
+cp .env.example .env            # then set the three secrets (openssl rand -hex 32)
 npm install
-npx prisma migrate dev      # apply schema
-npm run db:seed             # optional: seed sample travel content
-npm run dev
+npx prisma migrate dev          # create the schema
+npm run db:seed                 # demo travelers, posts, albums and journals
+npm run dev                     # API on http://localhost:4000
 ```
-
-API runs at `http://localhost:4000` (prefix `/api/v1`). Health check: `GET /health`.
-
-### 3. Frontend
 
 ```bash
 cd frontend
 cp .env.local.example .env.local
 npm install
-npm run dev
+npm run dev                     # app on http://localhost:3000
 ```
 
-App runs at `http://localhost:3000`.
+Sign in as any seeded traveler — e.g. `anya@viraha.com` / `password123` — or
+`demo@viraha.com` for an empty account that shows the first-run experience.
 
----
+## Stack
 
-## Tech Stack
+| Layer    | Technology |
+|----------|------------|
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, MUI 7 + Emotion, Framer Motion |
+| Data     | TanStack Query (server state), Zustand (client state) |
+| Maps     | MapLibre GL with the OpenFreeMap dark basemap (no key) |
+| Backend  | Express 5, TypeScript, Zod validation |
+| Database | PostgreSQL + PostGIS via Prisma |
+| Cache / realtime | Redis — response caching, pub/sub for Server-Sent Events |
+| Media    | Cloudflare R2 (or local disk), `sharp` for resizing |
+| Auth     | JWT in httpOnly cookies with refresh rotation, CSRF double-submit, Google sign-in |
+| Ops      | Pino logging, Sentry, Docker, GitHub Actions |
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js (App Router), React 19, TypeScript |
-| UI | MUI (`@mui/material`) + Emotion, Framer Motion |
-| Maps | MapLibre GL |
-| State | TanStack Query (server state), Zustand (client state) |
-| Backend | Express 5, TypeScript |
-| Database | PostgreSQL + PostGIS |
-| ORM | Prisma |
-| Cache / realtime | Redis (ioredis), Server-Sent Events |
-| Storage | Cloudflare R2 (S3 SDK) / local disk, `sharp` image processing |
-| Auth | JWT with refresh-token rotation + Google OAuth |
-| Security | Helmet, CSRF (`csrf-csrf`), Redis-backed rate limiting, Zod validation |
-| Observability | Pino logging, Sentry |
-| Testing | Vitest (+ coverage) |
-
----
-
-## Architecture
+## Layout
 
 ```
-Viraha/
-├── backend/                # Express + Prisma API server
-│   ├── src/
-│   │   ├── controllers/     # Route handlers
-│   │   ├── routes/          # Express routers
-│   │   ├── validators/      # Zod schemas
-│   │   ├── middleware/      # Auth, CSRF, validation, rate limiting
-│   │   ├── jobs/            # Background jobs / scheduler
-│   │   ├── lib/             # Prisma, Redis, storage, cache
-│   │   └── utils/           # JWT, password, activity helpers
-│   └── prisma/              # Schema, migrations, seed
-├── frontend/               # Next.js App Router
-│   ├── src/
-│   │   ├── app/             # Routes (App Router)
-│   │   ├── components/      # UI components (incl. cinema primitives)
-│   │   └── lib/             # API clients, hooks, stores, design tokens
-└── docker-compose.yml      # PostgreSQL + PostGIS + Redis
+backend/
+  prisma/            schema, migrations, demo seed
+  src/routes/        one router per resource, mounted under /api/v1
+  src/controllers/   request handlers
+  src/services/      domain logic (journey detection, Viraha moments, place search)
+  src/lib/           prisma, redis, cache, storage, realtime, email
+  src/middleware/    auth, CSRF, rate limits, validation, uploads
+frontend/
+  src/app/           routes: (marketing) landing, (auth) sign-in flows, (app) the product
+  src/components/    UI by feature; cinema/ holds the shared design primitives
+  src/lib/           api/ clients, hooks/ (TanStack Query), stores/, design/ tokens
 ```
 
----
+## Configuration
 
-## Features
+Everything optional degrades gracefully when unset:
 
-- **Posts** — Location-tagged photo memories with tags and per-item privacy
-- **Albums** — Curated collections of posts
-- **Journals** — Narrative entries with markdown, mood, and photos
-- **Map** — Interactive map as the primary canvas for browsing memories
-- **Dual-Mode Feed** — Local (following-based) and Traveling (location-based)
-- **Travel Mode** — Context-aware behavior based on where you are
-- **Explore** — Trending destinations and content discovery
-- **Realtime** — Server-Sent Events for live notifications and activity
-- **Auth** — Email/password and Google OAuth, with refresh-token rotation and session management
-- **Privacy** — Per-content controls, private accounts, mutes, location-privacy surfaces
+| Variable | Without it |
+|----------|-----------|
+| `REDIS_URL` | No caching; realtime delivers in-process (single instance only) |
+| `R2_*` | Uploads are stored on local disk under `backend/uploads` |
+| `GOOGLE_PLACES_API_KEY` | Location search uses OpenStreetMap (Photon) |
+| `RESEND_API_KEY` | Verification and password-reset emails are not sent (dev logs the link) |
+| `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | "Sign in with Google" is hidden |
+| `SENTRY_DSN` | No error reporting |
 
----
-
-## API
-
-All endpoints are prefixed with `/api/v1`. See `backend/src/routes/` for the full list.
-
-Key route groups: `/auth`, `/posts`, `/albums`, `/journals`, `/users`, `/feed`, `/follows`,
-`/comments`, `/saves`, `/activities`, `/travel`, `/media`, `/places`, `/map`, `/explore`, `/reports`.
-
----
-
-## Environment Variables
-
-See `backend/.env.example` and `frontend/.env.local.example` for all configuration options.
-
----
+See `backend/.env.example`, `frontend/.env.local.example`, and the root `.env.example`
+(used by `docker-compose.prod.yml`).
 
 ## Testing
 
 ```bash
-# Backend (requires the test database)
-docker compose up -d postgres-test redis
-cd backend && npm run test:coverage
-
-# Frontend
-cd frontend && npm run test:coverage
+cd backend && npm test          # integration tests; needs the test DB from docker compose
+cd frontend && npm test         # unit tests
+cd frontend && npx playwright test   # end-to-end; starts both dev servers if they aren't running
 ```
 
----
+CI (`.github/workflows/ci.yml`) type-checks both apps, runs both test suites, the
+Playwright suite, production builds and a dependency audit.
+
+## Deployment
+
+- `docker-compose.prod.yml` runs Postgres, Redis, the API and the web app from the two Dockerfiles.
+- `railway.toml` deploys the API container (runs `prisma migrate deploy` on start).
+- The backend refuses to boot in production with missing or placeholder secrets.
 
 ## License
 
