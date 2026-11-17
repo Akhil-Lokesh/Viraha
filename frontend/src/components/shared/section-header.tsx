@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
-import { Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 
 interface SectionHeaderProps {
@@ -26,6 +26,7 @@ export function SectionHeader({
       viewport={{ once: true, margin: '-100px' }}
       style={{ textAlign: align }}
     >
+      <Box sx={sxProp}>
       <Typography
         variant="h2"
         sx={{
@@ -49,6 +50,7 @@ export function SectionHeader({
           {subtitle}
         </Typography>
       )}
+      </Box>
     </motion.div>
   );
 }

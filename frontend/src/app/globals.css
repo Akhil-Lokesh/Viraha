@@ -58,50 +58,6 @@
   font-display: swap;
 }
 
-/* Eastman — heading font */
-@font-face {
-  font-family: 'Eastman';
-  src: url('/fonts/eastman/regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Eastman';
-  src: url('/fonts/eastman/italic.otf') format('opentype');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Eastman';
-  src: url('/fonts/eastman/medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Eastman';
-  src: url('/fonts/eastman/demibold.otf') format('opentype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Eastman';
-  src: url('/fonts/eastman/bold.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Eastman';
-  src: url('/fonts/eastman/bold-italic.otf') format('opentype');
-  font-weight: 700;
-  font-style: italic;
-  font-display: swap;
-}
-
 /* Posterama — brand/logo font */
 @font-face {
   font-family: 'Posterama';
@@ -118,51 +74,11 @@
   font-display: swap;
 }
 
-/* ResotYc — accent/decorative font */
-@font-face {
-  font-family: 'ResotYc';
-  src: url('/fonts/resotyc/regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* ── CSS Variables ── */
+/* ── Design tokens: Dark Cinematic (mirrored in src/lib/design/cinema-tokens.ts) ── */
 :root {
   --font-body: 'TT Chocolates', sans-serif;
-  --font-heading: 'TT Chocolates', sans-serif;
   --font-brand: 'Posterama', sans-serif;
-  --font-accent: 'ResotYc', serif;
-}
 
-/* ── Viraha "Keepsake" design tokens (contract — names consumed across the app) ── */
-:root,
-[data-mui-color-scheme='light'] {
-  --viraha-paper: #FAF6EE;             /* warm cream page surface */
-  --viraha-paper-raised: #FFFDF7;      /* raised card / panel surface */
-  --viraha-ink: #221C18;               /* warm near-black text */
-  --viraha-ink-muted: #6F655C;         /* secondary text */
-  --viraha-gold: #D4A843;              /* accent of record: stamps, highlights */
-  --viraha-hairline: rgba(34, 28, 24, 0.15); /* 1px borders: ink @ 15% */
-  --viraha-paper-shadow: 2px 2px 0 rgba(34, 28, 24, 0.06); /* hard offset panel shadow */
-}
-
-[data-mui-color-scheme='dark'],
-.dark {
-  /* Dark Cinematic: legacy --viraha-* names remapped so every consumer flips to the new look. */
-  --viraha-paper: #0B0B0F;             /* near-black room */
-  --viraha-paper-raised: #141419;      /* raised card / panel surface */
-  --viraha-ink: #F4F4F6;               /* primary text */
-  --viraha-ink-muted: #9A9AA6;         /* secondary text */
-  --viraha-gold: #8B7CFF;              /* the ONE accent: electric violet */
-  --viraha-hairline: rgba(255, 255, 255, 0.08); /* 1px borders */
-  --viraha-paper-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06); /* hairline ring, no offset */
-}
-
-/* ── Dark Cinematic tokens (contract — consumed by components/cinema + redesigned pages) ── */
-:root,
-[data-mui-color-scheme='dark'],
-.dark {
   --cin-bg: #0B0B0F;
   --cin-surface: #141419;
   --cin-surface-2: #1C1C24;
@@ -178,77 +94,6 @@
    color-scheme attribute lands) is never light. */
 html {
   background-color: #0B0B0F;
-}
-
-/* ── Keepsake utility classes ── */
-
-/* Subtle paper-grain noise overlay (tiny SVG turbulence data-URI, tiles at 160px) */
-.paper-grain {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 160px 160px;
-}
-
-/* Passport-stamp chip base: gold hairline border, Posterama caps, slight rotation via --stamp-rotate */
-.stamp {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  padding: 0.35em 0.8em;
-  border: 1.5px solid var(--viraha-gold);
-  border-radius: 4px;
-  font-family: var(--font-brand);
-  font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--viraha-ink);
-  transform: rotate(var(--stamp-rotate, -2deg));
-}
-
-/* Dashed gold flight-path connector (use as an hr or thin div) */
-.flight-path {
-  border: none;
-  border-top: 1px dashed var(--viraha-gold);
-}
-
-/* Ticket-stub perforation edge: dotted row along the top */
-.ticket-edge {
-  background-image: radial-gradient(circle, var(--viraha-hairline) 1.5px, transparent 1.6px);
-  background-size: 12px 4px;
-  background-repeat: repeat-x;
-  background-position: 4px 0;
-  padding-top: 10px;
-}
-
-/* Drift animation for dashed flight paths (animate stroke-dashoffset on SVG paths) */
-@keyframes flight-drift {
-  to {
-    stroke-dashoffset: -240;
-  }
-}
-
-/* ── Auth field treatment: Posterama eyebrow labels + gold focus states ── */
-.auth-field .MuiInputLabel-root {
-  font-family: var(--font-brand);
-  font-weight: 600;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--viraha-ink-muted);
-}
-.auth-field .MuiInputLabel-root.Mui-focused {
-  color: var(--viraha-gold);
-}
-.auth-field .MuiOutlinedInput-notchedOutline {
-  border-color: var(--viraha-hairline);
-}
-.auth-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: var(--viraha-ink-muted);
-}
-.auth-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: var(--viraha-gold);
-  border-width: 2px;
 }
 
 /* ── Mobile-Native Resets ── */
@@ -279,11 +124,6 @@ input, select, textarea {
   font-size: 16px !important;
 }
 
-/* Touch action hints */
-.horizontal-scroll {
-  touch-action: pan-x;
-}
-
 /* MapLibre overrides */
 .maplibregl-popup-content {
   background: transparent !important;
@@ -293,38 +133,6 @@ input, select, textarea {
 }
 .maplibregl-popup-tip {
   display: none !important;
-}
-
-/* Gradient utilities */
-.gradient-hero {
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.7) 0%,
-    rgba(0, 0, 0, 0.3) 40%,
-    rgba(0, 0, 0, 0.05) 70%,
-    transparent 100%
-  );
-}
-.gradient-warm {
-  background: linear-gradient(135deg, #7B6FA0 0%, #D4A843 50%, #7B6FA0 100%);
-}
-.gradient-sunset {
-  background: linear-gradient(135deg, #7B6FA0 0%, #7B6FA0 40%, #D4A843 100%);
-}
-.text-gradient {
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-image: linear-gradient(135deg, #7B6FA0 0%, #D4A843 50%, #7B6FA0 100%);
-}
-
-/* Scrollbar utility */
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
 }
 
 /* Animation keyframes referenced via inline style on map page */
@@ -343,8 +151,7 @@ input, select, textarea {
 }
 
 /* ── Reduced motion (WCAG 2.1 SC 2.3.3) ──
-   Collapse keyframe/transition animations (flight-drift, spin, ping, stamp
-   tilts, postcard hovers) for users who request reduced motion. Framer Motion
+   Collapse keyframe/transition animations for users who request reduced motion. Framer Motion
    transforms are inline styles, so the transition/animation overrides below
    neutralize their easing as well. */
 @media (prefers-reduced-motion: reduce) {

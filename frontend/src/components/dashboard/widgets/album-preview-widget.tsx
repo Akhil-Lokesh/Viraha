@@ -7,8 +7,8 @@ import Link from 'next/link';
 import { Heart, Images } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import { glowRing } from '@/lib/design/cinema-tokens';
-import { pickDisplayAlbum, resolveAlbumCover } from '@/lib/dashboard/mock-albums';
-import { useAlbums } from '@/lib/hooks/use-albums';
+import { pickDisplayAlbum, resolveAlbumCover } from '@/lib/dashboard/album-display';
+import { useMyAlbums } from '@/lib/hooks/use-albums';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
 const DEFAULT_COLOR = '#7B68EE';
@@ -20,7 +20,7 @@ export function AlbumPreviewWidget({ size, color, albumId }: { size: WidgetGridS
   const isFull = size.cols >= 4 && size.rows >= 4;
   const isWide = size.cols >= 4 && size.rows < 4;
 
-  const { data, isLoading, isError } = useAlbums();
+  const { data, isLoading, isError } = useMyAlbums();
   const albums = data?.pages.flatMap((p) => p.items) ?? [];
   const album = pickDisplayAlbum(albums, albumId);
 

@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import {
   getAlbums,
   getAlbumById,
-  getAlbumBySlug,
   getAlbumPosts,
   createAlbum,
   updateAlbum,
@@ -12,15 +11,23 @@ import {
   addPostToAlbum,
   removePostFromAlbum,
 } from '../api/albums';
+import { useAuthStore } from '../stores/auth-store';
 import type { CreateAlbumInput, UpdateAlbumInput } from '../types';
 
-export function useAlbums(userId?: string) {
+/** A user's albums. Idle until the user id is known. */
+export function useAlbums(userId: string | undefined) {
   return useInfiniteQuery({
-    queryKey: ['albums', userId],
+    queryKey: ['albums', 'list', userId],
     queryFn: ({ pageParam }) => getAlbums(pageParam as string | undefined, userId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: !!userId,
   });
+}
+
+/** The signed-in user's own albums. */
+export function useMyAlbums() {
+  return useAlbums(useAuthStore((s) => s.user?.id));
 }
 
 export function useAlbum(id: string) {
@@ -28,14 +35,6 @@ export function useAlbum(id: string) {
     queryKey: ['albums', id],
     queryFn: () => getAlbumById(id),
     enabled: !!id,
-  });
-}
-
-export function useAlbumBySlug(slug: string) {
-  return useQuery({
-    queryKey: ['albums', 'slug', slug],
-    queryFn: () => getAlbumBySlug(slug),
-    enabled: !!slug,
   });
 }
 

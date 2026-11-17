@@ -34,11 +34,6 @@ export async function createWantToGo(data: {
   return res.data.data;
 }
 
-export async function updateWantToGo(id: string, data: { notes?: string; status?: string }): Promise<WantToGoItem> {
-  const res = await apiClient.patch(`/want-to-go/${id}`, data);
-  return res.data.data;
-}
-
 export async function deleteWantToGo(id: string): Promise<void> {
   await apiClient.delete(`/want-to-go/${id}`);
 }

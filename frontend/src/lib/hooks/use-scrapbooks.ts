@@ -5,16 +5,12 @@ import {
   getScrapbooks,
   getScrapbookById,
   createScrapbook,
-  updateScrapbook,
   deleteScrapbook,
   addScrapbookItem,
-  removeScrapbookItem,
-} from '../api/scrapbooks';
+  removeScrapbookItem } from '../api/scrapbooks';
 import type {
   CreateScrapbookInput,
-  UpdateScrapbookInput,
-  AddScrapbookItemInput,
-} from '../api/scrapbooks';
+  AddScrapbookItemInput } from '../api/scrapbooks';
 
 export function useScrapbooks() {
   return useQuery({
@@ -37,18 +33,6 @@ export function useCreateScrapbook() {
     mutationFn: (input: CreateScrapbookInput) => createScrapbook(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scrapbooks'] });
-    },
-  });
-}
-
-export function useUpdateScrapbook() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: UpdateScrapbookInput }) =>
-      updateScrapbook(id, input),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['scrapbooks'] });
-      queryClient.invalidateQueries({ queryKey: ['scrapbooks', variables.id] });
     },
   });
 }

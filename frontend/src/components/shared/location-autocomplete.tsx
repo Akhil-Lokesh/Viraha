@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import TextField from '@mui/material/TextField';
 import { Box, Typography } from '@mui/material';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -54,9 +55,10 @@ export function LocationAutocomplete({ onSelect, defaultValue = '', placeholder 
     setInput(prediction.description);
     setOpen(false);
     try {
-      const details = await getPlaceDetails(prediction.placeId);
-      onSelect(details);
-    } catch { /* fallback: just use the text */ }
+      onSelect(prediction.details ?? (await getPlaceDetails(prediction.placeId)));
+    } catch {
+      toast.error('Could not load that place. Try another result.');
+    }
   }
 
   return (

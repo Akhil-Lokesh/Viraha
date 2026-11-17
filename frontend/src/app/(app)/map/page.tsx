@@ -19,27 +19,7 @@ import { ResonancePin } from '@/components/map/resonance-pin';
 import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { GlowButton, PhotoTile } from '@/components/cinema';
 import type { MapMarkerData, Post } from '@/lib/types';
-
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
-
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
-
-// The app is pinned to dark mode — when a Mapbox token is configured, both
-// theme slots resolve to the dark basemap. Without a token, ui/map falls back
-// to the default Carto Dark Matter style (free, no key).
-const mapboxStyleUrls = MAPBOX_TOKEN
-  ? {
-      light: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${MAPBOX_TOKEN}`,
-      dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${MAPBOX_TOKEN}`,
-    }
-  : undefined;
+import { resolveMediaUrl } from '@/lib/media-url';
 
 // Floating chrome shares one frosted dark-surface treatment.
 const chromeSurfaceSx = {
@@ -219,7 +199,7 @@ function FilterBar({
 // ─── Marker pin ──────────────────────────────────────
 
 function MarkerPin({ marker }: { marker: MapMarkerData }) {
-  const resolved = marker.thumbnail ? resolveImageUrl(marker.thumbnail) : null;
+  const resolved = marker.thumbnail ? resolveMediaUrl(marker.thumbnail) : null;
   const isJournal = marker.type === 'journal';
 
   return (
@@ -806,7 +786,6 @@ export default function MapPage() {
           <Map
             center={[20, 30]}
             zoom={2}
-            styles={mapboxStyleUrls}
             className="map-container"
           >
             {markerList.map((marker) => {
@@ -910,8 +889,6 @@ export default function MapPage() {
 
         {/* Timeline scrubber */}
         <TimelineScrubber
-          startDate={dateStart}
-          endDate={dateEnd}
           onDateRangeChange={handleDateRangeChange}
         />
 

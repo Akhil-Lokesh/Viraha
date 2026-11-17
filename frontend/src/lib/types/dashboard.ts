@@ -51,6 +51,3 @@ export interface WidgetMeta {
   maxInstances: number;
 }
 
-export interface DashboardLayout {
-  widgets: WidgetInstance[];
-}

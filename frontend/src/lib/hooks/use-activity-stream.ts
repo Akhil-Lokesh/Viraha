@@ -20,7 +20,7 @@ export const MAX_REFRESH_FAILURES = 3;
 
 export type ActivityStreamStatus = 'idle' | 'connecting' | 'open' | 'reconnecting';
 
-export interface ActivityStreamEvent {
+interface ActivityStreamEvent {
   type: string;
   actorId: string;
   postId?: string;
@@ -34,7 +34,7 @@ export interface EventSourceLike {
   close(): void;
 }
 
-export type EventSourceFactory = (url: string) => EventSourceLike;
+type EventSourceFactory = (url: string) => EventSourceLike;
 
 export interface ActivityStreamManagerOptions {
   url: string;

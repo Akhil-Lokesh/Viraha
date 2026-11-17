@@ -17,6 +17,7 @@ import { updateProfile } from '@/lib/api/users';
 import { uploadAvatar } from '@/lib/api/media';
 import { inputSx, labelSx, settingsStagger, settingsItem } from './cinema-settings';
 import { FieldError } from './field-error';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 const profileSchema = z.object({
   displayName: z.string().max(100).optional(),
@@ -137,11 +138,7 @@ export function ProfileTab() {
               >
                 {user?.avatar && !avatarFailed ? (
                   <img
-                    src={
-                      user.avatar.startsWith('http')
-                        ? user.avatar
-                        : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${user.avatar}`
-                    }
+                    src={resolveMediaUrl(user.avatar)}
                     alt={user.displayName || user.username}
                     onError={() => setAvatarFailed(true)}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}

@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import { Box, Typography, TextField, Button, Dialog, DialogContent, IconButton } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import { X, Heart, Send } from 'lucide-react';
 import { useCreateTimeCapsule } from '@/lib/hooks/use-time-capsules';
 import { toast } from 'sonner';

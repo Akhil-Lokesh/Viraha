@@ -1,7 +1,6 @@
 'use client';
 
 import { Box, Typography, useTheme } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Leaf, MapPin, Camera, BookOpen, ChevronRight } from 'lucide-react';
@@ -9,17 +8,11 @@ import { AnimatedCounter } from '../animated-counter';
 import { useSeasonalReflection } from '@/lib/hooks/use-atlas';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 const DEFAULT_COLOR = '#D97706';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 const SEASON_ICONS: Record<string, string> = {
   Winter: '❄️',
@@ -156,7 +149,7 @@ export function SeasonalReflectionWidget({ size, color }: { size: WidgetGridSize
                   }}
                 >
                   <Image
-                    src={resolveImageUrl(h.thumbnail)}
+                    src={resolveMediaUrl(h.thumbnail)}
                     alt={h.caption || ''}
                     fill
                     style={{ objectFit: 'cover', transition: 'transform 0.2s' }}

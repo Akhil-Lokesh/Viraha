@@ -1,41 +1,36 @@
 'use client';
 
+import { useState } from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import Image from 'next/image';
-import { Heart, MapPin, ChevronRight } from 'lucide-react';
+import { Heart, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { usePlaceResonance } from '@/lib/hooks/use-viraha';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 const DEFAULT_COLOR = '#EC4899';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 export function PlacesMissYouWidget({ size, color }: { size: WidgetGridSize; color?: string }) {
   const theme = useTheme();
   const hex = color ?? DEFAULT_COLOR;
   const c = getWidgetColorStyles(hex, theme.palette.mode);
   const isWide = size.cols >= 4;
-  const isTall = size.rows >= 4;
 
   const { data: places } = usePlaceResonance();
+  const [now] = useState(Date.now);
 
   // Show places ranked by resonance — prioritize places not visited recently
   const missedPlaces = (places ?? [])
     .filter((p) => p.resonance > 0)
     .sort((a, b) => {
-      const aDays = (Date.now() - new Date(a.latestVisit).getTime()) / 86400000;
-      const bDays = (Date.now() - new Date(b.latestVisit).getTime()) / 86400000;
+      const aDays = (now - new Date(a.latestVisit).getTime()) / 86400000;
+      const bDays = (now - new Date(b.latestVisit).getTime()) / 86400000;
       // Boost older visits: resonance * days-since-factor
       const aScore = a.resonance * Math.min(aDays / 30, 3);
       const bScore = b.resonance * Math.min(bDays / 30, 3);
@@ -144,7 +139,7 @@ export function PlacesMissYouWidget({ size, color }: { size: WidgetGridSize; col
                     flexShrink: 0,
                   }}
                 >
-                  <Image src={resolveImageUrl(place.thumbnail)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
+                  <Image src={resolveMediaUrl(place.thumbnail)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
                   {/* Warmth overlay */}
                   <Box
                     sx={{

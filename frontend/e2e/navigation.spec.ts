@@ -1,36 +1,32 @@
 import { test, expect } from '@playwright/test';
+import { openAppPage } from './helpers';
 
 // Auth is shared via storageState from setup.spec.ts
 
 test.describe('Navigation', () => {
   test('should navigate to home dashboard', async ({ page }) => {
-    await page.goto('/home');
-    await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain('/home');
+    await openAppPage(page, '/home');
+    await expect(page).toHaveURL(/\/home/);
   });
 
   test('should navigate to map page', async ({ page }) => {
-    await page.goto('/map');
-    await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain('/map');
+    await openAppPage(page, '/map');
+    await expect(page).toHaveURL(/\/map/);
   });
 
   test('should navigate to explore page', async ({ page }) => {
-    await page.goto('/explore');
-    await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain('/explore');
+    await openAppPage(page, '/explore');
+    await expect(page).toHaveURL(/\/explore/);
   });
 
   test('should navigate to albums page', async ({ page }) => {
-    await page.goto('/albums');
-    await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain('/albums');
+    await openAppPage(page, '/albums');
+    await expect(page).toHaveURL(/\/albums/);
   });
 
   test('should navigate to journals page', async ({ page }) => {
-    await page.goto('/journals');
-    await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain('/journals');
+    await openAppPage(page, '/journals');
+    await expect(page).toHaveURL(/\/journals/);
   });
 
   test('should navigate to activity page', async ({ page }) => {
@@ -42,8 +38,7 @@ test.describe('Navigation', () => {
   });
 
   test('should navigate to saved page', async ({ page }) => {
-    await page.goto('/saved');
-    await page.waitForLoadState('networkidle');
-    expect(page.url()).toContain('/saved');
+    await openAppPage(page, '/saved');
+    await expect(page).toHaveURL(/\/saved/);
   });
 });

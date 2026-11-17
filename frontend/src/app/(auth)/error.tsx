@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { GlowButton } from '@/components/cinema';
@@ -12,6 +14,10 @@ export default function AuthError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <Box
       sx={{

@@ -13,7 +13,7 @@ export interface ActivityDayGroupData {
 }
 
 /** Day label for grouping ("Today", "Yesterday", "June 3", "June 3, 2025"). */
-export function dayLabel(dateStr: string, now: Date = new Date()): string {
+function dayLabel(dateStr: string, now: Date = new Date()): string {
   const date = new Date(dateStr);
   const startOfDay = (d: Date) =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();

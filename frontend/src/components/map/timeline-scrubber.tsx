@@ -8,12 +8,10 @@ import { format } from 'date-fns';
 import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
 
 interface TimelineScrubberProps {
-  startDate: string | null;
-  endDate: string | null;
   onDateRangeChange: (start: string | null, end: string | null) => void;
 }
 
-export function TimelineScrubber({ startDate, endDate, onDateRangeChange }: TimelineScrubberProps) {
+export function TimelineScrubber({ onDateRangeChange }: TimelineScrubberProps) {
   const reduceMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);

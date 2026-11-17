@@ -4,8 +4,8 @@
   "description": "Keep your travels alive",
   "start_url": "/home",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#7B68EE",
+  "background_color": "#0B0B0F",
+  "theme_color": "#0B0B0F",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/icon", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }

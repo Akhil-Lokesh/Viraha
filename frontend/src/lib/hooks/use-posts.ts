@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, type QueryClient } from '@tanstack/react-query';
 import { getPosts, getPostById, createPost, updatePost, deletePost, searchPosts } from '../api/posts';
 import type { CreatePostInput, UpdatePostInput } from '../types';
 
@@ -27,6 +27,13 @@ export function useMyPosts(userId: string | undefined) {
   });
 }
 
+// Everything that renders posts or numbers derived from them.
+const POST_DERIVED_KEYS = ['posts', 'feed', 'explore', 'map-markers', 'atlas', 'users', 'albums', 'saves', 'journeys'] as const;
+
+function invalidatePostDerived(queryClient: QueryClient): Promise<void[]> {
+  return Promise.all(POST_DERIVED_KEYS.map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
+}
+
 export function usePost(id: string) {
   return useQuery({
     queryKey: ['posts', id],
@@ -39,9 +46,7 @@ export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreatePostInput) => createPost(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-    },
+    onSuccess: () => invalidatePostDerived(queryClient),
   });
 }
 
@@ -50,10 +55,7 @@ export function useUpdatePost() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdatePostInput }) =>
       updatePost(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      queryClient.invalidateQueries({ queryKey: ['posts', id] });
-    },
+    onSuccess: () => invalidatePostDerived(queryClient),
   });
 }
 
@@ -61,8 +63,10 @@ export function useDeletePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deletePost(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    onSuccess: (_, id) => {
+      // The detail page is navigating away; don't let it refetch a 404.
+      queryClient.removeQueries({ queryKey: ['posts', id], exact: true });
+      return invalidatePostDerived(queryClient);
     },
   });
 }

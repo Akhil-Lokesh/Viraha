@@ -3,15 +3,15 @@
  * screenshots every page at desktop + mobile widths, and logs console errors
  * and 5xx responses per page. Run from frontend/:
  *
- *   node scripts/visual-check.cjs
+ *   npm run visual-check
  *
  * Env (defaults match the demo seed):
- *   BASE_URL=http://localhost:3002  SEED_EMAIL=anya@viraha.com  SEED_PASSWORD=password123
+ *   BASE_URL=http://localhost:3000  SEED_EMAIL=anya@viraha.com  SEED_PASSWORD=password123
  */
 const { chromium } = require('@playwright/test');
 const { mkdirSync } = require('fs');
 
-const BASE = process.env.BASE_URL || 'http://localhost:3002';
+const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const OUT = process.env.OUT_DIR || '/tmp/viraha-cinema';
 const EMAIL = process.env.SEED_EMAIL || 'anya@viraha.com';
 const PASSWORD = process.env.SEED_PASSWORD || 'password123';

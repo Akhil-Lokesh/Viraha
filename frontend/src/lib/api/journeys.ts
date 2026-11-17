@@ -14,7 +14,7 @@ export interface Journey {
   journeyPosts?: JourneyPost[];
 }
 
-export interface JourneyPost {
+interface JourneyPost {
   id: string;
   journeyId: string;
   postId: string;
@@ -44,18 +44,9 @@ export async function getJourney(id: string): Promise<Journey> {
   return res.data.data;
 }
 
-export async function updateJourney(id: string, data: { title?: string; description?: string; coverImage?: string }): Promise<Journey> {
-  const res = await apiClient.patch(`/journeys/${id}`, data);
-  return res.data.data;
-}
-
 export async function confirmJourney(id: string): Promise<Journey> {
   const res = await apiClient.post(`/journeys/${id}/confirm`);
   return res.data.data;
-}
-
-export async function deleteJourney(id: string): Promise<void> {
-  await apiClient.delete(`/journeys/${id}`);
 }
 
 export async function detectJourneys(): Promise<{ journeysCreated: number }> {

@@ -4,30 +4,35 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import {
   getJournals,
   getJournalById,
-  getJournalBySlug,
   getJournalEntries,
   createJournal,
   updateJournal,
   deleteJournal,
   publishJournal,
   createJournalEntry,
-  updateJournalEntry,
-  deleteJournalEntry,
-} from '../api/journals';
+  updateJournalEntry } from '../api/journals';
 import type {
   CreateJournalInput,
   UpdateJournalInput,
   CreateJournalEntryInput,
   UpdateJournalEntryInput,
 } from '../types';
+import { useAuthStore } from '../stores/auth-store';
 
-export function useJournals(userId?: string) {
+/** A user's journals. Idle until the user id is known. */
+export function useJournals(userId: string | undefined) {
   return useInfiniteQuery({
     queryKey: ['journals', 'list', userId],
     queryFn: ({ pageParam }) => getJournals(pageParam as string | undefined, userId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: !!userId,
   });
+}
+
+/** The signed-in user's own journals. */
+export function useMyJournals() {
+  return useJournals(useAuthStore((s) => s.user?.id));
 }
 
 export function useJournal(id: string) {
@@ -35,14 +40,6 @@ export function useJournal(id: string) {
     queryKey: ['journals', 'detail', id],
     queryFn: () => getJournalById(id),
     enabled: !!id,
-  });
-}
-
-export function useJournalBySlug(slug: string) {
-  return useQuery({
-    queryKey: ['journals', 'slug', slug],
-    queryFn: () => getJournalBySlug(slug),
-    enabled: !!slug,
   });
 }
 
@@ -82,8 +79,10 @@ export function useDeleteJournal() {
   return useMutation({
     mutationFn: (id: string) => deleteJournal(id),
     onSuccess: (_data, id) => {
-      queryClient.invalidateQueries({ queryKey: ['journals', 'detail', id] });
+      // The detail page is navigating away; don't let it refetch a 404.
+      queryClient.removeQueries({ queryKey: ['journals', 'detail', id] });
       queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['map-markers'] });
     },
   });
 }
@@ -127,16 +126,3 @@ export function useUpdateEntry() {
   });
 }
 
-export function useDeleteEntry() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ journalId, entryId }: { journalId: string; entryId: string }) =>
-      deleteJournalEntry(journalId, entryId),
-    onSuccess: (_data, { journalId }) => {
-      queryClient.invalidateQueries({ queryKey: ['journals', 'entries', journalId] });
-      queryClient.invalidateQueries({ queryKey: ['journals', 'detail', journalId] });
-      // entryCount / wordCount are shown on the journals grid — refresh the list too.
-      queryClient.invalidateQueries({ queryKey: ['journals', 'list'] });
-    },
-  });
-}

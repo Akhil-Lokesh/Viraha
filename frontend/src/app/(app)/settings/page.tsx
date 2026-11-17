@@ -4,20 +4,18 @@ import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Box, Typography } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Settings, User, Palette, Shield, Lock } from 'lucide-react';
+import { Settings, User, Shield, Lock } from 'lucide-react';
 import { CIN, displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { easeNative } from '@/lib/animations';
 import { ProfileTab } from '@/components/settings/profile-tab';
-import { AppearanceTab } from '@/components/settings/appearance-tab';
 import { PrivacyTab } from '@/components/settings/privacy-tab';
 import { AccountTab } from '@/components/settings/account-tab';
 
-const VALID_TABS = ['profile', 'appearance', 'privacy', 'account'] as const;
+const VALID_TABS = ['profile', 'privacy', 'account'] as const;
 type SettingsTab = (typeof VALID_TABS)[number];
 
 const TAB_META: ReadonlyArray<{ id: SettingsTab; label: string; icon: typeof User }> = [
   { id: 'profile', label: 'Profile', icon: User },
-  { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'privacy', label: 'Privacy', icon: Shield },
   { id: 'account', label: 'Account', icon: Lock },
 ];
@@ -153,7 +151,6 @@ function SettingsContent() {
 
       <Box id="settings-tabpanel" role="tabpanel" aria-label={`${activeTab} settings`}>
         {activeTab === 'profile' && <ProfileTab />}
-        {activeTab === 'appearance' && <AppearanceTab />}
         {activeTab === 'privacy' && <PrivacyTab />}
         {activeTab === 'account' && <AccountTab />}
       </Box>

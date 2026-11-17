@@ -7,7 +7,6 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import { Box, GlobalStyles } from '@mui/material';
-import { sanitizeHtml } from '@/lib/utils/sanitize-html';
 import { EditorToolbar } from './editor-toolbar';
 
 interface RichTextEditorProps {
@@ -118,10 +117,3 @@ export function RichTextEditor({
   );
 }
 
-export function getPlainTextExcerpt(html: string, maxLength = 200): string {
-  const div = typeof document !== 'undefined' ? document.createElement('div') : null;
-  if (!div) return '';
-  div.innerHTML = sanitizeHtml(html);
-  const text = div.textContent || div.innerText || '';
-  return text.length > maxLength ? text.slice(0, maxLength).trimEnd() + '...' : text;
-}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { motion, animate, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Share2, MessageCircle, MessageCircleOff, Send, Loader2, FolderPlus, MoreVertical, Flag, Pencil, Trash2, MessageSquare, MapPin } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Heart, Share2, MessageCircle, MessageCircleOff, Send, Loader2, FolderPlus, MoreVertical, Flag, Pencil, Trash2, MessageSquare, MapPin } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Box, Typography } from '@mui/material';
 import Button from '@mui/material/Button';
@@ -16,8 +16,10 @@ import Chip from '@mui/material/Chip';
 import TextField from '@mui/material/TextField';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { ReportDialog } from '@/components/shared/report-dialog';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { useComments, useCreateComment, useReplies, useUpdateComment, useDeleteComment } from '@/lib/hooks/use-comments';
-import { useUpdatePost } from '@/lib/hooks/use-posts';
+import { useUpdatePost, useDeletePost } from '@/lib/hooks/use-posts';
+import { useToggleLike } from '@/lib/hooks/use-reactions';
 import { useToggleSave } from '@/lib/hooks/use-saves';
 import { useFollowStatus, useFollowUser, useUnfollowUser } from '@/lib/hooks/use-follows';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -28,14 +30,9 @@ import { CinemaCard, PhotoTile, GlowButton } from '@/components/cinema';
 import { CIN, eyebrowSx, glowRing } from '@/lib/design/cinema-tokens';
 import { getCoordinates, formatCoordinates } from './keepsake';
 import type { Post, Comment } from '@/lib/types';
+import { resolveMediaUrl } from '@/lib/media-url';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:4000';
 
-function getImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 /** Dark-glass circular control used over the hero photo. */
 const heroButtonSx = {
@@ -421,6 +418,9 @@ export function PostDetail({ post }: { post: Post }) {
   const [currentPhoto, setCurrentPhoto] = useState(0);
   const [commentValue, setCommentValue] = useState('');
   const [isSaved, setIsSaved] = useState(post.isSaved ?? false);
+  const [liked, setLiked] = useState(post.isLiked ?? false);
+  const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [albumDialogOpen, setAlbumDialogOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -442,11 +442,25 @@ export function PostDetail({ post }: { post: Post }) {
   } = useComments(post.id);
   const createComment = useCreateComment(post.id);
 
-  // Save
+  // Save / like
   const toggleSave = useToggleSave();
+  const toggleLike = useToggleLike();
 
   // Post owner controls
   const updatePost = useUpdatePost();
+  const deletePost = useDeletePost();
+  function handleDelete() {
+    deletePost.mutate(post.id, {
+      onSuccess: () => {
+        toast.success('Memory deleted');
+        router.replace(authUser ? `/profile/${authUser.username}` : '/home');
+      },
+      onError: () => {
+        setConfirmDeleteOpen(false);
+        toast.error('Could not delete this memory. Please try again.');
+      },
+    });
+  }
   function handleToggleComments() {
     updatePost.mutate(
       { id: post.id, data: { allowComments: !post.allowComments } },
@@ -489,6 +503,19 @@ export function PostDetail({ post }: { post: Post }) {
     !hasCoords && !!(post.locationCity || post.locationCountry);
 
   const heroSource = post.mediaUrls[currentPhoto] ?? '';
+
+  function handleLike() {
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount((c) => (wasLiked ? Math.max(0, c - 1) : c + 1));
+    toggleLike.mutate(post.id, {
+      onError: () => {
+        setLiked(wasLiked);
+        setLikeCount((c) => (wasLiked ? c + 1 : Math.max(0, c - 1)));
+        toast.error('Could not update like');
+      },
+    });
+  }
 
   function handleSave() {
     setIsSaved((prev) => !prev);
@@ -720,21 +747,48 @@ export function PostDetail({ post }: { post: Post }) {
           </>
         )}
 
-        {/* Bottom hero content -- action buttons */}
-        <motion.div
-          style={{
+        {/* Bottom hero content -- action buttons. On phones they sit above the
+            content card (which overlaps the hero by 72px) so they never cover the author. */}
+        <Box
+          component={motion.div}
+          sx={{
             position: 'absolute',
-            bottom: 24,
-            right: 24,
+            bottom: { xs: 88, md: 24 },
+            right: { xs: 16, md: 24 },
             zIndex: 20,
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 1,
           }}
           initial={reduceMotion ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
+          {isAuthenticated && (
+            <IconButton
+              component={motion.button}
+              whileTap={reduceMotion ? undefined : { scale: 0.85 }}
+              sx={{
+                ...heroButtonSx,
+                width: 'auto',
+                minWidth: 40,
+                px: likeCount > 0 ? 1.5 : 0,
+                borderRadius: '20px',
+                gap: 0.75,
+                ...(liked && { color: '#FF6B81', '&:hover': { ...heroButtonSx['&:hover'], color: '#FF6B81' } }),
+              }}
+              aria-label={liked ? 'Unlike post' : 'Like post'}
+              aria-pressed={liked}
+              onClick={handleLike}
+            >
+              <Heart style={{ height: 18, width: 18 }} fill={liked ? 'currentColor' : 'none'} />
+              {likeCount > 0 && (
+                <Typography component="span" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                  {likeCount}
+                </Typography>
+              )}
+            </IconButton>
+          )}
           <IconButton
             component={motion.button}
             whileTap={reduceMotion ? undefined : { scale: 0.85 }}
@@ -784,7 +838,7 @@ export function PostDetail({ post }: { post: Post }) {
           >
             <Share2 style={{ height: 18, width: 18 }} />
           </IconButton>
-          {isAuthenticated && !isOwnPost && (
+          {isAuthenticated && (
             <>
               <IconButton
                 sx={heroButtonSx}
@@ -809,20 +863,33 @@ export function PostDetail({ post }: { post: Post }) {
                   },
                 }}
               >
-                <MenuItem
-                  onClick={() => {
-                    setMenuAnchor(null);
-                    reportTriggerRef.current?.click();
-                  }}
-                  sx={{ fontSize: '0.875rem', color: CIN.danger, gap: 1 }}
-                >
-                  <Flag size={16} />
-                  Report post
-                </MenuItem>
+                {isOwnPost ? (
+                  <MenuItem
+                    onClick={() => {
+                      setMenuAnchor(null);
+                      setConfirmDeleteOpen(true);
+                    }}
+                    sx={{ fontSize: '0.875rem', color: CIN.danger, gap: 1 }}
+                  >
+                    <Trash2 size={16} />
+                    Delete memory
+                  </MenuItem>
+                ) : (
+                  <MenuItem
+                    onClick={() => {
+                      setMenuAnchor(null);
+                      reportTriggerRef.current?.click();
+                    }}
+                    sx={{ fontSize: '0.875rem', color: CIN.danger, gap: 1 }}
+                  >
+                    <Flag size={16} />
+                    Report post
+                  </MenuItem>
+                )}
               </Menu>
             </>
           )}
-        </motion.div>
+        </Box>
       </Box>
 
       {/* -- Content surface overlapping the hero -------------------------- */}
@@ -1176,9 +1243,19 @@ export function PostDetail({ post }: { post: Post }) {
         onOpenChange={setAlbumDialogOpen}
       />
 
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Delete this memory?"
+        description="The photos, caption, comments and likes will be removed for good. This can't be undone."
+        confirmLabel="Delete"
+        pending={deletePost.isPending}
+        onConfirm={handleDelete}
+        onClose={() => setConfirmDeleteOpen(false)}
+      />
+
       {/* Image lightbox */}
       <ImageLightbox
-        images={post.mediaUrls.map(getImageUrl)}
+        images={post.mediaUrls.map((url) => resolveMediaUrl(url))}
         initialIndex={currentPhoto}
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}

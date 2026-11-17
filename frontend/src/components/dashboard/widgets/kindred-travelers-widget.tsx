@@ -8,17 +8,11 @@ import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/lib/api/client';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 const DEFAULT_COLOR = '#0EA5E9';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 interface KindredTraveler {
   userId: string;
@@ -174,7 +168,7 @@ export function KindredTravelersWidget({ size, color }: { size: WidgetGridSize; 
               }}
             >
               <Avatar
-                src={traveler.avatar ? resolveImageUrl(traveler.avatar) : undefined}
+                src={traveler.avatar ? resolveMediaUrl(traveler.avatar) : undefined}
                 sx={{
                   width: isWide ? 40 : 32,
                   height: isWide ? 40 : 32,

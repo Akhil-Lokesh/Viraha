@@ -44,11 +44,6 @@ export async function getAlbumById(id: string): Promise<Album> {
   return res.data.data.album;
 }
 
-export async function getAlbumBySlug(slug: string): Promise<Album> {
-  const res = await apiClient.get<AlbumResponse>(`/albums/slug/${slug}`);
-  return res.data.data.album;
-}
-
 export async function createAlbum(input: CreateAlbumInput): Promise<Album> {
   const res = await apiClient.post<AlbumResponse>('/albums', input);
   return res.data.data.album;

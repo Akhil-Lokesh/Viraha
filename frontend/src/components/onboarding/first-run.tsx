@@ -16,18 +16,20 @@ const CARDS = [
 ] as const;
 
 /**
- * One-time welcome overlay for new users. Persists dismissal per user in
- * localStorage so it never nags; renders nothing once seen.
+ * One-time welcome overlay for travelers who haven't posted yet. Persists
+ * dismissal per user in localStorage so it never nags; established users
+ * never see it, even on a new device.
  */
 export function FirstRun() {
   const userId = useAuthStore((s) => s.user?.id);
+  // Undefined until the full /auth/me record replaces the persisted partial user.
+  const postCount = useAuthStore((s) => s.user?.postCount);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
-    const key = `viraha-onboarded:${userId}`;
-    if (!localStorage.getItem(key)) setOpen(true);
-  }, [userId]);
+    if (!userId || postCount !== 0) return;
+    if (!localStorage.getItem(`viraha-onboarded:${userId}`)) setOpen(true);
+  }, [userId, postCount]);
 
   const dismiss = () => {
     if (userId) localStorage.setItem(`viraha-onboarded:${userId}`, '1');

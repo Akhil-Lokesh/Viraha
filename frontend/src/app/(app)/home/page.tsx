@@ -114,7 +114,6 @@ export default function HomePage() {
       <WidgetCatalogDrawer
         open={catalogOpen}
         onClose={() => setCatalogOpen(false)}
-        widgets={widgets}
         onAdd={addWidget}
       />
 

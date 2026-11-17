@@ -6,8 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Images } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
-import { pickDisplayAlbum, resolveAlbumCover } from '@/lib/dashboard/mock-albums';
-import { useAlbums } from '@/lib/hooks/use-albums';
+import { pickDisplayAlbum, resolveAlbumCover } from '@/lib/dashboard/album-display';
+import { useMyAlbums } from '@/lib/hooks/use-albums';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
 const DEFAULT_COLOR = '#059669';
@@ -19,7 +19,7 @@ export function AlbumCarouselWidget({ size, color, albumId }: { size: WidgetGrid
   const isTall = size.rows >= 2;
   const coverSize = isTall ? 180 : 110;
 
-  const { data, isLoading, isError } = useAlbums();
+  const { data, isLoading, isError } = useMyAlbums();
   const albums = data?.pages.flatMap((p) => p.items) ?? [];
 
   // Put the selected album first, then the rest.

@@ -32,13 +32,13 @@ const cspDirectives = [
   "default-src 'self'",
   // 'unsafe-eval' removed: maplibre-gl v5 does not require eval. 'unsafe-inline' kept
   // until a nonce middleware pipeline exists (Next injects inline bootstrap scripts).
-  `script-src 'self' 'unsafe-inline' api.mapbox.com`,
-  `style-src 'self' 'unsafe-inline' api.mapbox.com`,
+  `script-src 'self' 'unsafe-inline'`,
+  `style-src 'self' 'unsafe-inline'`,
   // apiOrigin is included so host-prefixed /uploads avatars/thumbnails served by the
   // backend (non-R2 and dev deploys) load instead of being CSP-blocked.
-  directive('img-src', ["'self'", 'data:', 'blob:', '*.mapbox.com', '*.openfreemap.org', 'basemaps.cartocdn.com', '*.basemaps.cartocdn.com', 'images.unsplash.com', 'randomuser.me', apiOrigin, r2Url]),
-  // Carto dark-matter basemap: style.json on the apex, tiles/glyphs/sprites on a–d subdomains.
-  directive('connect-src', ["'self'", apiOrigin, 'api.mapbox.com', 'events.mapbox.com', '*.openfreemap.org', 'basemaps.cartocdn.com', '*.basemaps.cartocdn.com', 'maps.googleapis.com', '*.sentry.io', r2Url]),
+  directive('img-src', ["'self'", 'data:', 'blob:', '*.openfreemap.org', 'images.unsplash.com', apiOrigin, r2Url]),
+  // Basemap style, tiles, glyphs and sprites all come from tiles.openfreemap.org.
+  directive('connect-src', ["'self'", apiOrigin, '*.openfreemap.org', '*.sentry.io', r2Url]),
   "worker-src 'self' blob:",
   "object-src 'none'",
   "frame-ancestors 'none'",
@@ -51,10 +51,6 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'randomuser.me',
       },
       ...r2RemotePatterns,
     ],
@@ -82,5 +78,4 @@ export default withSentryConfig(nextConfig, {
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  disableLogger: true,
 });

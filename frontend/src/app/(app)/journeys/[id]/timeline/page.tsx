@@ -1,23 +1,16 @@
 'use client';
 
 import { use } from 'react';
-import { Box, Typography, IconButton, Chip, Button, Skeleton } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { Box, Typography, Chip, Button, Skeleton } from '@mui/material';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Calendar, Check, Edit3, Route } from 'lucide-react';
-import { useJourney, useConfirmJourney, useUpdateJourney } from '@/lib/hooks/use-journeys';
+import { ArrowLeft, MapPin, Calendar, Check } from 'lucide-react';
+import { useJourney, useConfirmJourney } from '@/lib/hooks/use-journeys';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { resolveMediaUrl } from '@/lib/media-url';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 export default function JourneyTimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -171,7 +164,7 @@ export default function JourneyTimelinePage({ params }: { params: Promise<{ id: 
                 >
                   {image && (
                     <Box sx={{ width: 100, height: 100, borderRadius: '10px', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                      <Image src={resolveImageUrl(image)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
+                      <Image src={resolveMediaUrl(image)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
                     </Box>
                   )}
                   <Box sx={{ flex: 1 }}>

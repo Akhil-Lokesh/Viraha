@@ -2,7 +2,7 @@
 
 import { Box, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Fingerprint, Globe, MapPin, Camera, BookOpen } from 'lucide-react';
+import { Fingerprint, Globe, MapPin, Camera } from 'lucide-react';
 import { AnimatedCounter } from '../animated-counter';
 import { useAtlas } from '@/lib/hooks/use-atlas';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
@@ -194,7 +194,7 @@ export function TravelStyleWidget({ size, color }: { size: WidgetGridSize; color
           { value: stats.totalCountries, icon: Globe, label: 'Countries' },
           { value: stats.totalCities, icon: MapPin, label: 'Cities' },
           { value: stats.totalContinents, icon: Camera, label: 'Continents' },
-        ].map(({ value, icon: Icon, label }) => (
+        ].map(({ value, label }) => (
           <Box key={label} sx={{ textAlign: 'center' }}>
             <AnimatedCounter
               value={value}

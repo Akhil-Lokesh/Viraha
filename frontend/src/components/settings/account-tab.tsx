@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,13 +11,14 @@ import MuiDialog from '@mui/material/Dialog';
 import MuiDialogContent from '@mui/material/DialogContent';
 import MuiDialogActions from '@mui/material/DialogActions';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Lock, Download, Trash2 } from 'lucide-react';
+import { Lock, Download, Trash2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { CinemaCard, GlowButton, SectionLabel } from '@/components/cinema';
 import { CIN } from '@/lib/design/cinema-tokens';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { exportData, deleteAccount } from '@/lib/api/users';
-import { changePassword, logoutApi } from '@/lib/api/auth';
+import { changePassword } from '@/lib/api/auth';
+import { useSignOut } from '@/lib/hooks/use-auth';
 import { SessionsSection } from './sessions-section';
 import {
   inputSx,
@@ -43,8 +43,9 @@ type PasswordValues = z.infer<typeof passwordSchema>;
 
 export function AccountTab() {
   const reduceMotion = useReducedMotion();
-  const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const signOut = useSignOut();
+  const [signingOut, setSigningOut] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -105,15 +106,8 @@ export function AccountTab() {
     setDeleting(true);
     try {
       await deleteAccount(deleteConfirm);
-      // Best-effort server logout; the account row is already gone either way.
-      try {
-        await logoutApi();
-      } catch {
-        // Account is deleted; ignore a failed logout call.
-      }
-      logout();
       toast.success('Your account has been deleted');
-      router.replace('/');
+      await signOut();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data
@@ -234,6 +228,30 @@ export function AccountTab() {
             sx={{ alignSelf: 'flex-start' }}
           >
             {exporting ? 'Preparing...' : 'Download your data'}
+          </GlowButton>
+        </CinemaCard>
+      </motion.div>
+
+      {/* Sign out */}
+      <motion.div variants={settingsItem}>
+        <CinemaCard hover={false} sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Box>
+            <SectionLabel>Session</SectionLabel>
+            <Typography variant="body2" sx={{ color: CIN.textMuted }}>
+              Signed in as <Box component="span" sx={{ color: CIN.text, fontWeight: 600 }}>@{user?.username}</Box>
+            </Typography>
+          </Box>
+          <GlowButton
+            type="button"
+            variant="ghost"
+            onClick={async () => {
+              setSigningOut(true);
+              await signOut();
+            }}
+            disabled={signingOut}
+            startIcon={<LogOut style={{ height: 16, width: 16 }} />}
+          >
+            {signingOut ? 'Signing out…' : 'Sign out'}
           </GlowButton>
         </CinemaCard>
       </motion.div>

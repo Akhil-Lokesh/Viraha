@@ -11,15 +11,9 @@ import { useTravelStore } from '@/lib/stores/travel-store';
 import { DepartureRitualDialog } from '@/components/travel/departure-ritual-dialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { resolveMediaUrl } from '@/lib/media-url';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 const STATUS_COLORS: Record<string, string> = {
   auto: '#8B5CF6',
@@ -142,7 +136,7 @@ export default function JourneysPage() {
                     {photos.length > 0 ? (
                       photos.slice(0, 2).map((photo, i) => (
                         <Box key={i} sx={{ flex: 1, position: 'relative', height: 160 }}>
-                          <Image src={resolveImageUrl(photo)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
+                          <Image src={resolveMediaUrl(photo)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
                         </Box>
                       ))
                     ) : (

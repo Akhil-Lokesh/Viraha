@@ -6,8 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Images } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
-import { getAlbumCovers } from '@/lib/dashboard/mock-albums';
-import { useAlbums } from '@/lib/hooks/use-albums';
+import { getAlbumCovers } from '@/lib/dashboard/album-display';
+import { useMyAlbums } from '@/lib/hooks/use-albums';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 
 const DEFAULT_COLOR = '#475569';
@@ -47,7 +47,7 @@ export function PhotoMosaicWidget({ size, color, albumId }: { size: WidgetGridSi
   const isMedium = size.cols >= 4 && size.rows < 4;
   const isFull = size.cols >= 4 && size.rows >= 4;
 
-  const { data, isLoading, isError } = useAlbums();
+  const { data, isLoading, isError } = useMyAlbums();
   const albums = data?.pages.flatMap((p) => p.items) ?? [];
   const covers = getAlbumCovers(albums, albumId).slice(0, 9);
 

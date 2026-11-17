@@ -8,12 +8,10 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  type DragStartEvent,
-  type DragEndEvent,
-} from '@dnd-kit/core';
+  type DragStartEvent } from '@dnd-kit/core';
 import { motion } from 'framer-motion';
 import type { WidgetInstance, GridPosition, WidgetGridSize } from '@/lib/types/dashboard';
-import { WIDGET_REGISTRY, getEffectiveSize, isInBounds, getSizeLabel } from '@/lib/dashboard/widget-registry';
+import { WIDGET_REGISTRY, getEffectiveSize, getSizeLabel } from '@/lib/dashboard/widget-registry';
 import { WIDGET_COMPONENTS } from './widgets';
 import { WidgetWrapper } from './widget-wrapper';
 import { glowRing } from '@/lib/design/cinema-tokens';
@@ -116,7 +114,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
   }, []);
 
   const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
+    () => {
       moveCleanupRef.current?.();
       moveCleanupRef.current = null;
 
@@ -257,8 +255,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
         gridAutoFlow: { xs: 'dense' },
         gap: `${GAP}px`,
         pb: 2,
-        position: 'relative',
-      }}
+        position: 'relative' }}
     >
       {/* Grid lines overlay (edit mode) */}
       {isEditMode && (
@@ -268,8 +265,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
             inset: 0,
             pointerEvents: 'none',
             zIndex: 1,
-            display: { xs: 'none', md: 'block' },
-          }}
+            display: { xs: 'none', md: 'block' } }}
         >
           {/* 3 vertical column dividers */}
           {[0, 1, 2].map((i) => (
@@ -281,8 +277,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
                 top: 0,
                 bottom: 0,
                 width: '1px',
-                backgroundImage: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.15) 0 6px, transparent 6px 14px)',
-              }}
+                backgroundImage: 'repeating-linear-gradient(to bottom, rgba(255,255,255,0.15) 0 6px, transparent 6px 14px)' }}
             />
           ))}
           {/* Horizontal row dividers */}
@@ -295,8 +290,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
                 left: 0,
                 right: 0,
                 height: '1px',
-                backgroundImage: 'repeating-linear-gradient(to right, rgba(255,255,255,0.15) 0 6px, transparent 6px 14px)',
-              }}
+                backgroundImage: 'repeating-linear-gradient(to right, rgba(255,255,255,0.15) 0 6px, transparent 6px 14px)' }}
             />
           ))}
         </Box>
@@ -315,13 +309,10 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
             sx={{
               gridColumn: {
                 xs: `span ${Math.min(cols, 2)}`,
-                md: `${col} / span ${cols}`,
-              },
+                md: `${col} / span ${cols}` },
               gridRow: {
                 xs: `span ${rows}`,
-                md: `${row} / span ${rows}`,
-              },
-            }}
+                md: `${row} / span ${rows}` } }}
           >
             <WidgetWrapper
               widget={widget}
@@ -352,8 +343,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
               bgcolor: 'rgba(128,90,213,0.12)',
               pointerEvents: 'none',
               display: { xs: 'none', md: 'block' },
-              zIndex: 5,
-            }}
+              zIndex: 5 }}
           />
         );
       })()}
@@ -377,8 +367,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 5,
-            }}
+              zIndex: 5 }}
           >
             <Typography
               sx={{
@@ -389,8 +378,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
                 backdropFilter: 'blur(8px)',
                 px: 1.5,
                 py: 0.5,
-                borderRadius: '8px',
-              }}
+                borderRadius: '8px' }}
             >
               {getSizeLabel(resizeDrag.ghostSize)}
             </Typography>
@@ -424,8 +412,7 @@ export function DashboardGrid({ widgets, isEditMode, onMove, onResize, onRemove,
                 borderRadius: '16px',
                 overflow: 'hidden',
                 opacity: 0.9,
-                pointerEvents: 'none',
-              }}
+                pointerEvents: 'none' }}
             >
               <OverlayComponent size={getEffectiveSize(activeWidget)} color={activeWidget.color} />
             </Box>

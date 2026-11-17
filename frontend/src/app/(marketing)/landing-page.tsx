@@ -10,7 +10,7 @@ import { CinemaCard, GlowButton } from '@/components/cinema';
 import { displaySx, glowRing } from '@/lib/design/cinema-tokens';
 import { SectionHeader } from '@/components/shared/section-header';
 import { StatCard } from '@/components/shared/stat-card';
-import { heroPhotos, mockTrips, mockUsers } from '@/lib/mock-data';
+import { HERO_PHOTO, SHOWCASE_TRAVELER, SHOWCASE_TRIP } from './showcase';
 import {
   fadeInUp,
   staggerContainer,
@@ -45,7 +45,7 @@ function HeroSection() {
       {/* Background image with parallax */}
       <Box component={motion.div} sx={{ position: 'absolute', inset: 0 }} style={{ y }}>
         <Image
-          src={heroPhotos[0]}
+          src={HERO_PHOTO}
           alt="Travel landscape"
           fill
           priority
@@ -272,8 +272,8 @@ function FeaturesSection() {
 
 // ─── Preview Section ───────────────────────────────────
 function PreviewSection() {
-  const trip = mockTrips[0]; // Greek Island Hopping
-  const user = mockUsers[0]; // Nina Soleil
+  const trip = SHOWCASE_TRIP;
+  const user = SHOWCASE_TRAVELER;
 
   return (
     <Box component="section" className="section-spacing" sx={{ overflow: 'hidden', bgcolor: 'var(--cin-bg)' }}>
@@ -391,7 +391,7 @@ function PreviewSection() {
                       }}
                     >
                       <Image
-                        src={user.avatar || ''}
+                        src={user.avatar}
                         alt={user.displayName || user.username}
                         width={36}
                         height={36}

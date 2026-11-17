@@ -13,7 +13,7 @@ export function LocationBadge({
   variant = 'default',
   sx: sxProp,
 }: LocationBadgeProps) {
-  const variantStyles: Record<string, SxProps<Theme>> = {
+  const variantStyles = {
     overlay: {
       bgcolor: 'rgba(0,0,0,0.5)',
       backdropFilter: 'blur(4px)',
@@ -45,7 +45,7 @@ export function LocationBadge({
           fontSize: '0.75rem',
           fontWeight: 500,
         },
-        variantStyles[variant] as any,
+        variantStyles[variant],
         ...(Array.isArray(sxProp) ? sxProp : sxProp ? [sxProp] : []),
       ]}
     >

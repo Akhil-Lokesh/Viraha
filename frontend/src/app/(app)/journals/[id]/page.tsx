@@ -2,20 +2,21 @@
 
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Box, Typography, InputBase, GlobalStyles } from '@mui/material';
 import Skeleton from '@mui/material/Skeleton';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { useJournal, useJournalEntries, useUpdateJournal, useUpdateEntry, useCreateEntry, usePublishJournal } from '@/lib/hooks/use-journals';
+import { useJournal, useJournalEntries, useUpdateJournal, useUpdateEntry, useCreateEntry, usePublishJournal, useDeleteJournal } from '@/lib/hooks/use-journals';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { sanitizeHtml } from '@/lib/utils/sanitize-html';
 import { ColorPicker } from '@/components/journal/color-picker';
 import { useJournalColorsStore } from '@/lib/stores/journal-colors-store';
 import { EmptyState } from '@/components/shared/empty-state';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { GlowButton } from '@/components/cinema';
 import { CIN, displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
 import { fadeInUp } from '@/lib/animations';
@@ -125,6 +126,9 @@ export default function JournalDetailPage() {
   const updateJournal = useUpdateJournal();
   const updateEntry = useUpdateEntry();
   const publishMutation = usePublishJournal();
+  const deleteJournal = useDeleteJournal();
+  const router = useRouter();
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const currentUser = useAuthStore((s) => s.user);
   const isOwner = journal && currentUser && journal.userId === currentUser.id;
 
@@ -340,7 +344,37 @@ export default function JournalDetailPage() {
               Edit
             </GlowButton>
           )}
+          {isOwner && (
+            <GlowButton
+              variant="ghost"
+              aria-label="Delete journal"
+              onClick={() => setConfirmDeleteOpen(true)}
+              sx={{ px: 1.5, color: CIN.danger }}
+            >
+              <Trash2 style={{ width: 14, height: 14 }} />
+            </GlowButton>
+          )}
         </Box>
+        <ConfirmDialog
+          open={confirmDeleteOpen}
+          title="Delete this journal?"
+          description="Every entry in it will be removed for good. This can't be undone."
+          confirmLabel="Delete"
+          pending={deleteJournal.isPending}
+          onClose={() => setConfirmDeleteOpen(false)}
+          onConfirm={() =>
+            deleteJournal.mutate(journal.id, {
+              onSuccess: () => {
+                toast.success('Journal deleted');
+                router.replace('/journals');
+              },
+              onError: () => {
+                setConfirmDeleteOpen(false);
+                toast.error('Could not delete this journal. Please try again.');
+              },
+            })
+          }
+        />
       </Box>
 
       {/* Entry date eyebrow + draft chip */}

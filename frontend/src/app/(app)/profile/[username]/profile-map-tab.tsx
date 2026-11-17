@@ -10,6 +10,7 @@ import { hasMapCoordinates } from '@/components/post/keepsake';
 import { PhotoTile } from '@/components/cinema';
 import { CIN, glowRing } from '@/lib/design/cinema-tokens';
 import type { Post } from '@/lib/types';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 // ─── Dynamic map components ──────────────────────────
 // MapLibre (~350KB) loads only on the client, keeping it out of the initial
@@ -43,24 +44,6 @@ const MarkerContent = dynamic(() => import('@/components/ui/map').then((m) => m.
 const MarkerPopup = dynamic(() => import('@/components/ui/map').then((m) => m.MarkerPopup), { ssr: false });
 const MapControls = dynamic(() => import('@/components/ui/map').then((m) => m.MapControls), { ssr: false });
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
-
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
-
-const mapboxStyleUrls = MAPBOX_TOKEN
-  ? {
-      light: `https://api.mapbox.com/styles/v1/mapbox/light-v11?access_token=${MAPBOX_TOKEN}`,
-      dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${MAPBOX_TOKEN}`,
-    }
-  : undefined;
-
 interface ProfileMapTabProps {
   posts: Post[];
 }
@@ -93,12 +76,11 @@ export default function ProfileMapTab({ posts }: ProfileMapTabProps) {
       <MapComponent
         center={[firstLocated.locationLng, firstLocated.locationLat]}
         zoom={locatedPosts.length === 1 ? 8 : 2}
-        styles={mapboxStyleUrls}
         className="map-container"
       >
         {locatedPosts.map((post) => {
           const thumb = post.mediaThumbnails[0] || post.mediaUrls[0];
-          const resolved = thumb ? resolveImageUrl(thumb) : null;
+          const resolved = thumb ? resolveMediaUrl(thumb) : null;
           const locationLabel = [post.locationCity, post.locationCountry]
             .filter(Boolean)
             .join(', ');

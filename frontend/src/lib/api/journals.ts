@@ -51,11 +51,6 @@ export async function getJournalById(id: string): Promise<Journal> {
   return res.data.data.journal;
 }
 
-export async function getJournalBySlug(slug: string): Promise<Journal> {
-  const res = await apiClient.get<JournalResponse>(`/journals/slug/${slug}`);
-  return res.data.data.journal;
-}
-
 export async function createJournal(input: CreateJournalInput): Promise<Journal> {
   const res = await apiClient.post<JournalResponse>('/journals', input);
   return res.data.data.journal;
@@ -91,6 +86,3 @@ export async function updateJournalEntry(journalId: string, entryId: string, inp
   return res.data.data.entry;
 }
 
-export async function deleteJournalEntry(journalId: string, entryId: string): Promise<void> {
-  await apiClient.delete(`/journals/${journalId}/entries/${entryId}`);
-}

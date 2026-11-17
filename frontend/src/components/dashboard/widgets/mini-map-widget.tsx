@@ -8,6 +8,7 @@ import { MapPin } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import { usePlaceResonance } from '@/lib/hooks/use-viraha';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
+import { BASEMAP_STYLE_URL } from '@/lib/design/map-style';
 
 const DEFAULT_COLOR = '#2563EB';
 
@@ -50,13 +51,10 @@ export function MiniMapWidget({ size, color }: { size: WidgetGridSize; color?: s
       const maplibregl = (await import('maplibre-gl')).default;
       if (cancelled || !mapContainerRef.current) return;
 
-      const style = theme.palette.mode === 'dark'
-        ? 'https://tiles.openfreemap.org/styles/dark'
-        : 'https://tiles.openfreemap.org/styles/positron';
-
+      
       map = new maplibregl.Map({
         container: mapContainerRef.current,
-        style,
+        style: BASEMAP_STYLE_URL,
         center: [cities[0].lng, cities[0].lat],
         zoom: cities.length === 1 ? 3 : 1,
         interactive: isFull,

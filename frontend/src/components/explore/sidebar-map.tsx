@@ -10,6 +10,7 @@ import { Box, Typography, GlobalStyles } from '@mui/material';
 import { Maximize2 } from 'lucide-react';
 import { useMapMarkers } from '@/lib/hooks/use-map';
 import { CIN, eyebrowSx } from '@/lib/design/cinema-tokens';
+import { BASEMAP_STYLE_URL } from '@/lib/design/map-style';
 
 // ─── Map custom styles — dark-room chrome ────────────
 const mapStyles = (
@@ -79,8 +80,7 @@ export default function SidebarMap() {
 
       map = new maplibregl.Map({
         container: mapContainerRef.current,
-        // App is pinned to dark mode — always the dark basemap.
-        style: 'https://tiles.openfreemap.org/styles/dark',
+        style: BASEMAP_STYLE_URL,
         center: [20, 20],
         zoom: 1.4,
         interactive: true,

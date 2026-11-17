@@ -1,23 +1,8 @@
 import Link from 'next/link';
 import { Avatar } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
-
-/**
- * Resolve an avatar/media `src` to an absolute URL.
- *
- * Storage returns relative `/uploads/...` paths for non-R2 deploys; those must be
- * prefixed with the API origin (NEXT_PUBLIC_API_URL minus its `/api/v1` suffix) so
- * the browser fetches them from the backend instead of the Next.js host. Absolute
- * URLs (R2/CDN) and falsy values are passed through unchanged.
- *
- * Mirrors the prefixing logic in settings/page.tsx and layout/user-menu.tsx.
- */
-export function resolveAvatarUrl(src?: string | null): string | undefined {
-  if (!src) return undefined;
-  if (src.startsWith('http')) return src;
-  const apiOrigin = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? '';
-  return `${apiOrigin}${src}`;
-}
+import { CIN } from '@/lib/design/cinema-tokens';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 interface UserAvatarProps {
   src?: string | null;
@@ -52,13 +37,14 @@ export function UserAvatar({
 
   const avatar = (
     <Avatar
-      src={resolveAvatarUrl(src)}
+      src={resolveMediaUrl(src)}
       alt={username}
       sx={[
         {
           ...sizeMap[size],
-          bgcolor: 'primary.light',
-          color: 'primary.main',
+          bgcolor: 'rgba(139,124,255,0.18)',
+          color: '#C9C1FF',
+          border: `1px solid ${CIN.hairline}`,
           fontWeight: 500,
         },
         ...(Array.isArray(sxProp) ? sxProp : sxProp ? [sxProp] : []),

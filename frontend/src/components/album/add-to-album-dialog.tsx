@@ -4,7 +4,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { Loader2, Plus, Check, Images } from 'lucide-react';
 import { Box, Typography } from '@mui/material';
-import { useAlbums, useAddPostToAlbum, useRemovePostFromAlbum } from '@/lib/hooks/use-albums';
+import { useMyAlbums, useAddPostToAlbum, useRemovePostFromAlbum } from '@/lib/hooks/use-albums';
 import type { Album } from '@/lib/types';
 import { GlowButton } from '@/components/cinema';
 import { CIN } from '@/lib/design/cinema-tokens';
@@ -34,7 +34,7 @@ function getAlbumActionError(error: unknown, wasInAlbum: boolean): string {
 }
 
 export function AddToAlbumDialog({ postId, open, onOpenChange }: AddToAlbumDialogProps) {
-  const { data, isLoading } = useAlbums();
+  const { data, isLoading } = useMyAlbums();
   const addPost = useAddPostToAlbum();
   const removePost = useRemovePostFromAlbum();
 

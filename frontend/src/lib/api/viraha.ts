@@ -89,10 +89,6 @@ export async function getMoments(): Promise<VirahaMoment[]> {
   return res.data.data;
 }
 
-export async function dismissMoment(id: string): Promise<void> {
-  await apiClient.patch(`/viraha/moments/${id}/dismiss`);
-}
-
 export async function getPlaceHistory(lat: number, lng: number, radius?: number): Promise<PlaceHistory> {
   const res = await apiClient.get('/viraha/places/history', { params: { lat, lng, radius } });
   return res.data.data;

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { motion, useReducedMotion } from 'framer-motion';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
@@ -133,16 +134,21 @@ export function PostCard({ post, index = 0 }: PostCardProps) {
     });
   }
 
-  function handleShare(e: React.MouseEvent) {
+  async function handleShare(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (navigator.share) {
-      navigator.share({
-        title: post.caption || 'Travel memory',
-        url: `${window.location.origin}/post/${post.id}`,
-      });
-    } else {
-      navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+    const url = `${window.location.origin}/post/${post.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: post.caption || 'Travel memory', url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copied');
+      }
+    } catch (err) {
+      // Closing the native share sheet rejects with AbortError — not a failure.
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      toast.error('Could not share this memory');
     }
   }
 

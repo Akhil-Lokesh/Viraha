@@ -6,7 +6,7 @@ import Skeleton from '@mui/material/Skeleton';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Plus, Search, Pencil } from 'lucide-react';
 import Link from 'next/link';
-import { useJournals } from '@/lib/hooks/use-journals';
+import { useMyJournals } from '@/lib/hooks/use-journals';
 import { JournalNotesList } from '@/components/journal/journal-notes-list';
 import { GlowButton } from '@/components/cinema';
 import { CIN, displaySx, eyebrowSx, glowRing } from '@/lib/design/cinema-tokens';
@@ -44,7 +44,7 @@ function JournalCardSkeleton() {
 
 export default function JournalsPage() {
   const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useJournals();
+    useMyJournals();
   const reducedMotion = useReducedMotion();
 
   const [search, setSearch] = useState('');

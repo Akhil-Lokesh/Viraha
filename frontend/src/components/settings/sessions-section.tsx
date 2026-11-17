@@ -101,6 +101,7 @@ function SessionRow({ session }: { session: AuthSession }) {
           size="small"
           onClick={handleRevoke}
           disabled={revoke.isPending}
+          aria-label={`Sign out ${describeUserAgent(session.userAgent)}${session.ip ? ` (${session.ip})` : ''}`}
           sx={{ flexShrink: 0, px: 1.5, py: 0.5, fontSize: '0.8125rem' }}
         >
           {revoke.isPending ? 'Signing out...' : 'Sign out'}

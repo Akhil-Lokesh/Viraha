@@ -10,10 +10,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FEF7FF" },
-    { media: "(prefers-color-scheme: dark)", color: "#141218" },
-  ],
+  themeColor: "#0B0B0F",
 };
 
 const SITE_URL =
@@ -63,7 +60,7 @@ export default function RootLayout({
             <QueryProvider>
               <CsrfInitializer />
               {children}
-              <Toaster richColors position="top-center" />
+              <Toaster theme="dark" richColors position="top-center" />
             </QueryProvider>
           </VirahaMuiProvider>
         </AppRouterCacheProvider>

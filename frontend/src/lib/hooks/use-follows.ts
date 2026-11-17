@@ -4,13 +4,10 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import {
   followUser,
   unfollowUser,
-  getFollowers,
-  getFollowing,
   checkFollowStatus,
   getPendingFollowRequests,
   acceptFollowRequest,
-  rejectFollowRequest,
-} from '../api/follows';
+  rejectFollowRequest } from '../api/follows';
 
 export function useFollowStatus(userId: string) {
   return useQuery({
@@ -41,26 +38,6 @@ export function useUnfollowUser() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
-  });
-}
-
-export function useFollowers(userId: string) {
-  return useInfiniteQuery({
-    queryKey: ['follows', userId, 'followers'],
-    queryFn: ({ pageParam }) => getFollowers(userId, pageParam as string | undefined),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: !!userId,
-  });
-}
-
-export function useFollowing(userId: string) {
-  return useInfiniteQuery({
-    queryKey: ['follows', userId, 'following'],
-    queryFn: ({ pageParam }) => getFollowing(userId, pageParam as string | undefined),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: !!userId,
   });
 }
 

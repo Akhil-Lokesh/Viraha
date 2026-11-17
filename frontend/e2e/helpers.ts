@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 const API_URL = 'http://localhost:4000/api/v1';
 
@@ -32,22 +32,12 @@ export async function loginViaAPI(
   // Cookies are automatically set on the context by Playwright
 }
 
-export async function registerAndLogin(
-  page: Page,
-  username: string,
-  email: string,
-  password: string,
-): Promise<void> {
-  const context = page.context();
-
-  const csrfRes = await context.request.get(`${API_URL}/auth/csrf-token`);
-  const csrfData = await csrfRes.json();
-  const csrfToken = csrfData.data?.csrfToken;
-
-  await context.request.post(`${API_URL}/auth/register`, {
-    data: { username, email, password },
-    headers: { 'X-CSRF-Token': csrfToken || '' },
-  });
-
-  // Cookies are set from register response
+/**
+ * Open a signed-in page and wait for the app shell, which renders only after
+ * the auth guard admits the user. (Never wait for 'networkidle': signed-in
+ * pages keep a live Server-Sent Events connection open.)
+ */
+export async function openAppPage(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+  await expect(page.locator('main')).toBeVisible();
 }

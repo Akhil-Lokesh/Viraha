@@ -3,7 +3,7 @@
 import { Box, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
-import { useAlbums } from '@/lib/hooks/use-albums';
+import { useMyAlbums } from '@/lib/hooks/use-albums';
 import { AlbumGrid } from '@/components/album/album-grid';
 import { GlowButton } from '@/components/cinema';
 import { CIN, displaySx, eyebrowSx } from '@/lib/design/cinema-tokens';
@@ -33,7 +33,7 @@ function CardSkeleton() {
 
 export default function AlbumsPage() {
   const { data, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useAlbums();
+    useMyAlbums();
 
   const albums = data?.pages.flatMap((page) => page.items) ?? [];
 

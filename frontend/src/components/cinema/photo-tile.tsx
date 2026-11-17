@@ -4,14 +4,9 @@ import { Box, type SxProps, type Theme } from '@mui/material';
 import { ImageOff } from 'lucide-react';
 import { useState } from 'react';
 import { CIN, photoVignette } from '@/lib/design/cinema-tokens';
+import { resolveMediaUrl } from '@/lib/media-url';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:4000';
 
-function resolve(url: string): string {
-  if (!url) return '';
-  return url.startsWith('http') ? url : `${API_BASE}${url}`;
-}
 
 interface PhotoTileProps {
   src: string;
@@ -45,7 +40,7 @@ export function PhotoTile({
   fallback = 'pattern',
 }: PhotoTileProps) {
   const [failed, setFailed] = useState(false);
-  const resolved = resolve(src);
+  const resolved = resolveMediaUrl(src);
   const showImg = !!resolved && !failed;
 
   return (

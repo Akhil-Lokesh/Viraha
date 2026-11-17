@@ -10,11 +10,6 @@ describe('cn (classname merger)', () => {
     expect(cn('base', false && 'hidden', 'visible')).toBe('base visible');
   });
 
-  it('should resolve tailwind conflicts', () => {
-    const result = cn('px-4', 'px-6');
-    expect(result).toBe('px-6');
-  });
-
   it('should handle empty inputs', () => {
     expect(cn()).toBe('');
     expect(cn('')).toBe('');

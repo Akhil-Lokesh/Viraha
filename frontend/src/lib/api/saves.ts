@@ -9,13 +9,6 @@ interface ToggleSaveResponse {
   };
 }
 
-interface SaveStatusResponse {
-  success: boolean;
-  data: {
-    saved: boolean;
-  };
-}
-
 interface SavedPostsResponse {
   success: boolean;
   data: {
@@ -32,11 +25,6 @@ export interface SavedPostsPage {
 export async function toggleSave(postId: string): Promise<{ saved: boolean; saveCount: number }> {
   const res = await apiClient.post<ToggleSaveResponse>(`/posts/${postId}/save`);
   return res.data.data;
-}
-
-export async function checkSaveStatus(postId: string): Promise<boolean> {
-  const res = await apiClient.get<SaveStatusResponse>(`/posts/${postId}/save`);
-  return res.data.data.saved;
 }
 
 export async function getSavedPosts(cursor?: string): Promise<SavedPostsPage> {

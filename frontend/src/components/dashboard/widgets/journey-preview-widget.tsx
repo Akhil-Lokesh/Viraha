@@ -11,17 +11,11 @@ import { useJourneys, useDetectJourneys } from '@/lib/hooks/use-journeys';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import { glowRing } from '@/lib/design/cinema-tokens';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 const DEFAULT_COLOR = '#8B5CF6';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 export function JourneyPreviewWidget({ size, color }: { size: WidgetGridSize; color?: string }) {
   const theme = useTheme();
@@ -103,7 +97,7 @@ export function JourneyPreviewWidget({ size, color }: { size: WidgetGridSize; co
           {photos.length > 0 ? (
             photos.slice(0, isWide ? 4 : 2).map((photo, i) => (
               <Box key={i} sx={{ flex: 1, position: 'relative' }}>
-                <Image src={resolveImageUrl(photo)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
+                <Image src={resolveMediaUrl(photo)} alt="" fill style={{ objectFit: 'cover' }} unoptimized />
                 {i === 0 && (
                   <Box
                     sx={{

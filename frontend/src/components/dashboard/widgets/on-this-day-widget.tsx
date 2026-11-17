@@ -8,17 +8,11 @@ import { MapPin, Clock, BookOpen } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import { useOnThisDay } from '@/lib/hooks/use-viraha';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 const DEFAULT_COLOR = '#7B68EE';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 // Fallback photos when no memories exist
 const FALLBACK_PHOTO = 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80';
@@ -73,8 +67,8 @@ export function OnThisDayWidget({ size, color }: { size: WidgetGridSize; color?:
     );
   }
 
-  const primaryImage = primary.thumbnail ? resolveImageUrl(primary.thumbnail) : FALLBACK_PHOTO;
-  const secondaryImage = secondary?.thumbnail ? resolveImageUrl(secondary.thumbnail) : null;
+  const primaryImage = primary.thumbnail ? resolveMediaUrl(primary.thumbnail) : FALLBACK_PHOTO;
+  const secondaryImage = secondary?.thumbnail ? resolveMediaUrl(secondary.thumbnail) : null;
   const primaryHref = primary.type === 'journal_entry' ? `/journals/${primary.journalId}` : `/post/${primary.id}`;
   const location = primary.locationCity
     ? `${primary.locationCity}${primary.locationCountry ? ', ' + primary.locationCountry : ''}`
@@ -83,7 +77,6 @@ export function OnThisDayWidget({ size, color }: { size: WidgetGridSize; color?:
 
   // 4×2 or 4×4 — cinematic split layout
   if (isWide && secondaryImage) {
-    const secondaryHref = secondary!.type === 'journal_entry' ? `/journals/${secondary!.journalId}` : `/post/${secondary!.id}`;
     return (
       <Link href={primaryHref} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
         <Box

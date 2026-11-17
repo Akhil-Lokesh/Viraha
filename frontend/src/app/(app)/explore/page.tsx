@@ -609,6 +609,7 @@ export default function ExplorePage() {
                                   src={u.avatar}
                                   username={u.username}
                                   displayName={u.displayName}
+                                  link={false}
                                   size="lg"
                                   sx={{ mx: 'auto', mb: 1 }}
                                 />

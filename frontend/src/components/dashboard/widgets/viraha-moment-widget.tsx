@@ -8,17 +8,11 @@ import { Sparkles, MapPin } from 'lucide-react';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import { useMoments } from '@/lib/hooks/use-viraha';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
+import { resolveMediaUrl } from '@/lib/media-url';
 
 const DEFAULT_COLOR = '#8B5CF6';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 const TYPE_LABELS: Record<string, string> = {
   on_this_day: 'On This Day',
@@ -127,7 +121,7 @@ export function VirahaMomentWidget({ size, color }: { size: WidgetGridSize; colo
           const href = moment.referenceType === 'journal_entry'
             ? `/journals/${journalId ?? moment.referenceId}`
             : `/post/${moment.referenceId}`;
-          const image = moment.thumbnail ? resolveImageUrl(moment.thumbnail) : null;
+          const image = moment.thumbnail ? resolveMediaUrl(moment.thumbnail) : null;
 
           return (
             <Link key={moment.id} href={href} style={{ textDecoration: 'none', color: 'inherit', flex: isWide ? 1 : undefined }}>

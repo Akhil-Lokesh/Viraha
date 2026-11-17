@@ -1,21 +1,13 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { toggleSave, checkSaveStatus, getSavedPosts } from '../api/saves';
-
-export function useSaveStatus(postId: string) {
-  return useQuery({
-    queryKey: ['saves', postId, 'status'],
-    queryFn: () => checkSaveStatus(postId),
-    enabled: !!postId,
-  });
-}
+import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { toggleSave, getSavedPosts } from '../api/saves';
 
 export function useToggleSave() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (postId: string) => toggleSave(postId),
-    onSuccess: (_, postId) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saves'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });

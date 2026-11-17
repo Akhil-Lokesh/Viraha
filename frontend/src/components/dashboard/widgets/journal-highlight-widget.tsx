@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Share2, Lock, ChevronRight, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { useJournals } from '@/lib/hooks/use-journals';
+import { useMyJournals } from '@/lib/hooks/use-journals';
 import { getWidgetColorStyles } from '@/lib/dashboard/widget-colors';
 import type { WidgetGridSize } from '@/lib/types/dashboard';
 import type { Journal } from '@/lib/types';
@@ -19,7 +19,7 @@ export function JournalHighlightWidget({ size, color }: { size: WidgetGridSize; 
   const c = getWidgetColorStyles(hex, theme.palette.mode);
   const isLarge = size.cols >= 4;
 
-  const { data } = useJournals();
+  const { data } = useMyJournals();
   const journals = data?.pages.flatMap((p) => p.items) ?? [];
 
   const [selectedId, setSelectedId] = useState<string | null>(null);

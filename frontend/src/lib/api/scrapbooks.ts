@@ -31,12 +31,6 @@ export interface CreateScrapbookInput {
   coverImage?: string;
 }
 
-export interface UpdateScrapbookInput {
-  title?: string;
-  description?: string | null;
-  coverImage?: string | null;
-}
-
 export interface AddScrapbookItemInput {
   itemType: ScrapbookItemType;
   referenceId?: string;
@@ -70,11 +64,6 @@ export async function getScrapbookById(id: string): Promise<Scrapbook> {
 
 export async function createScrapbook(input: CreateScrapbookInput): Promise<Scrapbook> {
   const res = await apiClient.post<ScrapbookResponse>('/scrapbooks', input);
-  return res.data.data;
-}
-
-export async function updateScrapbook(id: string, input: UpdateScrapbookInput): Promise<Scrapbook> {
-  const res = await apiClient.patch<ScrapbookResponse>(`/scrapbooks/${id}`, input);
   return res.data.data;
 }
 

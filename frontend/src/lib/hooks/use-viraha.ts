@@ -4,11 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getOnThisDay,
   getMoments,
-  dismissMoment,
   getPlaceHistory,
   getPlaceResonance,
-  upsertPlaceNote,
-} from '../api/viraha';
+  upsertPlaceNote } from '../api/viraha';
 
 export function useOnThisDay() {
   return useQuery({
@@ -23,16 +21,6 @@ export function useMoments() {
     queryKey: ['viraha', 'moments'],
     queryFn: getMoments,
     staleTime: 300_000,
-  });
-}
-
-export function useDismissMoment() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: dismissMoment,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['viraha', 'moments'] });
-    },
   });
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { getTrendingLocations, getTrendingTags, getFeaturedContent } from '../api/explore';
+import { getTrendingLocations } from '../api/explore';
 
 export function useTrendingLocations() {
   return useQuery({
@@ -11,18 +11,3 @@ export function useTrendingLocations() {
   });
 }
 
-export function useTrendingTags() {
-  return useQuery({
-    queryKey: ['explore', 'trending-tags'],
-    queryFn: getTrendingTags,
-    staleTime: 5 * 60_000,
-  });
-}
-
-export function useFeaturedContent() {
-  return useQuery({
-    queryKey: ['explore', 'featured'],
-    queryFn: () => getFeaturedContent(),
-    staleTime: 5 * 60_000,
-  });
-}

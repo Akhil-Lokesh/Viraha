@@ -156,11 +156,7 @@ export function Header() {
           {/* User avatar */}
           {user && (
             <UserAvatar
-              src={
-                user.avatar
-                  ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}${user.avatar}`
-                  : undefined
-              }
+              src={user.avatar}
               username={user.username}
               displayName={user.displayName}
               size="sm"

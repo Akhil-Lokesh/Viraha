@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSessions, revokeSession, revokeOtherSessions } from '../api/sessions';
 
-export const SESSIONS_QUERY_KEY = ['auth', 'sessions'] as const;
+const SESSIONS_QUERY_KEY = ['auth', 'sessions'] as const;
 
 export function useSessions(enabled = true) {
   return useQuery({

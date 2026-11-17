@@ -16,6 +16,8 @@ export interface User {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Present on the signed-in user from /auth/me. */
+  postCount?: number;
 }
 
 export interface Post {
@@ -49,7 +51,6 @@ export interface Post {
 }
 
 export interface UserProfile extends User {
-  postCount?: number;
   followerCount?: number;
   followingCount?: number;
   isFollowing?: boolean;
@@ -63,18 +64,6 @@ export interface UserProfile extends User {
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: string;
-}
-
-export interface AuthResponse {
-  user: User;
-}
-
-export interface PaginatedResponse<T> {
-  success: boolean;
-  data?: T[];
-  cursor?: string;
-  hasMore?: boolean;
   error?: string;
 }
 
@@ -112,25 +101,6 @@ export interface UpdateProfileInput {
   homeLng?: number;
   isPrivate?: boolean;
   showLocation?: boolean;
-}
-
-export interface RegisterInput {
-  username: string;
-  email: string;
-  password: string;
-  displayName?: string;
-}
-
-export interface LoginInput {
-  email: string;
-  password: string;
-}
-
-export interface Follow {
-  id: string;
-  followerId: string;
-  followingId: string;
-  createdAt: string;
 }
 
 export interface Comment {
@@ -341,11 +311,6 @@ export interface TrendingLocation {
   count: number;
 }
 
-export interface TrendingTag {
-  tag: string;
-  count: number;
-}
-
 // ─── Mutes ───────────────────────────────────────────
 
 export interface MutedUser {
@@ -374,6 +339,8 @@ export interface PlacePrediction {
   description: string;
   mainText: string;
   secondaryText: string;
+  /** Present when the search provider already resolved coordinates. */
+  details?: PlaceDetails;
 }
 
 export interface PlaceDetails {

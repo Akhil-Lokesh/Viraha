@@ -4,15 +4,9 @@ import { Box } from '@mui/material';
 import { MapPin, BookOpen } from 'lucide-react';
 import { CIN } from '@/lib/design/cinema-tokens';
 import type { MapMarkerData } from '@/lib/types';
+import { resolveMediaUrl } from '@/lib/media-url';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:4000';
 
-function resolveImageUrl(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 interface ResonanceStyle {
   border: string;
@@ -49,7 +43,7 @@ interface ResonancePinProps {
 }
 
 export function ResonancePin({ marker, resonance = 0 }: ResonancePinProps) {
-  const resolved = marker.thumbnail ? resolveImageUrl(marker.thumbnail) : null;
+  const resolved = marker.thumbnail ? resolveMediaUrl(marker.thumbnail) : null;
   const isJournal = marker.type === 'journal';
   const style = getResonanceStyle(resonance);
   const size = 36 + resonance * 12; // 36-48px

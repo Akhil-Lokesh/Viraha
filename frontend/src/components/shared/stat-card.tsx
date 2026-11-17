@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { Box, Typography } from '@mui/material';
+import { Typography } from '@mui/material';
 
 interface StatCardProps {
   value: number;
