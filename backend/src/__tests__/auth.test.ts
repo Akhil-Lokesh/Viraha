@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from '../app';
-import { createTestUser, getAuthCookie } from './factories';
+import { createTestUser, createTestPost, getAuthCookie } from './factories';
 
 describe('Auth API', () => {
   describe('POST /api/v1/auth/register', () => {
@@ -77,6 +77,17 @@ describe('Auth API', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.user.id).toBe(user.id);
+      expect(res.body.data.user.passwordHash).toBeUndefined();
+    });
+
+    it("includes the user's live post count", async () => {
+      const user = await createTestUser();
+      await createTestPost(user.id);
+      await createTestPost(user.id, { isDeleted: true });
+
+      const res = await request(app).get('/api/v1/auth/me').set('Cookie', getAuthCookie(user.id));
+
+      expect(res.body.data.user.postCount).toBe(1);
     });
 
     it('should return 401 without token', async () => {

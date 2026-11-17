@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { cacheGet, cacheSet, cacheDel } from './cache';
+import { invalidatePersonalFeedsFor } from './feedCache';
 
 // Block/mute lists are cached for 60s: explicit mute/unmute/block/unblock calls
 // invalidate immediately, but any path that misses invalidation means a fresh
@@ -18,7 +19,7 @@ function blockersKey(userId: string): string {
  * IDs of users that `userId` has blocked. Cached briefly so hot read paths
  * (feed, explore, search) don't issue an extra round-trip per request.
  */
-export async function getBlockedUserIds(userId: string): Promise<string[]> {
+async function getBlockedUserIds(userId: string): Promise<string[]> {
   const cached = await cacheGet<string[]>(blockedKey(userId));
   if (cached) return cached;
   const rows = await prisma.block.findMany({
@@ -34,7 +35,7 @@ export async function getBlockedUserIds(userId: string): Promise<string[]> {
  * IDs of users that have blocked `userId`. Used to also hide content authored by
  * a user from people that user has blocked (symmetric visibility).
  */
-export async function getBlockerIds(userId: string): Promise<string[]> {
+async function getBlockerIds(userId: string): Promise<string[]> {
   const cached = await cacheGet<string[]>(blockersKey(userId));
   if (cached) return cached;
   const rows = await prisma.block.findMany({
@@ -77,9 +78,10 @@ export async function isBlockedBetween(a: string, b: string): Promise<boolean> {
 }
 
 export async function invalidateBlockCacheFor(...userIds: string[]): Promise<void> {
-  await Promise.all(
-    userIds.flatMap((id) => [cacheDel(blockedKey(id)), cacheDel(blockersKey(id))]),
-  );
+  await Promise.all([
+    ...userIds.flatMap((id) => [cacheDel(blockedKey(id)), cacheDel(blockersKey(id))]),
+    invalidatePersonalFeedsFor(...userIds),
+  ]);
 }
 
 function mutedKey(userId: string): string {
@@ -105,5 +107,8 @@ export async function getMutedUserIds(userId: string): Promise<string[]> {
 }
 
 export async function invalidateMuteCacheFor(...userIds: string[]): Promise<void> {
-  await Promise.all(userIds.map((id) => cacheDel(mutedKey(id))));
+  await Promise.all([
+    ...userIds.map((id) => cacheDel(mutedKey(id))),
+    invalidatePersonalFeedsFor(...userIds),
+  ]);
 }

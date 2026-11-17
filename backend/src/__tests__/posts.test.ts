@@ -4,6 +4,17 @@ import app from '../app';
 import { createTestUser, createTestPost, getAuthCookie } from './factories';
 
 describe('Posts API', () => {
+  it('serializes coordinates as JSON numbers, not strings', async () => {
+    const user = await createTestUser();
+    const post = await createTestPost(user.id, { privacy: 'public' });
+
+    const res = await request(app).get(`/api/v1/posts/${post.id}`);
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.data.post.locationLat).toBe('number');
+    expect(typeof res.body.data.post.locationLng).toBe('number');
+  });
+
   describe('POST /api/v1/posts', () => {
     it('should create a post', async () => {
       const user = await createTestUser();

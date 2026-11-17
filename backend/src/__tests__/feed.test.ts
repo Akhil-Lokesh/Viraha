@@ -5,6 +5,29 @@ import { createTestUser, createTestPost, getAuthCookie, prisma } from './factori
 
 describe('Feed API', () => {
   describe('GET /api/v1/feed', () => {
+    it('reflects a new follow immediately, even when the feed page was cached', async () => {
+      const viewer = await createTestUser();
+      const author = await createTestUser();
+      const post = await createTestPost(author.id, { privacy: 'public' });
+      const feedIds = async (): Promise<string[]> => {
+        const res = await request(app).get('/api/v1/feed').set('Cookie', getAuthCookie(viewer.id));
+        expect(res.status).toBe(200);
+        return (res.body.data.items as Array<{ id: string }>).map((p) => p.id);
+      };
+
+      expect(await feedIds()).not.toContain(post.id);
+
+      const follow = await request(app)
+        .post(`/api/v1/users/${author.id}/follow`)
+        .set('Cookie', getAuthCookie(viewer.id))
+        .send({});
+      expect(follow.status).toBe(201);
+      expect(await feedIds()).toContain(post.id);
+
+      await request(app).delete(`/api/v1/users/${author.id}/follow`).set('Cookie', getAuthCookie(viewer.id));
+      expect(await feedIds()).not.toContain(post.id);
+    });
+
     it('should include posts from followed users', async () => {
       const user1 = await createTestUser();
       const user2 = await createTestUser();

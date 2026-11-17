@@ -1,76 +1,50 @@
 import { Request, Response, NextFunction } from 'express';
-import { env } from '../config/env';
 import { cacheGet, cacheSet } from '../lib/cache';
-import { logger } from '../lib/logger';
+import {
+  searchPlaces,
+  getGooglePlaceDetails,
+  type PlaceDetails,
+  type PlacePrediction,
+} from '../services/placeSearch';
 
-// Google Places API statuses that represent a complete, cacheable response.
-// Any other status (REQUEST_DENIED, OVER_QUERY_LIMIT, INVALID_REQUEST, etc.)
-// is a transient/quota/config failure and must NOT be cached — caching an
-// empty result would poison the cache and silently break search for the TTL.
-const CACHEABLE_AUTOCOMPLETE_STATUSES = new Set(['OK', 'ZERO_RESULTS']);
+const MIN_QUERY_LENGTH = 2;
+const MAX_QUERY_LENGTH = 120;
+const AUTOCOMPLETE_TTL_SECONDS = 3600;
+const DETAILS_TTL_SECONDS = 86400;
 
-const PLACES_API_BASE = 'https://maps.googleapis.com/maps/api/place';
+function queryString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function coordinate(value: unknown, limit: number): string | null {
+  const parsed = Number(queryString(value));
+  return queryString(value) !== '' && Number.isFinite(parsed) && Math.abs(parsed) <= limit ? String(parsed) : null;
+}
 
 export async function autocomplete(req: Request, res: Response, next: NextFunction) {
   try {
-    const input = req.query.input as string;
-    if (!input || input.length < 2) {
+    const input = queryString(req.query.input).slice(0, MAX_QUERY_LENGTH);
+    if (input.length < MIN_QUERY_LENGTH) {
       res.json({ success: true, data: { predictions: [] } });
       return;
     }
 
-    if (!env.GOOGLE_PLACES_API_KEY) {
-      res.json({ success: true, data: { predictions: [] } });
-      return;
-    }
+    const lat = coordinate(req.query.lat, 90);
+    const lng = coordinate(req.query.lng, 180);
+    const near = lat && lng ? { lat, lng } : undefined;
 
-    const cacheKey = `places:auto:${input.toLowerCase()}`;
-    const cached = await cacheGet<any>(cacheKey);
+    const cacheKey = `places:auto:v2:${input.toLowerCase()}`;
+    const cached = await cacheGet<{ predictions: PlacePrediction[] }>(cacheKey);
     if (cached) {
       res.json({ success: true, data: cached });
       return;
     }
 
-    const params = new URLSearchParams({
-      input,
-      key: env.GOOGLE_PLACES_API_KEY,
-      types: 'geocode|establishment',
-    });
+    const { predictions, cacheable } = await searchPlaces(input, near);
+    const data = { predictions };
+    if (cacheable) await cacheSet(cacheKey, data, AUTOCOMPLETE_TTL_SECONDS);
 
-    const lat = req.query.lat as string;
-    const lng = req.query.lng as string;
-    if (lat && lng) {
-      params.set('location', `${lat},${lng}`);
-      params.set('radius', '50000');
-    }
-
-    const response = await fetch(`${PLACES_API_BASE}/autocomplete/json?${params}`);
-    const data: any = await response.json();
-
-    // Only OK/ZERO_RESULTS are authoritative. On any other status the API call
-    // failed (denied key, exhausted quota, invalid request) and data.predictions
-    // is undefined — return empty WITHOUT caching so the failure is not persisted.
-    if (!CACHEABLE_AUTOCOMPLETE_STATUSES.has(data.status)) {
-      logger.warn(
-        { status: data.status, errorMessage: data.error_message },
-        'Google Places autocomplete returned a non-cacheable status — skipping cache',
-      );
-      res.json({ success: true, data: { predictions: [] } });
-      return;
-    }
-
-    const result = {
-      predictions: (data.predictions || []).map((p: any) => ({
-        placeId: p.place_id,
-        description: p.description,
-        mainText: p.structured_formatting?.main_text,
-        secondaryText: p.structured_formatting?.secondary_text,
-      })),
-    };
-
-    await cacheSet(cacheKey, result, 3600);
-
-    res.json({ success: true, data: result });
+    res.json({ success: true, data });
   } catch (err) {
     next(err);
   }
@@ -78,65 +52,21 @@ export async function autocomplete(req: Request, res: Response, next: NextFuncti
 
 export async function getDetails(req: Request, res: Response, next: NextFunction) {
   try {
-    const placeId = req.params.placeId as string;
+    const placeId = queryString(req.params.placeId);
     if (!placeId) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'BAD_REQUEST', message: 'placeId is required' },
-      });
-      return;
-    }
-
-    if (!env.GOOGLE_PLACES_API_KEY) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'NOT_CONFIGURED', message: 'Google Places API key not configured' },
-      });
+      res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'placeId is required' } });
       return;
     }
 
     const cacheKey = `places:detail:${placeId}`;
-    const cached = await cacheGet<any>(cacheKey);
-    if (cached) {
-      res.json({ success: true, data: cached });
+    const place = (await cacheGet<PlaceDetails>(cacheKey)) ?? (await getGooglePlaceDetails(placeId));
+    if (!place) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Place not found' } });
       return;
     }
 
-    const params = new URLSearchParams({
-      place_id: placeId,
-      key: env.GOOGLE_PLACES_API_KEY,
-      fields: 'place_id,name,formatted_address,geometry,address_components',
-    });
-
-    const response = await fetch(`${PLACES_API_BASE}/details/json?${params}`);
-    const data: any = await response.json();
-
-    if (data.status !== 'OK' || !data.result) {
-      res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Place not found' },
-      });
-      return;
-    }
-
-    const r = data.result;
-    const components = r.address_components || [];
-    const city = components.find((c: any) => c.types.includes('locality'))?.long_name || null;
-    const country = components.find((c: any) => c.types.includes('country'))?.long_name || null;
-
-    const result = {
-      placeId: r.place_id,
-      name: r.name,
-      address: r.formatted_address,
-      lat: r.geometry?.location?.lat,
-      lng: r.geometry?.location?.lng,
-      city,
-      country,
-    };
-
-    await cacheSet(cacheKey, result, 86400);
-
-    res.json({ success: true, data: result });
+    await cacheSet(cacheKey, place, DETAILS_TTL_SECONDS);
+    res.json({ success: true, data: { place } });
   } catch (err) {
     next(err);
   }

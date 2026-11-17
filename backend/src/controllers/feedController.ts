@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { cacheGet, cacheSet } from '../lib/cache';
+import { personalFeedCacheKey } from '../lib/feedCache';
 import { getHiddenUserIds, getMutedUserIds } from '../lib/blocks';
 import { redactPostLocation } from '../utils/locationPrivacy';
 
@@ -21,8 +22,9 @@ export async function getPersonalizedFeed(req: Request, res: Response, next: Nex
     // fully derived from those inputs, so it is safe to reuse for this user.
     // (limit must be in the key — otherwise a ?limit=5 response would be served
     // to a later ?limit=20 request, silently short-paging it.)
-    // Short TTL bounds staleness from new posts/saves without invalidation.
-    const cacheKey = `feed:personal:${userId}:${limit}:${cursor || 'first'}`;
+    // Short TTL bounds staleness from new posts; follow/mute/block changes
+    // invalidate explicitly (lib/feedCache).
+    const cacheKey = await personalFeedCacheKey(userId, limit, cursor);
     const cached = await cacheGet<{ items: unknown[]; nextCursor: string | null }>(cacheKey);
     if (cached) {
       res.json({ success: true, data: cached });

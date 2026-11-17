@@ -1,112 +1,102 @@
 import { env } from '../config/env';
 import { logger } from './logger';
 
-let resend: any = null;
+const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+const REQUEST_TIMEOUT_MS = 10_000;
+const BRAND_ACCENT = '#7B68EE';
 
-async function getResend() {
-  if (resend) return resend;
-  if (!env.RESEND_API_KEY) return null;
-  try {
-    // Dynamic import for optional dependency — resend may not be installed
-    const mod = await (Function('return import("resend")')() as Promise<any>);
-    resend = new mod.Resend(env.RESEND_API_KEY);
-    return resend;
-  } catch {
-    return null;
-  }
+interface Email {
+  to: string;
+  subject: string;
+  heading: string;
+  body: string;
+  action: { label: string; url: string };
+  footnote: string;
 }
 
-export async function sendPasswordResetEmail(to: string, token: string): Promise<boolean> {
-  const resetUrl = `${env.CORS_ORIGIN}/reset-password?token=${token}`;
-  const client = await getResend();
-
-  if (!client) {
-    logger.debug('Password reset email delivery skipped (no Resend client)');
-    return false;
-  }
-
-  try {
-    await client.emails.send({
-      from: env.RESEND_FROM_EMAIL,
-      to,
-      subject: 'Reset your Viraha password',
-      html: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2 style="color: #1a1a1a;">Reset your password</h2>
-          <p style="color: #666;">Click the link below to reset your Viraha password. This link expires in 1 hour.</p>
-          <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; margin: 16px 0;">
-            Reset Password
-          </a>
-          <p style="color: #999; font-size: 12px;">If you didn't request this, you can ignore this email.</p>
-        </div>
-      `,
-    });
-    return true;
-  } catch (err) {
-    logger.error({ err }, 'Failed to send password reset email');
-    return false;
-  }
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 }
 
-export async function sendVerificationEmail(to: string, token: string): Promise<boolean> {
-  const verifyUrl = `${env.CORS_ORIGIN}/verify-email?token=${token}`;
-  const client = await getResend();
+function renderEmail({ heading, body, action, footnote }: Email): string {
+  return `
+    <div style="font-family: -apple-system, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; color: #1a1a1a;">
+      <h2 style="margin: 0 0 12px;">${escapeHtml(heading)}</h2>
+      <p style="color: #555; line-height: 1.5;">${escapeHtml(body)}</p>
+      <a href="${escapeHtml(action.url)}" style="display: inline-block; padding: 12px 24px; background: ${BRAND_ACCENT}; color: #fff; text-decoration: none; border-radius: 8px; margin: 16px 0;">
+        ${escapeHtml(action.label)}
+      </a>
+      <p style="color: #999; font-size: 12px;">${escapeHtml(footnote)}</p>
+    </div>`;
+}
 
-  if (!client) {
-    logger.debug({ to }, 'Verification email delivery skipped (no Resend client)');
+/**
+ * Send through Resend's HTTP API. Returns false (never throws) when delivery
+ * is not configured or fails. In local development without a key, the action
+ * link is logged so verification/reset flows stay testable.
+ */
+async function sendEmail(email: Email): Promise<boolean> {
+  if (!env.RESEND_API_KEY) {
+    if (env.NODE_ENV === 'development') {
+      logger.info({ subject: email.subject, link: email.action.url }, 'Email delivery not configured — dev link');
+    } else {
+      logger.warn({ subject: email.subject }, 'Email not sent: RESEND_API_KEY is not configured');
+    }
     return false;
   }
 
   try {
-    await client.emails.send({
-      from: env.RESEND_FROM_EMAIL,
-      to,
-      subject: 'Verify your Viraha email',
-      html: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2 style="color: #1a1a1a;">Verify your email</h2>
-          <p style="color: #666;">Click the link below to verify your Viraha email address. This link expires in 24 hours.</p>
-          <a href="${verifyUrl}" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; margin: 16px 0;">
-            Verify Email
-          </a>
-          <p style="color: #999; font-size: 12px;">If you didn't sign up for Viraha, you can ignore this email.</p>
-        </div>
-      `,
+    const response = await fetch(RESEND_ENDPOINT, {
+      method: 'POST',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: env.RESEND_FROM_EMAIL,
+        to: email.to,
+        subject: email.subject,
+        html: renderEmail(email),
+      }),
     });
+    if (!response.ok) {
+      logger.error({ status: response.status, subject: email.subject }, 'Resend rejected email');
+      return false;
+    }
     return true;
   } catch (err) {
-    logger.error({ err }, 'Failed to send verification email');
+    logger.error({ err, subject: email.subject }, 'Failed to send email');
     return false;
   }
 }
 
-export async function sendWelcomeEmail(to: string, username: string): Promise<boolean> {
-  const client = await getResend();
+export function sendPasswordResetEmail(to: string, token: string): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: 'Reset your Viraha password',
+    heading: 'Reset your password',
+    body: 'Click the link below to reset your Viraha password. This link expires in 1 hour.',
+    action: { label: 'Reset Password', url: `${env.CORS_ORIGIN}/reset-password?token=${token}` },
+    footnote: "If you didn't request this, you can ignore this email.",
+  });
+}
 
-  if (!client) {
-    logger.debug({ to, username }, 'Welcome email delivery skipped (no Resend client)');
-    return false;
-  }
+export function sendVerificationEmail(to: string, token: string): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: 'Verify your Viraha email',
+    heading: 'Verify your email',
+    body: 'Click the link below to verify your Viraha email address. This link expires in 24 hours.',
+    action: { label: 'Verify Email', url: `${env.CORS_ORIGIN}/verify-email?token=${token}` },
+    footnote: "If you didn't sign up for Viraha, you can ignore this email.",
+  });
+}
 
-  try {
-    await client.emails.send({
-      from: env.RESEND_FROM_EMAIL,
-      to,
-      subject: 'Welcome to Viraha',
-      html: `
-        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2 style="color: #1a1a1a;">Welcome to Viraha, ${username}!</h2>
-          <p style="color: #666;">Your travel memory collection starts now. Start documenting your adventures and discover authentic places through your network.</p>
-          <a href="${env.CORS_ORIGIN}" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 8px; margin: 16px 0;">
-            Start Exploring
-          </a>
-          <p style="color: #999; font-size: 12px;">Keep your travels alive.</p>
-        </div>
-      `,
-    });
-    return true;
-  } catch (err) {
-    logger.error({ err }, 'Failed to send welcome email');
-    return false;
-  }
+export function sendWelcomeEmail(to: string, username: string): Promise<boolean> {
+  return sendEmail({
+    to,
+    subject: 'Welcome to Viraha',
+    heading: `Welcome to Viraha, ${username}!`,
+    body: 'Your travel memory collection starts now. Start documenting your adventures and discover authentic places through your network.',
+    action: { label: 'Start Exploring', url: env.CORS_ORIGIN },
+    footnote: 'Keep your travels alive.',
+  });
 }

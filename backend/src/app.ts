@@ -8,6 +8,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { env } from './config/env';
 import { setSessionIdCookie } from './utils/cookies';
+import { decimalsAsNumbers } from './utils/json';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter, authLimiter, sseLimiter, uploadLimiter } from './middleware/rateLimiter';
 import { doubleCsrfProtection } from './middleware/csrf';
@@ -41,6 +42,9 @@ import communityRoutes from './routes/community';
 const app = express();
 
 app.set('trust proxy', 1);
+
+// Decimal columns (coordinates) go out as JSON numbers, not strings.
+app.set('json replacer', decimalsAsNumbers);
 
 // Middleware
 app.use(helmet({

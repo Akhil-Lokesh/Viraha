@@ -71,7 +71,8 @@ describe('Realtime (SSE)', () => {
 
       await publishActivity('user-pub', { type: 'comment', actorId: 'actor-1' });
 
-      expect(written.length).toBe(1);
+      // With Redis the event round-trips through pub/sub, so it lands shortly after publish resolves.
+      await vi.waitFor(() => expect(written.length).toBe(1));
       expect(written[0]).toContain('event: activity\n');
       const dataLine = written[0].split('\n').find((line) => line.startsWith('data: '));
       expect(dataLine).toBeDefined();
@@ -91,7 +92,7 @@ describe('Realtime (SSE)', () => {
 
       await publishActivity('user-a', { type: 'follow' });
 
-      expect(target.written.length).toBe(1);
+      await vi.waitFor(() => expect(target.written.length).toBe(1));
       expect(other.written.length).toBe(0);
     });
 

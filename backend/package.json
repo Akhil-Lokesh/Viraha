@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.990.0",
-    "@aws-sdk/lib-storage": "^3.990.0",
     "@prisma/client": "^6.19.2",
     "@sentry/node": "^10.38.0",
     "bcryptjs": "^3.0.3",
@@ -43,7 +42,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -51,9 +49,7 @@
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.2.3",
-    "@types/sharp": "^0.31.1",
     "@types/supertest": "^7.2.0",
-    "@types/uuid": "^10.0.0",
     "@vitest/coverage-v8": "^4.1.0",
     "nodemon": "^3.1.11",
     "prisma": "^6.19.2",

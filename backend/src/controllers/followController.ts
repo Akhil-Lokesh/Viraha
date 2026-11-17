@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { createActivity } from '../utils/activity';
 import { getHiddenUserIds, isBlockedBetween } from '../lib/blocks';
+import { invalidatePersonalFeedsFor } from '../lib/feedCache';
 
 const userSelect = {
   id: true,
@@ -59,6 +60,7 @@ export async function followUser(req: Request, res: Response, next: NextFunction
     const follow = await prisma.follow.create({
       data: { followerId, followingId, status },
     });
+    if (status === 'accepted') await invalidatePersonalFeedsFor(followerId);
 
     // Create activity for the followed user
     await createActivity({
@@ -93,6 +95,7 @@ export async function unfollowUser(req: Request, res: Response, next: NextFuncti
     await prisma.follow.delete({
       where: { id: follow.id },
     });
+    await invalidatePersonalFeedsFor(followerId);
 
     res.json({ success: true, data: { message: 'Unfollowed successfully' } });
   } catch (err) {
@@ -191,6 +194,7 @@ export async function acceptFollowRequest(req: Request, res: Response, next: Nex
       where: { id: followId },
       data: { status: 'accepted' },
     });
+    await invalidatePersonalFeedsFor(follow.followerId);
 
     await createActivity({
       userId: follow.followerId,

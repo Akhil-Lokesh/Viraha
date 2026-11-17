@@ -1,4 +1,5 @@
-import { beforeAll, afterAll, afterEach } from 'vitest';
+import 'dotenv/config';
+import { beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
 
@@ -12,6 +13,14 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret-key-must-be-at-least-32-characters-long';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-at-least-32-characters';
 process.env.CORS_ORIGIN = 'http://localhost:3000';
+
+// When Redis is available, isolate tests in their own logical database (flushed
+// before each test) so cached responses never leak between tests or into dev data.
+if (process.env.REDIS_URL) {
+  const redisUrl = new URL(process.env.REDIS_URL);
+  redisUrl.pathname = '/15';
+  process.env.REDIS_URL = redisUrl.toString();
+}
 
 const prisma = new PrismaClient({
   datasourceUrl: TEST_DATABASE_URL,
@@ -57,6 +66,12 @@ beforeAll(async () => {
   });
 
   await prisma.$connect();
+});
+
+beforeEach(async () => {
+  const { redis } = await import('../lib/redis');
+  // Some test files mock lib/redis with a partial client; only flush a real one.
+  if (typeof redis?.flushdb === 'function') await redis.flushdb().catch(() => {});
 });
 
 afterEach(async () => {

@@ -35,6 +35,12 @@ function sanitizeUser<T extends { passwordHash?: string }>(user: T): Omit<T, 'pa
   return rest;
 }
 
+/** The signed-in user as every auth response returns it: no hash, plus a live post count. */
+async function sessionUser<T extends { id: string; passwordHash?: string }>(user: T) {
+  const postCount = await prisma.post.count({ where: { userId: user.id, isDeleted: false } });
+  return { ...sanitizeUser(user), postCount };
+}
+
 function sessionMetadata(req: Request): { userAgent: string | null; ip: string | null } {
   return {
     userAgent: req.get('user-agent')?.slice(0, 512) ?? null,
@@ -103,7 +109,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
     res.status(201).json({
       success: true,
       data: {
-        user: sanitizeUser(user),
+        user: { ...sanitizeUser(user), postCount: 0 },
       },
     });
   } catch (err) {
@@ -163,7 +169,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     res.json({
       success: true,
       data: {
-        user: sanitizeUser(user),
+        user: await sessionUser(user),
       },
     });
   } catch (err) {
@@ -187,7 +193,7 @@ export async function me(req: Request, res: Response, next: NextFunction) {
 
     res.json({
       success: true,
-      data: { user: sanitizeUser(user) },
+      data: { user: await sessionUser(user) },
     });
   } catch (err) {
     next(err);
@@ -614,7 +620,7 @@ export async function googleSignIn(req: Request, res: Response, next: NextFuncti
     setRefreshTokenCookie(res, refreshToken);
     res.json({
       success: true,
-      data: { user: sanitizeUser(user) },
+      data: { user: await sessionUser(user) },
     });
   } catch (err) {
     next(err);

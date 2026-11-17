@@ -83,5 +83,3 @@ export async function deleteFile(urlOrKey: string): Promise<void> {
     // File may not exist — ignore
   }
 }
-
-export { isR2 };
